@@ -108,10 +108,10 @@ class Command(BaseCommand):
         )
         self.stdout.write(f'✅ Requisição criada: {requisicao.cod_req}')
         
-        # 6. Criar amostras
+        # 6. Criar amostras (mesmo código de barras para todas)
         amostras_dados = [
-            {'cod_barras': '999-A1', 'ordem': 1},
-            {'cod_barras': '999-A2', 'ordem': 2},
+            {'cod_barras': '999', 'ordem': 1},
+            {'cod_barras': '999', 'ordem': 2},
         ]
         
         for amostra_data in amostras_dados:
@@ -147,14 +147,14 @@ class Command(BaseCommand):
         self.stdout.write(f'   Origem: {origem.descricao if origem else "-"}')
         self.stdout.write(f'   Status: {status_transito.descricao}')
         self.stdout.write(f'   Qtd amostras: 2')
-        self.stdout.write(f'   Amostras: 999-A1, 999-A2')
+        self.stdout.write(f'   Amostras: 999, 999 (mesmo código)')
         self.stdout.write(f'   Data cadastro: {data_cadastro.strftime("%d/%m/%Y %H:%M")}')
         self.stdout.write(f'   Data envio: {data_envio.strftime("%d/%m/%Y %H:%M")}')
         self.stdout.write(f'\n🧪 COMO TESTAR:')
         self.stdout.write(f'   1. Acesse a página de recebimento')
         self.stdout.write(f'   2. Bipe o código: 999')
         self.stdout.write(f'   3. Modal deve mostrar "📦 REQUISIÇÃO EM TRÂNSITO"')
-        self.stdout.write(f'   4. Bipe as amostras: 999-A1 e 999-A2')
+        self.stdout.write(f'   4. Bipe as amostras: 999 e 999 (mesmo código)')
         self.stdout.write(f'   5. Clique em Validar')
         self.stdout.write(f'   6. Requisição deve ser recebida com sucesso!')
         self.stdout.write(f'\n🔄 PARA TESTAR NOVAMENTE:')
