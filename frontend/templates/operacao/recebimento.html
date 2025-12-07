@@ -292,6 +292,12 @@
 {% endblock %}
 
 {% block scripts %}
-
+<script>
+  // Dados do Django para JavaScript
+  window.FEMME_DATA = {
+    portadores: {{ portadores_json|safe }},
+    csrfToken: '{{ csrf_token }}'
+  };
+</script>
 <script src="{% static 'js/recebimento.js' %}"></script>
 {% endblock %}

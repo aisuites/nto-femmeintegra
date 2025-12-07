@@ -16,7 +16,7 @@
     const modalCodBarras = document.getElementById('modal_cod_barras_req');
     const modalCodReq = document.getElementById('modal_cod_req');
     const modalSamplesList = document.getElementById('modal_samples_list');
-    const portadoresData = JSON.parse('{{ portadores_json|escapejs }}');
+    const portadoresData = window.FEMME_DATA?.portadores || [];
 
     function getCookie(name) {
       const cookieValue = document.cookie
@@ -390,4 +390,3 @@
       }
     }
   });
-</script>
