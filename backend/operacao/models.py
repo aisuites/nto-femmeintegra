@@ -128,6 +128,16 @@ class Requisicao(AuditModel):
 
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name='requisicoes')
     status = models.ForeignKey(StatusRequisicao, on_delete=models.PROTECT, related_name='requisicoes')
+    recebido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requisicoes_recebidas',
+        verbose_name='Recebido por',
+        help_text='Usuário que recebeu/criou a requisição no sistema',
+        db_index=True,
+    )
     representante = models.ForeignKey(
         PortadorRepresentante,
         on_delete=models.SET_NULL,

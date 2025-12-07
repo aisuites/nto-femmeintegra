@@ -300,6 +300,7 @@ class RequisicaoService:
                 status=fks['status_inicial'],
                 portador=fks['portador'],
                 origem=fks['origem'],
+                recebido_por=user,
                 created_by=user,
                 updated_by=user,
             )

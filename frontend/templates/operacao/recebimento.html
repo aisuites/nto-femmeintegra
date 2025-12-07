@@ -296,7 +296,8 @@
   // Dados do Django para JavaScript
   window.FEMME_DATA = {
     portadores: {{ portadores_json|safe }},
-    csrfToken: '{{ csrf_token }}'
+    csrfToken: '{{ csrf_token }}',
+    urlValidar: '{% url "operacao:recebimento-validar" %}'
   };
 </script>
 <script src="{% static 'js/recebimento.js' %}"></script>

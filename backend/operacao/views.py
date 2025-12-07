@@ -51,10 +51,15 @@ class RecebimentoView(LoginRequiredMixin, TemplateView):
             )
             cache.set('recebimento:portadores', portadores, 3600)  # 1 hora
         
-        # Requisições recentes (não cachear - dados em tempo real)
+        # Requisições recebidas pelo usuário logado com status ABERTO_NTO
         requisicoes = (
-            Requisicao.objects.select_related('unidade', 'origem')
-            .order_by('-created_at')[:10]
+            Requisicao.objects
+            .filter(
+                recebido_por=self.request.user,
+                status__codigo='ABERTO_NTO'
+            )
+            .select_related('unidade', 'origem', 'status', 'recebido_por')
+            .order_by('-created_at')
         )
 
         context.update(

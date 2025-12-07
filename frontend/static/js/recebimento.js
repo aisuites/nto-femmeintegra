@@ -283,7 +283,7 @@
         return;
       }
 
-      const urlValidar = '{% url "operacao:recebimento-validar" %}';
+      const urlValidar = window.FEMME_DATA?.urlValidar || '/operacao/recebimento/validar/';
       modalValidar?.setAttribute('aria-busy', 'true');
       modalValidar?.setAttribute('disabled', 'disabled');
 

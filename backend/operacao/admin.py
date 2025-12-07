@@ -124,5 +124,5 @@ class RequisicaoStatusHistoricoAdmin(admin.ModelAdmin):
         return False
     
     def has_delete_permission(self, request, obj=None):
-        """Não permite deletar histórico."""
-        return False
+        """Permite deletar histórico apenas para superusuários (via cascade ao deletar requisição)."""
+        return request.user.is_superuser
