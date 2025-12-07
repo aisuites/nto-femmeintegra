@@ -337,9 +337,10 @@ class RequisicaoService:
             # Criar registro no histórico
             RequisicaoStatusHistorico.objects.create(
                 requisicao=requisicao,
+                cod_req=requisicao.cod_req,
                 status=status_aberto,
+                usuario=user,
                 observacao='Requisição recebida no NTO (atualizada de Em Trânsito)',
-                created_by=user,
             )
             
             logger.info(
