@@ -285,8 +285,9 @@ class Amostra(AuditModel):
 
     class Meta:
         ordering = ('requisicao', 'ordem')
-        unique_together = ('requisicao', 'cod_barras_amostra')
+        unique_together = ('requisicao', 'ordem')  # Unicidade por requisição + ordem
         verbose_name = 'Amostra'
+        verbose_name_plural = 'Amostras'
 
     def __str__(self) -> str:
-        return f'{self.requisicao.cod_barras_req} - {self.cod_barras_amostra}'
+        return f'{self.requisicao.cod_barras_req} - Amostra {self.ordem}'

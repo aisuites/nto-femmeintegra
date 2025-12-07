@@ -92,3 +92,11 @@ Thumbs.db
 /backend/logs/
 /frontend/staticfiles/
 /frontend/media/
+
+# Temporary SQL files (debug only)
+/backend/*.sql
+!/backend/fixtures/*.sql
+
+# Old/backup templates
+*_old.html
+*_backup.html
