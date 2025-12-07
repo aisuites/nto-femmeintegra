@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>FEMME Integra – Gestão de Requisições & Amostras</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fonte Quicksand -->
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --femme-purple: #7a3d8a;
+      --femme-purple-soft: #f4e9f8;
+      --femme-green: #00bca4;
+      --femme-rose-soft: #ffb7c9;
+
+      --femme-white: #ffffff;
+      --femme-gray-light: #f5f5f7;
+      --femme-gray: #77767c;
+      --femme-gray-dark: #34343a;
+
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --shadow-soft: 0 18px 40px rgba(20, 5, 36, 0.08);
+      --shadow-subtle: 0 10px 24px rgba(20, 5, 36, 0.05);
+
+      --max-width: 1280px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Quicksand", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(122, 61, 138, 0.08), transparent 55%),
+        radial-gradient(circle at bottom right, rgba(0, 188, 164, 0.06), transparent 55%);
+      color: var(--femme-gray-dark);
+      line-height: 1.5;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+    }
+
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* HEADER */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid rgba(244, 233, 248, 0.9);
+    }
+
+    .header-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 20%, #ffb7c9 0, #7a3d8a 45%, #4c1f63 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--femme-white);
+      font-weight: 700;
+      font-size: 18px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .brand-text .name {
+      font-weight: 700;
+      color: var(--femme-purple);
+      letter-spacing: 0.03em;
+      font-size: 15px;
+      text-transform: uppercase;
+    }
+
+    .brand-text .tagline {
+      font-size: 11px;
+      color: var(--femme-gray);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(244, 233, 248, 0.9);
+      color: var(--femme-purple);
+      font-weight: 500;
+    }
+
+    .user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #7a3d8a, #00bca4);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .header-badge-env {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(0, 188, 164, 0.08);
+      color: var(--femme-green);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* LAYOUT PRINCIPAL */
+    .shell {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 18px 20px 32px;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-subtle);
+      padding: 16px 14px;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .sidebar-section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--femme-gray);
+      margin-bottom: 4px;
+    }
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 9px;
+      border-radius: 999px;
+      color: var(--femme-gray-dark);
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+    }
+
+    .sidebar-link span.icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      background: rgba(122, 61, 138, 0.04);
+      color: var(--femme-purple);
+    }
+
+    .sidebar-link:hover {
+      background: rgba(244, 233, 248, 0.9);
+      transform: translateY(-1px);
+    }
+
+    .sidebar-link.active {
+      background: linear-gradient(90deg, rgba(122, 61, 138, 0.12), rgba(0, 188, 164, 0.12));
+      font-weight: 600;
+      color: var(--femme-purple);
+    }
+
+    .sidebar-link.subitem {
+      padding-left: 28px;
+      font-size: 12px;
+    }
+
+    .sidebar-link.subitem span.icon {
+      font-size: 11px;
+      width: 18px;
+      height: 18px;
+      background: rgba(122, 61, 138, 0.03);
+    }
+
+    .sidebar-divider {
+      height: 1px;
+      background: rgba(230, 224, 238, 0.85);
+      margin-block: 6px;
+    }
+
+    /* BOTÕES */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--femme-green);
+      color: var(--femme-white);
+      box-shadow: 0 10px 22px rgba(0, 188, 164, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: #00a08c;
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(0, 188, 164, 0.4);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--femme-purple);
+      border: 1px solid rgba(122, 61, 138, 0.45);
+    }
+
+    .btn-outline:hover {
+      background: rgba(244, 233, 248, 0.9);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--femme-gray);
+      border: none;
+      padding-inline: 10px;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    /* CONTEÚDO PRINCIPAL */
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* HERO FEMME INTEGRA */
+    .hero-integra {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--radius-lg);
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow-soft);
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.1fr);
+      gap: 18px;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(244, 233, 248, 0.95);
+      color: var(--femme-purple);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .hero-kicker-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--femme-green);
+      box-shadow: 0 0 0 4px rgba(0, 188, 164, 0.25);
+    }
+
+    .hero-title {
+      font-size: 22px;
+      color: var(--femme-purple);
+    }
+
+    .hero-title span.highlight {
+      background: linear-gradient(120deg, #7a3d8a, #00bca4);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-text {
+      font-size: 13px;
+      color: var(--femme-gray);
+      max-width: 560px;
+    }
+
+    .hero-tags {
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 10px;
+    }
+
+    .hero-tag {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(122, 61, 138, 0.06);
+      color: var(--femme-purple);
+      font-weight: 500;
+    }
+
+    .hero-actions {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .hero-status-card {
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: var(--femme-gray-light);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-status-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .status-pill {
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-pill span.dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+    }
+
+    .status-pill--green {
+      background: rgba(0, 188, 164, 0.08);
+      color: var(--femme-green);
+    }
+
+    .status-pill--green span.dot {
+      background: var(--femme-green);
+    }
+
+    .status-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      font-size: 11px;
+    }
+
+    .metric-card {
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+    }
+
+    .metric-label {
+      color: var(--femme-gray);
+      margin-bottom: 3px;
+    }
+
+    .metric-value {
+      font-weight: 700;
+      color: var(--femme-purple);
+      font-size: 15px;
+    }
+
+    .metric-tag {
+      font-size: 10px;
+      color: var(--femme-gray);
+    }
+
+    /* BLOCO TRIAGEM */
+    .triagem-wrapper {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-subtle);
+      padding: 18px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .triagem-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .triagem-header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .section-kicker {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--femme-gray);
+    }
+
+    .section-title {
+      font-size: 16px;
+      color: var(--femme-purple);
+      font-weight: 600;
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--femme-gray);
+    }
+
+    .triagem-header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* FILTROS */
+    .triagem-filters {
+      border-radius: var(--radius-md);
+      background: var(--femme-gray-light);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 12px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    @media (max-width: 1024px) {
+      .filters-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .filters-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 12px;
+    }
+
+    .field-label-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    label {
+      font-weight: 500;
+      color: var(--femme-gray-dark);
+      font-size: 12px;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select {
+      border-radius: 999px;
+      border: 1px solid rgba(122, 61, 138, 0.18);
+      background: #ffffff;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--femme-gray-dark);
+      outline: none;
+      transition: border 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--femme-purple);
+      box-shadow: 0 0 0 1px rgba(122, 61, 138, 0.2);
+    }
+
+    .filters-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* TABELA */
+    .triagem-table-wrapper {
+      border-radius: var(--radius-md);
+      background: #ffffff;
+      box-shadow: 0 6px 14px rgba(20, 5, 36, 0.05);
+      overflow: hidden;
+    }
+
+    .triagem-table-header {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(230, 224, 238, 0.85);
+      font-size: 12px;
+      color: var(--femme-gray);
+    }
+
+    .triagem-table-header strong {
+      color: var(--femme-gray-dark);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    thead {
+      background: var(--femme-purple-soft);
+    }
+
+    th,
+    td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(240, 235, 245, 0.9);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--femme-gray-dark);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fcfbfe;
+    }
+
+    .tag-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .tag-status span.dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+    }
+
+    .tag-status--pendente {
+      background: rgba(255, 191, 59, 0.12);
+      color: #c58900;
+    }
+
+    .tag-status--pendente span.dot {
+      background: #ffbf3b;
+    }
+
+    .tag-status--ok {
+      background: rgba(0, 188, 164, 0.12);
+      color: var(--femme-green);
+    }
+
+    .tag-status--ok span.dot {
+      background: var(--femme-green);
+    }
+
+    .tag-status--erro {
+      background: rgba(193, 18, 58, 0.14);
+      color: #c1123a;
+    }
+
+    .tag-status--erro span.dot {
+      background: #c1123a;
+    }
+
+    .table-actions {
+      display: inline-flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(122, 61, 138, 0.25);
+      font-size: 11px;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    .chip:hover {
+      background: var(--femme-purple-soft);
+    }
+
+    /* RESPONSIVO GERAL */
+    @media (max-width: 1024px) {
+      .shell {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .sidebar {
+        order: -1;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+
+      .sidebar-section-title {
+        flex-basis: 100%;
+      }
+
+      .hero-integra {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .status-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px) {
+      .header-inner {
+        padding-inline: 14px;
+      }
+
+      .shell {
+        padding-inline: 14px;
+      }
+
+      .hero-title {
+        font-size: 18px;
+      }
+
+      .status-metrics {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .triagem-table-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      table {
+        font-size: 11px;
+      }
+
+      th,
+      td {
+        padding: 6px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-logo">F</div>
+        <div class="brand-text">
+          <div class="name">FEMME Integra</div>
+          <div class="tagline">Gestão de requisições & amostras</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <span class="header-badge-env">Ambiente interno</span>
+        <div class="user-info">
+          <div class="user-avatar">L</div>
+          <div>
+            <div style="font-weight:600;">Luciana</div>
+            <div style="font-size:11px; color:var(--femme-gray);">Marketing / Projetos FEMME</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-section-title">Navegação</div>
+        <nav class="sidebar-nav">
+          <!-- OPERACIONAL -->
+          <div class="sidebar-link">
+            <span class="icon">⚙</span>
+            <span>Operacional</span>
+          </div>
+          <div class="sidebar-link subitem">
+            <span class="icon">⬇</span>
+            <span>Recebimento</span>
+          </div>
+          <div class="sidebar-link subitem active">
+            <span class="icon">🩺</span>
+            <span>Triagem</span>
+          </div>
+          <div class="sidebar-link subitem">
+            <span class="icon">⏱</span>
+            <span>Pendências</span>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <!-- GESTÃO -->
+          <div class="sidebar-link">
+            <span class="icon">📊</span>
+            <span>Gestão</span>
+          </div>
+
+          <!-- ATENDIMENTO -->
+          <div class="sidebar-link">
+            <span class="icon">💬</span>
+            <span>Atendimento</span>
+          </div>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main">
+
+      <!-- HERO FEMME INTEGRA -->
+      <section class="hero-integra">
+        <div class="hero-left">
+          <div class="hero-kicker">
+            <span class="hero-kicker-dot"></span>
+            Operação & rastreabilidade
+          </div>
+          <h1 class="hero-title">
+            <span class="highlight">FEMME Integra</span> – painel de triagem das requisições.
+          </h1>
+          <p class="hero-text">
+            Centralize o recebimento, a conferência e o status de cada requisição de exame.
+            Acompanhe o fluxo desde o representante ou clínica de origem até o NTO, garantindo
+            rastreabilidade entre papel, amostras e integração com sistemas externos.
+          </p>
+          <div class="hero-tags">
+            <span class="hero-tag">Cod. de barras vinculado</span>
+            <span class="hero-tag">Controle de portadores</span>
+            <span class="hero-tag">Leitura OCR</span>
+            <span class="hero-tag">Integração S3 & Dynamosoft</span>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-primary">➕ Nova requisição</button>
+            <button class="btn btn-outline">📁 Importar lote</button>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <div class="hero-status-card">
+            <div class="hero-status-header">
+              <span style="font-size:12px; font-weight:600;">Status geral da triagem – hoje</span>
+              <div class="status-pill status-pill--green">
+                <span class="dot"></span>
+                Operação ativa
+              </div>
+            </div>
+
+            <div class="status-metrics">
+              <div class="metric-card">
+                <div class="metric-label">Recebidas</div>
+                <div class="metric-value">128</div>
+                <div class="metric-tag">Requisições do dia</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Pendentes de triagem</div>
+                <div class="metric-value">24</div>
+                <div class="metric-tag">Aguardando conferência</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-label">Com erro</div>
+                <div class="metric-value">6</div>
+                <div class="metric-tag">CPF, assinatura, carimbo etc.</div>
+              </div>
+            </div>
+
+            <div style="font-size:11px; color:var(--femme-gray); margin-top:6px;">
+              Os indicadores serão alimentados a partir da tabela <strong>dados_requisicao</strong>
+              e integrações com sistemas externos.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BLOCO PRINCIPAL: TRIAGEM -->
+      <section class="triagem-wrapper">
+        <div class="triagem-header">
+          <div class="triagem-header-main">
+            <div class="section-kicker">Triagem</div>
+            <div class="section-title">Painel de triagem das requisições</div>
+            <div class="section-subtitle">
+              Filtre, visualize e atualize rapidamente o status das requisições e amostras recebidas.
+            </div>
+          </div>
+          <div class="triagem-header-actions">
+            <button class="btn btn-ghost">🔄 Atualizar</button>
+            <button class="btn btn-outline">⬇ Exportar CSV</button>
+          </div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="triagem-filters">
+          <div style="font-size:11px; color:var(--femme-gray); font-weight:500;">
+            Filtros rápidos de triagem
+          </div>
+          <div class="filters-grid">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_cod_req">Cód. requisição</label>
+              </div>
+              <input type="text" id="filtro_cod_req" placeholder="Ex.: 2025A00123" />
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_cod_barras">Cód. de barras</label>
+              </div>
+              <input type="text" id="filtro_cod_barras" placeholder="Leia ou digite o código" />
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_unidade">Unidade</label>
+              </div>
+              <select id="filtro_unidade">
+                <option value="">Todas</option>
+                <option value="7">FEMME – Paulista</option>
+                <option value="12">FEMME – Osasco</option>
+                <option value="21">FEMME – Santo André</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_status">Status de triagem</label>
+              </div>
+              <select id="filtro_status">
+                <option value="">Todos</option>
+                <option value="pendente">Pendente</option>
+                <option value="ok">OK para NTO</option>
+                <option value="erro">Com erro</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_data_ini">Data recebimento (de)</label>
+              </div>
+              <input type="date" id="filtro_data_ini" />
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_data_fim">Data recebimento (até)</label>
+              </div>
+              <input type="date" id="filtro_data_fim" />
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_portador">Portador</label>
+              </div>
+              <select id="filtro_portador">
+                <option value="">Todos</option>
+                <option value="1">Transportadora FEMME</option>
+                <option value="2">Motoboy – Empresa A</option>
+                <option value="3">Motoboy – Empresa B</option>
+              </select>
+            </div>
+            <div class="field">
+              <div class="field-label-row">
+                <label for="filtro_origem">Origem</label>
+              </div>
+              <select id="filtro_origem">
+                <option value="">Todas</option>
+                <option value="representante">Representante FEMME</option>
+                <option value="clinica">Clínica / médico externo</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="filters-actions">
+            <button class="btn btn-ghost">Limpar filtros</button>
+            <button class="btn btn-outline">Aplicar filtros</button>
+          </div>
+        </div>
+
+        <!-- TABELA -->
+        <div class="triagem-table-wrapper">
+          <div class="triagem-table-header">
+            <div>
+              <strong>Requisições encontradas:</strong> 48 registros
+            </div>
+            <div>
+              Página 1 de 5 · Itens por página: 10
+            </div>
+          </div>
+
+          <table>
+            <thead>
+            <tr>
+              <th>Cód. Req.</th>
+              <th>Cód. Barras</th>
+              <th>Paciente</th>
+              <th>Unidade</th>
+              <th>Origem</th>
+              <th>Status</th>
+              <th>Recebido em</th>
+              <th>Portador</th>
+              <th style="text-align:right;">Ações</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td>2025A00123</td>
+              <td>BR0123456789012</td>
+              <td>Maria Silva</td>
+              <td>Paulista</td>
+              <td>Representante</td>
+              <td>
+                <span class="tag-status tag-status--pendente">
+                  <span class="dot"></span> Pendente
+                </span>
+              </td>
+              <td>06/12/2025 · 09:32</td>
+              <td>Transp. FEMME</td>
+              <td style="text-align:right;">
+                <div class="table-actions">
+                  <span class="chip">Detalhar</span>
+                  <span class="chip">Triar</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>2025A00124</td>
+              <td>BR0123456789030</td>
+              <td>Ana Oliveira</td>
+              <td>Osasco</td>
+              <td>Clínica externa</td>
+              <td>
+                <span class="tag-status tag-status--ok">
+                  <span class="dot"></span> OK p/ NTO
+                </span>
+              </td>
+              <td>06/12/2025 · 09:47</td>
+              <td>Motoboy – Emp. A</td>
+              <td style="text-align:right;">
+                <div class="table-actions">
+                  <span class="chip">Detalhar</span>
+                  <span class="chip">Ver amostras</span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>2025A00125</td>
+              <td>BR0123456789045</td>
+              <td>João Souza</td>
+              <td>Santo André</td>
+              <td>Clínica externa</td>
+              <td>
+                <span class="tag-status tag-status--erro">
+                  <span class="dot"></span> Erro
+                </span>
+              </td>
+              <td>06/12/2025 · 10:05</td>
+              <td>Motoboy – Emp. B</td>
+              <td style="text-align:right;">
+                <div class="table-actions">
+                  <span class="chip">Ver motivos</span>
+                  <span class="chip">Corrigir</span>
+                </div>
+              </td>
+            </tr>
+            <!-- Outras linhas serão geradas dinamicamente pelo Django -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+</body>
+</html>
