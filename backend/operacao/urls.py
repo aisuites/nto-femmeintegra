@@ -16,4 +16,9 @@ urlpatterns = [
         views.RecebimentoValidarView.as_view(),
         name='recebimento-validar',
     ),
+    path(
+        'recebimento/finalizar/',
+        views.RecebimentoFinalizarView.as_view(),
+        name='recebimento-finalizar',
+    ),
 ]

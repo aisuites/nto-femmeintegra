@@ -143,6 +143,9 @@
     function construirLinhasAmostra(qtd) {
       if (!modalSamplesList) return;
       modalSamplesList.innerHTML = '';
+      
+      const inputs = []; // Array para controlar a navegação
+
       for (let idx = 1; idx <= qtd; idx += 1) {
         const linha = document.createElement('div');
         linha.className = 'sample-line';
@@ -155,7 +158,30 @@
         input.type = 'text';
         input.placeholder = `Bipe ou digite o código da amostra ${idx}`;
         input.autocomplete = 'off';
+        
+        // Adicionar evento para navegação automática
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            const valor = input.value.trim();
+            if (!valor) return; // Não avança se estiver vazio
 
+            const currentIndex = inputs.indexOf(input);
+            
+            // Se houver próximo campo, foca nele
+            if (currentIndex < inputs.length - 1) {
+              inputs[currentIndex + 1].focus();
+            } else {
+              // Se for o último, aciona o botão validar
+              if (modalValidar) {
+                // Pequeno delay visual para o usuário ver que preencheu
+                setTimeout(() => modalValidar.click(), 100);
+              }
+            }
+          }
+        });
+
+        inputs.push(input);
         linha.appendChild(legenda);
         linha.appendChild(input);
         modalSamplesList.appendChild(linha);
@@ -169,6 +195,14 @@
       modalCodReq.textContent = '—';
       construirLinhasAmostra(quantidade);
       modalOverlay.setAttribute('aria-hidden', 'false');
+      
+      // Focar automaticamente no primeiro input de amostra
+      setTimeout(() => {
+        const primeiroInput = modalSamplesList.querySelector('input[type="text"]');
+        if (primeiroInput) {
+          primeiroInput.focus();
+        }
+      }, 100); // Pequeno delay para garantir que o modal renderizou
     }
 
     function fecharModal() {
@@ -247,15 +281,166 @@
       }
     });
 
-    // Botão Finalizar Recebimento - limpa sessionStorage
-    btnFinalizarRecebimento?.addEventListener('click', () => {
-      sessionStorage.removeItem('recebimento_unidade_id');
-      sessionStorage.removeItem('recebimento_portador_id');
-      mostrarToastSucesso('Recebimento finalizado! Valores resetados.');
-      setTimeout(() => {
-        location.reload();
-      }, 1500);
+    // Botão Finalizar Recebimento
+    btnFinalizarRecebimento?.addEventListener('click', async () => {
+      // Verifica se há itens na tabela visualmente
+      const counterSpan = document.getElementById('kit_counter');
+      const count = counterSpan ? parseInt(counterSpan.textContent) : 0;
+      
+      if (count === 0 && !confirm('Não há requisições bipadas visíveis neste kit. Deseja finalizar mesmo assim?')) {
+        return;
+      }
+
+      const urlFinalizar = window.FEMME_DATA?.urlFinalizar || '/operacao/recebimento/finalizar/';
+      btnFinalizarRecebimento.setAttribute('aria-busy', 'true');
+      btnFinalizarRecebimento.setAttribute('disabled', 'disabled');
+
+      try {
+        const response = await fetch(urlFinalizar, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+          },
+          body: JSON.stringify({}) // Body vazio
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok || data.status === 'error') {
+             mostrarAlerta(data.message || 'Erro ao finalizar recebimento.');
+             btnFinalizarRecebimento.removeAttribute('aria-busy');
+             btnFinalizarRecebimento.removeAttribute('disabled');
+             return;
+        }
+        
+        if (data.status === 'success') {
+            // Limpar sessionStorage
+            sessionStorage.removeItem('recebimento_unidade_id');
+            sessionStorage.removeItem('recebimento_portador_id');
+            
+            mostrarToastSucesso(data.message || 'Recebimento finalizado com sucesso!');
+            
+            // Aguardar toast e recarregar para limpar a tela
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        }
+
+      } catch (error) {
+        console.error(error);
+        mostrarAlerta('Erro de comunicação ao finalizar recebimento.');
+        btnFinalizarRecebimento.removeAttribute('aria-busy');
+        btnFinalizarRecebimento.removeAttribute('disabled');
+      }
     });
+
+    // Função para mostrar toast de sucesso empilhável
+    function mostrarToastSucesso(mensagem) {
+      let container = document.getElementById('toast_container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast_container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+
+      const toast = document.createElement('div');
+      toast.className = 'toast-success';
+      toast.textContent = mensagem;
+      
+      container.appendChild(toast);
+
+      // Remove o elemento do DOM após a animação de fadeOut (3s total: 0.3s slideIn + 2.2s wait + 0.5s fadeOut)
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 3000);
+    }
+
+    function adicionarRequisicaoNaTabela(requisicao) {
+      const tableWrapper = document.querySelector('.kit-table-wrapper');
+      let tbody = tableWrapper.querySelector('tbody');
+      
+      // Se não houver tabela (primeira inserção), criar a estrutura
+      if (!tbody) {
+        const headerDiv = tableWrapper.querySelector('.kit-table-header');
+        if (headerDiv) {
+            // Atualizar contador no header se existir
+             headerDiv.innerHTML = `
+                <div>
+                  <strong>Requisições bipadas neste kit:</strong> <span id="kit_counter">1</span> registros
+                </div>
+                <div>
+                  Kit em edição · não esqueça de salvar ao finalizar
+                </div>
+             `;
+        }
+        
+        // Limpar mensagem de "nenhum registro"
+        const emptyMsg = tableWrapper.querySelector('div[style*="padding:16px"]');
+        if (emptyMsg) emptyMsg.remove();
+
+        const table = document.createElement('table');
+        table.innerHTML = `
+          <thead>
+          <tr>
+            <th>Cód. Req.</th>
+            <th>Cód. Barras</th>
+            <th>Unidade</th>
+            <th>Origem</th>
+            <th>Data/Hora bipagem</th>
+          </tr>
+          </thead>
+          <tbody></tbody>
+        `;
+        tableWrapper.appendChild(table);
+        tbody = table.querySelector('tbody');
+      } else {
+        // Atualizar contador
+        const counterSpan = document.getElementById('kit_counter');
+        if (counterSpan) {
+            counterSpan.textContent = parseInt(counterSpan.textContent || '0') + 1;
+        } else {
+             // Caso o contador não tenha ID, tenta atualizar via regex no header (fallback)
+             const headerDiv = tableWrapper.querySelector('.kit-table-header strong');
+             if(headerDiv && headerDiv.nextSibling) {
+                 const currentText = headerDiv.nextSibling.textContent;
+                 const match = currentText.match(/(\d+)/);
+                 if(match) {
+                     const newCount = parseInt(match[1]) + 1;
+                     headerDiv.nextSibling.textContent = ` ${newCount} registros`;
+                 }
+             }
+        }
+      }
+
+      const tr = document.createElement('tr');
+      // Animação de entrada para a nova linha
+      tr.style.animation = 'highlightRow 1s ease-out';
+      
+      // Formatar data atual
+      const now = new Date();
+      const dataFormatada = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + 
+                           ' · ' + 
+                           now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+      tr.innerHTML = `
+        <td>${requisicao.cod_req}</td>
+        <td>${requisicao.cod_barras_req}</td>
+        <td>${requisicao.unidade_nome}</td>
+        <td>${requisicao.origem_descricao || '-'}</td>
+        <td>${dataFormatada}</td>
+      `;
+      
+      // Inserir no topo da tabela
+      if (tbody.firstChild) {
+        tbody.insertBefore(tr, tbody.firstChild);
+      } else {
+        tbody.appendChild(tr);
+      }
+    }
 
     modalValidar?.addEventListener('click', async () => {
       esconderAlerta();
@@ -277,6 +462,9 @@
       const unidadeId = hiddenField?.value;
       const portadorId = portadorSelect?.value;
       const origemId = portadorSelect?.options[portadorSelect.selectedIndex]?.dataset?.origemId;
+      // Pegar texto da unidade e descrição da origem para a tabela
+      const unidadeNome = document.querySelector('.unit-card--selected span')?.textContent || '';
+      const origemDescricao = origemInput?.value || '';
 
       if (!unidadeId || !portadorId) {
         mostrarAlerta('Dados incompletos para validação.');
@@ -310,24 +498,31 @@
         }
 
         if (data.status === 'success') {
-          // Mostrar toast de sucesso
+          // 1. Atualizar Tabela IMEDIATAMENTE
+          adicionarRequisicaoNaTabela({
+            cod_req: data.cod_req,
+            cod_barras_req: codBarrasReq,
+            unidade_nome: unidadeNome,
+            origem_descricao: origemDescricao
+          });
+
+          // 2. Mostrar toast de sucesso (sem bloquear)
           mostrarToastSucesso(`Requisição ${data.cod_req} criada com sucesso!`);
           
-          // Fechar modal
+          // 3. Fechar modal e limpar campos
           fecharModal();
           
-          // Limpar apenas o campo de código de barras e resetar quantidade
-          if (barcodeInput) barcodeInput.value = '';
+          if (barcodeInput) {
+            barcodeInput.value = '';
+            barcodeInput.focus(); // Focar imediatamente para próxima leitura
+          }
           if (quantidadeInput) quantidadeInput.value = 1;
           
-          // Salvar valores atuais no sessionStorage
+          // Salvar valores atuais no sessionStorage (backup)
           sessionStorage.setItem('recebimento_unidade_id', hiddenField?.value || '');
           sessionStorage.setItem('recebimento_portador_id', portadorSelect?.value || '');
           
-          // Recarregar após 2.5 segundos
-          setTimeout(() => {
-            location.reload();
-          }, 2500);
+          // NÃO RECARREGAR A PÁGINA
         }
       } catch (error) {
         console.error(error);
@@ -342,23 +537,6 @@
       input.addEventListener('change', () => updateSelectedState(input));
       input.addEventListener('click', () => updateSelectedState(input));
     });
-
-    // Função para mostrar toast de sucesso
-    function mostrarToastSucesso(mensagem) {
-      let toast = document.getElementById('toast_sucesso');
-      if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toast_sucesso';
-        toast.className = 'toast-success';
-        document.body.appendChild(toast);
-      }
-      toast.textContent = mensagem;
-      toast.classList.add('show');
-      
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 2500);
-    }
 
     // Restaurar valores do sessionStorage
     const savedUnidadeId = sessionStorage.getItem('recebimento_unidade_id');

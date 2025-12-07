@@ -220,7 +220,8 @@
   window.FEMME_DATA = {
     portadores: {{ portadores_json|safe }},
     csrfToken: '{{ csrf_token }}',
-    urlValidar: '{% url "operacao:recebimento-validar" %}'
+    urlValidar: '{% url "operacao:recebimento-validar" %}',
+    urlFinalizar: '{% url "operacao:recebimento-finalizar" %}'
   };
 </script>
 <script src="{% static 'js/recebimento.js' %}"></script>

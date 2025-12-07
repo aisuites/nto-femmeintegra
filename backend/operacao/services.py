@@ -182,11 +182,11 @@ class RequisicaoService:
                 raise ValidationError(f'Origem com ID {origem_id} não encontrada')
         
         try:
-            status_inicial = StatusRequisicao.objects.get(codigo='ABERTO_NTO')
+            status_inicial = StatusRequisicao.objects.get(codigo='1') # 1 = ABERTO NTO
         except StatusRequisicao.DoesNotExist:
-            logger.critical('Status ABERTO_NTO não encontrado no banco de dados!')
+            logger.critical('Status 1 (ABERTO_NTO) não encontrado no banco de dados!')
             raise ValidationError(
-                'Configuração inválida: Status inicial não encontrado. '
+                'Configuração inválida: Status inicial (1) não encontrado. '
                 'Contate o administrador.'
             )
         
@@ -335,6 +335,85 @@ class RequisicaoService:
                 'status': 'error',
                 'message': 'Erro ao salvar requisição. Tente novamente.',
             }
+
+
+    @classmethod
+    @transaction.atomic
+    def finalizar_kit_recebimento(cls, user) -> Dict[str, any]:
+        """
+        Finaliza o recebimento das requisições do usuário atual.
+        
+        Atualiza o status das requisições recém-criadas (ABERTO_NTO) para RECEBIDO (ID 2),
+        define a data de recebimento e gera histórico.
+        
+        Args:
+            user: Usuário que está finalizando o kit
+            
+        Returns:
+            dict: Resultado da operação
+        """
+        from django.utils import timezone
+        
+        try:
+            # Busca status inicial e final
+            # 1 = ABERTO NTO (Inicial)
+            # 2 = RECEBIDO (Finalização do kit)
+            status_aberto = StatusRequisicao.objects.get(codigo='1')
+            status_recebido = StatusRequisicao.objects.get(codigo='2') 
+        except StatusRequisicao.DoesNotExist:
+            logger.error('Status 1 (ABERTO) ou 2 (RECEBIDO) não encontrados')
+            return {
+                'status': 'error',
+                'message': 'Erro de configuração de status. Contate o suporte.',
+            }
+            
+        # Buscar requisições pendentes deste usuário (status 1)
+        # Filtramos por recebido_por=user para garantir que só finalize as deste usuário
+        requisicoes = Requisicao.objects.filter(
+            recebido_por=user,
+            status=status_aberto
+        )
+        
+        count = requisicoes.count()
+        if count == 0:
+            return {
+                'status': 'success',
+                'message': 'Nenhuma requisição pendente para finalizar.',
+                'count': 0
+            }
+            
+        agora = timezone.now() # Django trata conversão para DateField se necessário
+        
+        sucesso_count = 0
+        
+        for req in requisicoes:
+            try:
+                # Atualizar status e data
+                req.status = status_recebido
+                req.data_recebimento_nto = agora
+                req.updated_by = user
+                req.save()
+                
+                # Criar histórico
+                RequisicaoStatusHistorico.objects.create(
+                    requisicao=req,
+                    cod_req=req.cod_req,
+                    status=status_recebido,
+                    usuario=user,
+                    observacao='Recebimento finalizado em lote (kit)'
+                )
+                
+                sucesso_count += 1
+            except Exception as e:
+                logger.exception('Erro ao finalizar requisição %s', req.cod_req)
+                # Não interrompe o loop, tenta finalizar as outras
+                continue
+                
+        return {
+            'status': 'success',
+            'message': f'Recebimento finalizado com sucesso! {sucesso_count} requisições processadas.',
+            'count': sucesso_count
+        }
 
 
 class BuscaService:

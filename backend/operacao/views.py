@@ -51,12 +51,12 @@ class RecebimentoView(LoginRequiredMixin, TemplateView):
             )
             cache.set('recebimento:portadores', portadores, 3600)  # 1 hora
         
-        # Requisições recebidas pelo usuário logado com status ABERTO_NTO
+        # Requisições recebidas pelo usuário logado com status 1 (ABERTO_NTO)
         requisicoes = (
             Requisicao.objects
             .filter(
                 recebido_por=self.request.user,
-                status__codigo='ABERTO_NTO'
+                status__codigo='1'
             )
             .select_related('unidade', 'origem', 'status', 'recebido_por')
             .order_by('-created_at')
@@ -184,5 +184,27 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
             logger.exception('Erro inesperado ao criar requisição')
             return JsonResponse(
                 {'status': 'error', 'message': 'Erro ao processar requisição. Contate o suporte.'},
+                status=500,
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='10/m', method='POST'), name='dispatch')
+class RecebimentoFinalizarView(LoginRequiredMixin, View):
+    """View para finalizar o kit de recebimento."""
+    
+    login_url = 'admin:login'
+
+    def post(self, request, *args, **kwargs):
+        # Delegar para o service
+        try:
+            resultado = RequisicaoService.finalizar_kit_recebimento(request.user)
+            
+            status_code = 200 if resultado['status'] == 'success' else 400
+            return JsonResponse(resultado, status=status_code)
+            
+        except Exception as e:
+            logger.exception('Erro inesperado ao finalizar recebimento')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao finalizar recebimento. Contate o suporte.'},
                 status=500,
             )
