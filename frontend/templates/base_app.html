@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head_extra %}
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="{% static 'css/base_app.css' %}" />
+{% block extra_css %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+{% include "includes/header.html" %}
+
+<!-- LAYOUT PRINCIPAL -->
+<div class="shell">
+  <!-- SIDEBAR -->
+  {% include "includes/sidebar.html" %}
+
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="main">
+    {% block main_content %}
+    <!-- Conteúdo específico de cada página -->
+    {% endblock %}
+  </main>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% block extra_scripts %}{% endblock %}
+{% endblock %}

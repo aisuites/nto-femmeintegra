@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Recebimento – FEMME Integra{% endblock %}
+
+{% block head_extra %}
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'css/recebimento.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="page">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-logo">F</div>
+        <div class="brand-text">
+          <div class="name">FEMME Integra</div>
+          <div class="tagline">Gestão de requisições & amostras</div>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <span class="header-badge-env">Ambiente interno</span>
+        <div class="user-info">
+          <div class="user-avatar">{{ user.first_name.0|upper|default:"U" }}</div>
+          <div>
+            <div style="font-weight:600;">{{ user.get_full_name|default:user.username }}</div>
+            <div style="font-size:11px; color:var(--femme-gray);">{{ user.email|default:"Usuário do sistema" }}</div>
+          </div>
+        </div>
+        <a href="{% url 'admin:logout' %}" class="btn-logout" title="Sair do sistema">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- LAYOUT PRINCIPAL -->
+  <div class="shell">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div>
+        <div class="sidebar-section-title">Navegação</div>
+        <nav class="sidebar-nav">
+          <a class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+            <span class="icon">🏠</span>
+            <span>Dashboard</span>
+          </a>
+          <div class="sidebar-link">
+            <span class="icon">⚙</span>
+            <span>Operacional</span>
+          </div>
+          <a class="sidebar-link subitem {% if active_page == 'recebimento' %}active{% endif %}" href="{% url 'operacao:recebimento' %}">
+            <span class="icon">⬇</span>
+            <span>Recebimento</span>
+          </a>
+          <div class="sidebar-link subitem">
+            <span class="icon">🩺</span>
+            <span>Triagem</span>
+          </div>
+          <div class="sidebar-link subitem">
+            <span class="icon">⏱</span>
+            <span>Pendências</span>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <div class="sidebar-link">
+            <span class="icon">📊</span>
+            <span>Gestão</span>
+          </div>
+
+          <div class="sidebar-link">
+            <span class="icon">💬</span>
+            <span>Atendimento</span>
+          </div>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="main">
+
+      <!-- BLOCO PRINCIPAL: FORM DE RECEBIMENTO -->
+      <section class="recebimento-wrapper">
+        <div class="recebimento-header">
+          <div class="section-kicker">Recebimento</div>
+          <!--<div class="section-title">Registrar novo kit de requisições</div>-->
+          <!--<div class="section-subtitle">
+            Informe a unidade de origem, portador/representante, quantidade de amostras e bipagem
+            da requisição principal. As requisições bipadas serão listadas abaixo.
+          </div>-->
+        </div>
+
+        <!-- BLOCO 1 – UNIDADE -->
+        <div class="form-block">
+          <div class="block-title">1. Unidade</div>
+          <div class="units-grid">
+            {% if unidades %}
+              {% for unidade in unidades %}
+                <label class="unit-card {% if unidade_padrao and unidade.id == unidade_padrao.id %}unit-card--selected{% endif %}">
+                  <input
+                      type="radio"
+                      name="unidade_origem"
+                      value="{{ unidade.id }}"
+                      data-unidade-nome="{{ unidade.nome }}"
+                      data-unidade-codigo="{{ unidade.codigo }}"
+                      {% if unidade_padrao and unidade.id == unidade_padrao.id %}checked{% endif %}
+                  />
+                  <span>{{ unidade.nome }}</span>
+                </label>
+              {% endfor %}
+            {% else %}
+              <p class="info-inline">Cadastre unidades para habilitar esta etapa.</p>
+            {% endif %}
+          </div>
+          <input type="hidden" id="unidadeSelecionada" name="unidade_id" value="{{ unidade_padrao.id|default_if_none:'' }}">
+        </div>
+
+        <!-- BLOCO 2 – PORTADOR / REPRESENTANTE E ORIGEM -->
+        <div class="form-block">
+          <div class="block-title">2. Portador / Representante & origem</div>
+
+          <div class="fields-grid">
+            <div class="field">
+              <div class="field-label-row">
+                <label for="campo_portador">Portador / Representante</label>
+              </div>
+              <!-- No Django este select virá da tabela de portadores/representantes -->
+              <select id="campo_portador">
+                <option value="">Selecione...</option>
+                {% for portador in portadores %}
+                  <option
+                      value="{{ portador.id }}"
+                      data-unidade-id="{{ portador.unidade_id }}"
+                      data-origem="{{ portador.origem.descricao|default_if_none:'' }}"
+                      data-tipo="{{ portador.get_tipo_display }}"
+                  >
+                    {{ portador.nome }}
+                  </option>
+                {% empty %}
+                  <option value="" disabled>Nenhum portador cadastrado</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="field">
+              <div class="field-label-row">
+                <label for="campo_origem">Origem</label>
+              </div>
+              <input type="text" id="campo_origem" readonly
+                     placeholder="Será preenchido automaticamente" />
+            </div>
+
+            <div class="field">
+              <div class="field-label-row">
+                <label for="campo_qtd_amostras">Qtd. de amostras</label>
+              </div>
+              <div class="qty-control">
+                <button class="qty-btn" type="button" id="btn_qty_menos">−</button>
+                <input class="qty-input" id="campo_qtd_amostras" type="number" min="1" value="1" />
+                <button class="qty-btn" type="button" id="btn_qty_mais">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BLOCO 3 – BIPAGEM DA REQUISIÇÃO -->
+        <div class="form-block">
+          <div class="block-title">3. Bipagem da requisição</div>
+
+          <div class="field">
+            <div class="field-label-row">
+              <label for="campo_cod_barras">Código de barras da requisição</label>
+            </div>
+
+            <div class="barcode-row">
+              <div style="position:absolute; width:0; height:0; overflow:hidden;" aria-hidden="true">
+                <input type="hidden" id="csrf_token_input" value="{{ csrf_token }}">
+                {% csrf_token %}
+              </div>
+              <input type="text" id="campo_cod_barras" placeholder="Aproxime a pistola ou digite o código" />
+              <button class="btn btn-primary" type="button" id="btn_localizar" data-url="{% url 'operacao:recebimento-localizar' %}">
+                🔍 Localizar
+              </button>
+            </div>
+
+            <div class="info-inline">
+              • A pistola de código de barras deve disparar automaticamente a ação de localizar.
+              Se necessário, o usuário pode digitar o código manualmente e clicar em <strong>Localizar</strong>.
+            </div>
+
+            <div class="alert" id="recebimento_alert" role="alert" aria-live="assertive">
+              <strong>Ops!</strong>
+              <span id="alert_message"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- LISTA DE REQUISIÇÕES BIPADAS -->
+        <div class="kit-table-wrapper">
+          <div class="kit-table-header">
+            <div>
+              <strong>Requisições bipadas neste kit:</strong> {{ requisicoes_recent|length }} registros
+            </div>
+            <div>
+              Kit em edição · não esqueça de salvar ao finalizar
+            </div>
+          </div>
+
+          {% if requisicoes_recent %}
+            <table>
+              <thead>
+              <tr>
+                <th>Cód. Req.</th>
+                <th>Cód. Barras</th>
+                <th>Unidade</th>
+                <th>Origem</th>
+                <th>Data/Hora bipagem</th>
+              </tr>
+              </thead>
+              <tbody>
+              {% for requisicao in requisicoes_recent %}
+                <tr>
+                  <td>{{ requisicao.cod_req }}</td>
+                  <td>{{ requisicao.cod_barras_req }}</td>
+                  <td>{{ requisicao.unidade.nome }}</td>
+                  <td>{{ requisicao.origem.descricao|default:"-" }}</td>
+                  <td>{{ requisicao.created_at|date:"d/m/Y · H:i" }}</td>
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div style="padding:16px; font-size:12px; color:var(--femme-gray);">
+              Ainda não há requisições bipadas. Utilize o formulário acima para iniciar um kit.
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- AÇÕES FINAIS DO KIT -->
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:6px; font-size:12px;">
+          <button class="btn btn-ghost" type="button">Cancelar kit</button>
+          <button class="btn btn-outline" type="button">Salvar rascunho</button>
+          <button class="btn btn-primary" type="button" id="btn_finalizar_recebimento">✅ Finalizar recebimento</button>
+        </div>
+      </section>
+    </main>
+    <!-- MODAL BIPAGEM -->
+    <div class="modal-overlay" id="modal_bipagem" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal_title">
+        <div class="modal-header">
+          <div class="modal-title" id="modal_title">
+            <div class="modal-badge-icon">⚠</div>
+            <div class="modal-title-text">
+              <span class="label">Aviso de recebimento</span>
+              <h2>Bipagem das amostras do kit</h2>
+            </div>
+          </div>
+          <button class="modal-close-icon" type="button" id="modal_close" aria-label="Fechar modal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="modal-main-text">
+            PARA DAR ANDAMENTO BIPE O(S) CÓDIGO(S) DE BARRA(S) DA(S) AMOSTRA(S).
+          </div>
+
+          <div class="modal-meta">
+            Requisição: <strong id="modal_cod_req">—</strong> ·
+            Código de barras da requisição: <strong id="modal_cod_barras_req">—</strong><br />
+            Qtd. de amostras informada: <strong id="modal_qtd_amostras">0</strong>
+            &nbsp;–&nbsp; bipar o mesmo número de códigos abaixo.
+          </div>
+
+          <div class="field">
+            <div class="field-label-row">
+              <label>Códigos de barras das amostras</label>
+              <span class="helper">Um código por amostra</span>
+            </div>
+
+            <div class="samples-list" id="modal_samples_list"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" type="button" id="modal_btn_cancelar">Cancelar</button>
+          <button class="btn btn-primary" type="button" id="modal_btn_validar">Validar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Dados do Django para JavaScript
+  window.FEMME_DATA = {
+    portadores: {{ portadores_json|safe }},
+    csrfToken: '{{ csrf_token }}',
+    urlValidar: '{% url "operacao:recebimento-validar" %}'
+  };
+</script>
+<script src="{% static 'js/recebimento.js' %}"></script>
+{% endblock %}

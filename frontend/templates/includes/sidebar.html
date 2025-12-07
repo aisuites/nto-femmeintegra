@@ -1,0 +1,40 @@
+<!-- SIDEBAR REUTILIZÁVEL -->
+<aside class="sidebar">
+  <div>
+    <div class="sidebar-section-title">Navegação</div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link {% if active_page == 'dashboard' %}active{% endif %}" href="{% url 'core:dashboard' %}">
+        <span class="icon">🏠</span>
+        <span>Dashboard</span>
+      </a>
+      <div class="sidebar-link">
+        <span class="icon">⚙</span>
+        <span>Operacional</span>
+      </div>
+      <a class="sidebar-link subitem {% if active_page == 'recebimento' %}active{% endif %}" href="{% url 'operacao:recebimento' %}">
+        <span class="icon">⬇</span>
+        <span>Recebimento</span>
+      </a>
+      <div class="sidebar-link subitem">
+        <span class="icon">🩺</span>
+        <span>Triagem</span>
+      </div>
+      <div class="sidebar-link subitem">
+        <span class="icon">⏱</span>
+        <span>Pendências</span>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-link">
+        <span class="icon">📊</span>
+        <span>Gestão</span>
+      </div>
+
+      <div class="sidebar-link">
+        <span class="icon">💬</span>
+        <span>Atendimento</span>
+      </div>
+    </nav>
+  </div>
+</aside>
