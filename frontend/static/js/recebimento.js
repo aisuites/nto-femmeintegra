@@ -442,7 +442,128 @@
       }
     }
 
-    modalValidar?.addEventListener('click', async () => {
+    // Função para verificar divergência de códigos
+    function verificarDivergenciaCodigos(codBarrasReq, codigosAmostras) {
+      const todosCodig = [codBarrasReq, ...codigosAmostras];
+      const codigosUnicos = new Set(todosCodig);
+      return codigosUnicos.size > 1;
+    }
+
+    // Função para transformar modal em modo divergência
+    function mostrarModalDivergencia(codBarrasReq, codigosAmostras) {
+      // Atualizar título e ícone
+      const modalBadge = document.querySelector('.modal-badge-icon');
+      const modalTitle = document.querySelector('.modal-title-text h2');
+      const modalMainText = document.querySelector('.modal-main-text');
+      const modalBody = document.querySelector('.modal-body');
+      
+      if (modalBadge) modalBadge.textContent = '⚠️';
+      if (modalTitle) modalTitle.textContent = 'Divergência de Códigos Detectada';
+      if (modalMainText) {
+        modalMainText.innerHTML = `
+          <strong style="color: var(--femme-red);">ATENÇÃO: Os códigos de barras não são iguais!</strong><br/>
+          Verifique se todos os códigos foram bipados corretamente.
+        `;
+      }
+
+      // Criar lista de códigos com destaque
+      const listaDiv = document.createElement('div');
+      listaDiv.style.marginTop = '16px';
+      listaDiv.style.padding = '12px';
+      listaDiv.style.background = 'var(--femme-light-gray)';
+      listaDiv.style.borderRadius = '4px';
+      listaDiv.style.fontSize = '13px';
+      
+      let html = '<div style="margin-bottom: 8px;"><strong>Códigos bipados:</strong></div>';
+      html += `<div style="margin-left: 12px;">📦 Requisição: <code style="background: white; padding: 2px 6px; border-radius: 3px;">${codBarrasReq}</code></div>`;
+      
+      codigosAmostras.forEach((cod, idx) => {
+        const isDiferente = cod !== codBarrasReq;
+        const cor = isDiferente ? 'var(--femme-red)' : 'var(--femme-green)';
+        const icone = isDiferente ? '❌' : '✅';
+        html += `<div style="margin-left: 12px; color: ${cor}; margin-top: 4px;">${icone} Amostra ${idx + 1}: <code style="background: white; padding: 2px 6px; border-radius: 3px;">${cod}</code></div>`;
+      });
+      
+      listaDiv.innerHTML = html;
+      modalMainText.appendChild(listaDiv);
+
+      // Esconder os campos de input e informações da requisição
+      const modalMeta = modalBody?.querySelector('.modal-meta');
+      const modalField = modalBody?.querySelector('.field');
+      if (modalMeta) modalMeta.style.display = 'none';
+      if (modalField) modalField.style.display = 'none';
+
+      // Atualizar botões do footer
+      const modalFooter = document.querySelector('.modal-footer');
+      if (modalFooter) {
+        modalFooter.innerHTML = `
+          <button class="btn btn-ghost" type="button" id="modal_btn_cancelar_div">Cancelar</button>
+          <button class="btn btn-outline" type="button" id="modal_btn_bipar_novamente">🔄 Bipar Novamente</button>
+          <button class="btn btn-warning" type="button" id="modal_btn_registrar_problema">⚠️ Registrar Problema</button>
+        `;
+
+        // Event listeners para os novos botões
+        document.getElementById('modal_btn_cancelar_div')?.addEventListener('click', () => {
+          fecharModal();
+          restaurarModalOriginal();
+        });
+
+        document.getElementById('modal_btn_bipar_novamente')?.addEventListener('click', () => {
+          // Limpar todos os campos de código
+          const inputs = modalSamplesList?.querySelectorAll('input[type="text"]') || [];
+          inputs.forEach(input => input.value = '');
+          
+          // Focar no primeiro campo
+          if (inputs.length > 0) inputs[0].focus();
+          
+          // Restaurar modal ao estado original
+          restaurarModalOriginal();
+        });
+
+        document.getElementById('modal_btn_registrar_problema')?.addEventListener('click', () => {
+          // TODO: Implementar fluxo de registro de problema
+          alert('Funcionalidade "Registrar Problema" será implementada em breve.');
+          // Por enquanto, apenas fecha o modal
+          fecharModal();
+          restaurarModalOriginal();
+        });
+      }
+    }
+
+    // Função para restaurar modal ao estado original
+    function restaurarModalOriginal() {
+      const modalBadge = document.querySelector('.modal-badge-icon');
+      const modalTitle = document.querySelector('.modal-title-text h2');
+      const modalMainText = document.querySelector('.modal-main-text');
+      const modalFooter = document.querySelector('.modal-footer');
+      const modalBody = document.querySelector('.modal-body');
+      
+      if (modalBadge) modalBadge.textContent = '⚠';
+      if (modalTitle) modalTitle.textContent = 'Bipagem das amostras do kit';
+      if (modalMainText) {
+        modalMainText.innerHTML = 'PARA DAR ANDAMENTO BIPE O(S) CÓDIGO(S) DE BARRA(S) DA(S) AMOSTRA(S).';
+      }
+      
+      // Restaurar visibilidade dos campos
+      const modalMeta = modalBody?.querySelector('.modal-meta');
+      const modalField = modalBody?.querySelector('.field');
+      if (modalMeta) modalMeta.style.display = '';
+      if (modalField) modalField.style.display = '';
+      
+      if (modalFooter) {
+        modalFooter.innerHTML = `
+          <button class="btn btn-ghost" type="button" id="modal_btn_cancelar">Cancelar</button>
+          <button class="btn btn-primary" type="button" id="modal_btn_validar">Validar</button>
+        `;
+        
+        // Re-anexar event listeners
+        document.getElementById('modal_btn_cancelar')?.addEventListener('click', fecharModal);
+        document.getElementById('modal_btn_validar')?.addEventListener('click', handleValidar);
+      }
+    }
+
+    // Handler principal de validação
+    async function handleValidar() {
       esconderAlerta();
       
       // Coletar códigos de barras das amostras
@@ -459,6 +580,13 @@
       }
 
       const codBarrasReq = modalCodBarras?.textContent?.trim() || '';
+      
+      // VERIFICAR DIVERGÊNCIA DE CÓDIGOS
+      if (verificarDivergenciaCodigos(codBarrasReq, codigosAmostras)) {
+        mostrarModalDivergencia(codBarrasReq, codigosAmostras);
+        return; // Não prossegue com a validação
+      }
+      
       const unidadeId = hiddenField?.value;
       const portadorId = portadorSelect?.value;
       const origemId = portadorSelect?.options[portadorSelect.selectedIndex]?.dataset?.origemId;
@@ -472,8 +600,11 @@
       }
 
       const urlValidar = window.FEMME_DATA?.urlValidar || '/operacao/recebimento/validar/';
-      modalValidar?.setAttribute('aria-busy', 'true');
-      modalValidar?.setAttribute('disabled', 'disabled');
+      const btnValidar = document.getElementById('modal_btn_validar');
+      if (btnValidar) {
+        btnValidar.setAttribute('aria-busy', 'true');
+        btnValidar.setAttribute('disabled', 'disabled');
+      }
 
       try {
         const response = await fetch(urlValidar, {
@@ -521,17 +652,20 @@
           // Salvar valores atuais no sessionStorage (backup)
           sessionStorage.setItem('recebimento_unidade_id', hiddenField?.value || '');
           sessionStorage.setItem('recebimento_portador_id', portadorSelect?.value || '');
-          
-          // NÃO RECARREGAR A PÁGINA
         }
       } catch (error) {
-        console.error(error);
-        mostrarAlerta('Erro de comunicação com o servidor.');
+        console.error('Erro na validação:', error);
+        mostrarAlerta('Erro ao processar validação. Tente novamente.');
       } finally {
-        modalValidar?.removeAttribute('aria-busy');
-        modalValidar?.removeAttribute('disabled');
+        if (btnValidar) {
+          btnValidar.removeAttribute('aria-busy');
+          btnValidar.removeAttribute('disabled');
+        }
       }
-    });
+    }
+
+    // Anexar event listener ao botão validar
+    modalValidar?.addEventListener('click', handleValidar);
 
     radioInputs.forEach(input => {
       input.addEventListener('change', () => updateSelectedState(input));

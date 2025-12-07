@@ -47,6 +47,18 @@
       background: rgba(0, 0, 0, 0.02);
     }
 
+    .btn-warning {
+      background: #ff9800;
+      color: var(--femme-white);
+      box-shadow: 0 10px 22px rgba(255, 152, 0, 0.35);
+    }
+
+    .btn-warning:hover {
+      background: #f57c00;
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(255, 152, 0, 0.4);
+    }
+
     /* CONTEÚDO PRINCIPAL */
     .main {
       display: flex;
