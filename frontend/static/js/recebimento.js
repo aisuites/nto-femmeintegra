@@ -601,6 +601,9 @@
     async function handleValidar() {
       esconderAlerta();
       
+      // DEBUG: Verificar estado da variável
+      console.log('🔍 handleValidar - dadosRequisicaoTransito:', dadosRequisicaoTransito);
+      
       // Coletar códigos de barras das amostras
       const inputsAmostras = modalSamplesList?.querySelectorAll('input[type="text"]') || [];
       const codigosAmostras = [];
