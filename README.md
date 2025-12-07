@@ -36,11 +36,25 @@ source .venv/bin/activate  # macOS/Linux
 pip install -r requirements.txt
 ```
 
-### 4. Configurar variáveis de ambiente
+### 4. Configurar variáveis de ambiente ⚠️ IMPORTANTE
 ```bash
+# Copiar template
 cp .env.example .env
+
+# Gerar SECRET_KEY segura
+python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
+
 # Editar .env com suas configurações
+# NUNCA commite o arquivo .env!
+nano .env
 ```
+
+**Configurações mínimas necessárias:**
+- `DJANGO_SECRET_KEY` - Gerar uma chave única
+- `DATABASE_URL` - Conexão com PostgreSQL
+- `REDIS_URL` - Conexão com Redis (opcional)
+
+📖 Ver `SECURITY.md` para guia completo de segurança
 
 ### 5. Configurar banco de dados
 ```bash
