@@ -152,8 +152,15 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
 
         # Delegar toda a lógica de negócio para o service
         try:
+            # DEBUG: Log dos dados recebidos
+            logger.info(
+                'Validação recebida - is_transit: %s, requisicao_id: %s, cod_barras_req: %s, amostras: %s',
+                is_transit, requisicao_id, cod_barras_req, cod_barras_amostras
+            )
+            
             # Fluxo para requisição em trânsito
             if is_transit and requisicao_id:
+                logger.info('Processando requisição em trânsito ID: %s', requisicao_id)
                 resultado = RequisicaoService.atualizar_requisicao_transito(
                     requisicao_id=requisicao_id,
                     cod_barras_amostras=cod_barras_amostras,
