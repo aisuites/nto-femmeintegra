@@ -8,6 +8,7 @@ from .models import (
     Origem,
     PortadorRepresentante,
     Requisicao,
+    RequisicaoStatusHistorico,
     StatusRequisicao,
     Unidade,
 )
@@ -59,6 +60,19 @@ class AmostraInline(admin.TabularInline):
     extra = 0
 
 
+class RequisicaoStatusHistoricoInline(admin.TabularInline):
+    """Inline para exibir histórico de status na página de Requisição."""
+    model = RequisicaoStatusHistorico
+    extra = 0
+    readonly_fields = ('data_registro', 'status', 'usuario', 'observacao')
+    can_delete = False
+    ordering = ('-data_registro',)
+    
+    def has_add_permission(self, request, obj=None):
+        """Não permite adicionar histórico manualmente via inline."""
+        return False
+
+
 @admin.register(Requisicao)
 class RequisicaoAdmin(admin.ModelAdmin):
     list_display = (
@@ -71,7 +85,7 @@ class RequisicaoAdmin(admin.ModelAdmin):
     )
     list_filter = ('status', 'unidade', 'origem', 'flag_erro_preenchimento', 'korus_bloqueado')
     search_fields = ('cod_req', 'cod_barras_req', 'nome_paciente', 'crm')
-    inlines = [AmostraInline]
+    inlines = [AmostraInline, RequisicaoStatusHistoricoInline]
     autocomplete_fields = (
         'unidade',
         'status',
@@ -94,3 +108,21 @@ class AmostraAdmin(admin.ModelAdmin):
 class DadosRequisicaoAdmin(admin.ModelAdmin):
     list_display = ('cod_barras_req', 'created_at')
     search_fields = ('cod_barras_req',)
+
+
+@admin.register(RequisicaoStatusHistorico)
+class RequisicaoStatusHistoricoAdmin(admin.ModelAdmin):
+    """Admin para visualização do histórico de status."""
+    list_display = ('cod_req', 'status', 'usuario', 'data_registro')
+    list_filter = ('status', 'data_registro')
+    search_fields = ('cod_req', 'requisicao__cod_barras_req')
+    readonly_fields = ('requisicao', 'cod_req', 'status', 'usuario', 'data_registro', 'observacao')
+    date_hierarchy = 'data_registro'
+    
+    def has_add_permission(self, request):
+        """Não permite adicionar histórico manualmente."""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Não permite deletar histórico."""
+        return False

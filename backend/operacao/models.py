@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from core.models import AuditModel, TimeStampedModel
@@ -206,6 +207,63 @@ class Requisicao(AuditModel):
 
     def __str__(self) -> str:
         return f'{self.cod_req} - {self.cod_barras_req}'
+
+
+class RequisicaoStatusHistorico(models.Model):
+    """
+    Histórico de mudanças de status das requisições.
+    
+    Registra todas as alterações de status, permitindo auditoria
+    e rastreamento completo do ciclo de vida de cada requisição.
+    """
+    requisicao = models.ForeignKey(
+        Requisicao,
+        on_delete=models.CASCADE,
+        related_name='historico_status',
+        verbose_name='Requisição',
+    )
+    cod_req = models.CharField(
+        'Código da requisição',
+        max_length=30,
+        db_index=True,
+        help_text='Código da requisição (desnormalizado para performance)',
+    )
+    status = models.ForeignKey(
+        StatusRequisicao,
+        on_delete=models.PROTECT,
+        related_name='historico',
+        verbose_name='Status',
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='historico_status_requisicoes',
+        verbose_name='Usuário',
+    )
+    data_registro = models.DateTimeField(
+        'Data/Hora do registro',
+        auto_now_add=True,
+        db_index=True,
+    )
+    observacao = models.TextField(
+        'Observação',
+        blank=True,
+        help_text='Observações sobre a mudança de status',
+    )
+
+    class Meta:
+        ordering = ('-data_registro',)
+        verbose_name = 'Histórico de Status'
+        verbose_name_plural = 'Históricos de Status'
+        indexes = [
+            models.Index(fields=('requisicao', '-data_registro')),
+            models.Index(fields=('cod_req', '-data_registro')),
+            models.Index(fields=('status', '-data_registro')),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.cod_req} - {self.status.codigo} em {self.data_registro:%d/%m/%Y %H:%M}'
 
 
 class Amostra(AuditModel):

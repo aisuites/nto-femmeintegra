@@ -16,6 +16,7 @@ from .models import (
     Requisicao,
     DadosRequisicao,
     StatusRequisicao,
+    RequisicaoStatusHistorico,
     Unidade,
     PortadorRepresentante,
     Origem,
@@ -301,6 +302,15 @@ class RequisicaoService:
                 origem=fks['origem'],
                 created_by=user,
                 updated_by=user,
+            )
+            
+            # 3. Criar registro no histórico de status
+            RequisicaoStatusHistorico.objects.create(
+                requisicao=requisicao,
+                cod_req=cod_req,
+                status=fks['status_inicial'],
+                usuario=user,
+                observacao='Status inicial ao criar requisição',
             )
             
             logger.info(
