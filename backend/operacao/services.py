@@ -247,6 +247,115 @@ class RequisicaoService:
 
     @classmethod
     @transaction.atomic
+    def atualizar_requisicao_transito(
+        cls,
+        requisicao_id: int,
+        cod_barras_amostras: List[str],
+        user,
+    ) -> Dict[str, any]:
+        """
+        Atualiza requisição em trânsito (status 10) para recebida (status 1).
+        
+        Valida amostras bipadas contra as cadastradas e atualiza status.
+        """
+        try:
+            # Buscar requisição
+            requisicao = DadosRequisicao.objects.select_related('status').get(id=requisicao_id)
+            
+            # Validar status
+            if requisicao.status.codigo != '10':
+                return {
+                    'status': 'error',
+                    'message': f'Requisição não está em trânsito. Status atual: {requisicao.status.descricao}',
+                }
+            
+            # Validar recebido_por (deve estar vazio)
+            if requisicao.recebido_por:
+                return {
+                    'status': 'error',
+                    'message': 'Requisição já foi recebida anteriormente.',
+                }
+            
+            # Buscar amostras cadastradas
+            amostras_cadastradas = set(
+                requisicao.amostras.values_list('cod_barras_amostra', flat=True)
+            )
+            amostras_bipadas = set(cod_barras_amostras)
+            
+            # Validar quantidade
+            if len(amostras_bipadas) != len(amostras_cadastradas):
+                return {
+                    'status': 'error',
+                    'message': f'Quantidade de amostras divergente. Cadastradas: {len(amostras_cadastradas)}, Bipadas: {len(amostras_bipadas)}',
+                }
+            
+            # Validar códigos (todas as bipadas devem existir nas cadastradas)
+            amostras_faltando = amostras_cadastradas - amostras_bipadas
+            amostras_extras = amostras_bipadas - amostras_cadastradas
+            
+            if amostras_faltando or amostras_extras:
+                mensagem_erro = 'Divergência nas amostras bipadas.'
+                if amostras_faltando:
+                    mensagem_erro += f' Faltam: {", ".join(amostras_faltando)}.'
+                if amostras_extras:
+                    mensagem_erro += f' Extras: {", ".join(amostras_extras)}.'
+                
+                return {
+                    'status': 'error',
+                    'message': mensagem_erro,
+                }
+            
+            # Buscar status "Aberto NTO" (código 1)
+            try:
+                status_aberto = StatusRequisicao.objects.get(codigo='1')
+            except StatusRequisicao.DoesNotExist:
+                logger.error('Status 1 (ABERTO NTO) não encontrado')
+                return {
+                    'status': 'error',
+                    'message': 'Erro de configuração de status. Contate o suporte.',
+                }
+            
+            # Atualizar requisição
+            requisicao.status = status_aberto
+            requisicao.recebido_por = user
+            requisicao.updated_by = user
+            requisicao.save()
+            
+            # Criar registro no histórico
+            RequisicaoStatusHistorico.objects.create(
+                requisicao=requisicao,
+                status=status_aberto,
+                observacao='Requisição recebida no NTO (atualizada de Em Trânsito)',
+                created_by=user,
+            )
+            
+            logger.info(
+                'Requisição em trânsito atualizada: %s (ID: %d) por usuário %s',
+                requisicao.cod_req, requisicao.id, user.username
+            )
+            
+            return {
+                'status': 'success',
+                'message': 'Requisição recebida com sucesso.',
+                'cod_req': requisicao.cod_req,
+                'requisicao_id': requisicao.id,
+            }
+            
+        except DadosRequisicao.DoesNotExist:
+            logger.error('Requisição não encontrada: ID %d', requisicao_id)
+            return {
+                'status': 'error',
+                'message': 'Requisição não encontrada.',
+            }
+        except Exception as e:
+            logger.exception('Erro ao atualizar requisição em trânsito')
+            return {
+                'status': 'error',
+                'message': 'Erro ao processar requisição. Tente novamente.',
+            }
+
+    @classmethod
+    @transaction.atomic
     def finalizar_kit_recebimento(cls, user) -> Dict[str, any]:
         from django.utils import timezone
         
@@ -307,13 +416,49 @@ class RequisicaoService:
 class BuscaService:
     @staticmethod
     def buscar_codigo_barras(cod_barras: str) -> Dict[str, any]:
-        existe = LogRecebimento.objects.filter(
+        """
+        Busca código de barras e retorna status apropriado.
+        
+        Retornos possíveis:
+        - not_found: Código não existe (criar nova requisição)
+        - found: Código já foi recebido (duplicado)
+        - in_transit: Código existe com status 10 (atualizar requisição)
+        """
+        # Verificar se já foi recebido (existe no log)
+        existe_log = LogRecebimento.objects.filter(
             cod_barras_req=cod_barras
         ).exists()
         
-        if existe:
-            logger.info('Código de barras encontrado: %s', cod_barras)
+        if existe_log:
+            logger.info('Código de barras já recebido anteriormente: %s', cod_barras)
             return {'status': 'found'}
-        else:
+        
+        # Verificar se está em trânsito (status 10)
+        try:
+            requisicao = DadosRequisicao.objects.select_related(
+                'unidade', 'origem', 'status'
+            ).get(
+                cod_barras_req=cod_barras,
+                status__codigo='10'  # EM TRÂNSITO
+            )
+            
+            # Buscar amostras da requisição
+            amostras = list(requisicao.amostras.values_list('cod_barras_amostra', flat=True))
+            
+            logger.info(
+                'Requisição em trânsito encontrada: %s (ID: %d, %d amostras)',
+                cod_barras, requisicao.id, len(amostras)
+            )
+            
+            return {
+                'status': 'in_transit',
+                'requisicao_id': requisicao.id,
+                'cod_req': requisicao.cod_req,
+                'unidade_nome': requisicao.unidade.nome,
+                'origem_descricao': requisicao.origem.descricao if requisicao.origem else None,
+                'qtd_amostras': len(amostras),
+                'cod_barras_amostras': amostras,
+            }
+        except DadosRequisicao.DoesNotExist:
             logger.debug('Código de barras não encontrado: %s', cod_barras)
             return {'status': 'not_found'}

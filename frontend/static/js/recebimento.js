@@ -188,11 +188,40 @@
       }
     }
 
-    function abrirModal(quantidade, codigoBarras) {
+    // Variável global para armazenar dados de requisição em trânsito
+    let dadosRequisicaoTransito = null;
+
+    function abrirModal(quantidade, codigoBarras, dadosTransito = null) {
       if (!modalOverlay) return;
+      
+      // Armazenar dados se for requisição em trânsito
+      dadosRequisicaoTransito = dadosTransito;
+      
       modalQtd.textContent = quantidade;
       modalCodBarras.textContent = codigoBarras;
-      modalCodReq.textContent = '—';
+      
+      // Se for requisição em trânsito, mostrar código da requisição
+      if (dadosTransito && dadosTransito.cod_req) {
+        modalCodReq.textContent = dadosTransito.cod_req;
+        
+        // Adicionar indicador visual de requisição em trânsito
+        const modalMainText = document.querySelector('.modal-main-text');
+        if (modalMainText) {
+          modalMainText.innerHTML = `
+            <strong style="color: var(--femme-blue);">📦 REQUISIÇÃO EM TRÂNSITO</strong><br/>
+            Esta requisição já foi cadastrada. Bipe as amostras para confirmar o recebimento.<br/>
+            <small style="color: var(--femme-gray);">Unidade: ${dadosTransito.unidade_nome} | Origem: ${dadosTransito.origem_descricao || '-'}</small>
+          `;
+        }
+      } else {
+        modalCodReq.textContent = '—';
+        // Restaurar texto original
+        const modalMainText = document.querySelector('.modal-main-text');
+        if (modalMainText) {
+          modalMainText.innerHTML = 'PARA DAR ANDAMENTO BIPE O(S) CÓDIGO(S) DE BARRA(S) DA(S) AMOSTRA(S).';
+        }
+      }
+      
       construirLinhasAmostra(quantidade);
       modalOverlay.setAttribute('aria-hidden', 'false');
       
@@ -252,6 +281,12 @@
 
         if (data.status === 'not_found') {
           abrirModal(validacao.quantidade, validacao.codigo);
+          return;
+        }
+
+        if (data.status === 'in_transit') {
+          // Requisição em trânsito - abrir modal com dados da requisição
+          abrirModal(data.qtd_amostras, validacao.codigo, data);
           return;
         }
 
@@ -587,17 +622,39 @@
         return; // Não prossegue com a validação
       }
       
-      const unidadeId = hiddenField?.value;
-      const portadorId = portadorSelect?.value;
-      const origemId = portadorSelect?.options[portadorSelect.selectedIndex]?.dataset?.origemId;
-      // Pegar texto da unidade e descrição da origem para a tabela
-      const unidadeNome = document.querySelector('.unit-card--selected span')?.textContent || '';
-      const origemDescricao = origemInput?.value || '';
-
-      if (!unidadeId || !portadorId) {
-        mostrarAlerta('Dados incompletos para validação.');
-        return;
+      // Preparar payload baseado no tipo de requisição
+      let payload = {
+        cod_barras_req: codBarrasReq,
+        cod_barras_amostras: codigosAmostras,
+      };
+      
+      // Se for requisição em trânsito
+      if (dadosRequisicaoTransito) {
+        payload.is_transit = true;
+        payload.requisicao_id = dadosRequisicaoTransito.requisicao_id;
+      } else {
+        // Nova requisição - precisa de unidade, portador, origem
+        const unidadeId = hiddenField?.value;
+        const portadorId = portadorSelect?.value;
+        const origemId = portadorSelect?.options[portadorSelect.selectedIndex]?.dataset?.origemId;
+        
+        if (!unidadeId || !portadorId) {
+          mostrarAlerta('Dados incompletos para validação.');
+          return;
+        }
+        
+        payload.unidade_id = unidadeId;
+        payload.portador_id = portadorId;
+        payload.origem_id = origemId;
       }
+      
+      // Pegar texto da unidade e descrição da origem para a tabela
+      const unidadeNome = dadosRequisicaoTransito 
+        ? dadosRequisicaoTransito.unidade_nome 
+        : document.querySelector('.unit-card--selected span')?.textContent || '';
+      const origemDescricao = dadosRequisicaoTransito
+        ? dadosRequisicaoTransito.origem_descricao
+        : origemInput?.value || '';
 
       const urlValidar = window.FEMME_DATA?.urlValidar || '/operacao/recebimento/validar/';
       const btnValidar = document.getElementById('modal_btn_validar');
@@ -613,13 +670,7 @@
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken,
           },
-          body: JSON.stringify({
-            cod_barras_req: codBarrasReq,
-            cod_barras_amostras: codigosAmostras,
-            unidade_id: unidadeId,
-            portador_id: portadorId,
-            origem_id: origemId,
-          }),
+          body: JSON.stringify(payload),
         });
 
         const data = await response.json();
@@ -643,15 +694,20 @@
           // 3. Fechar modal e limpar campos
           fecharModal();
           
+          // Limpar dados de requisição em trânsito
+          dadosRequisicaoTransito = null;
+          
           if (barcodeInput) {
             barcodeInput.value = '';
             barcodeInput.focus(); // Focar imediatamente para próxima leitura
           }
           if (quantidadeInput) quantidadeInput.value = 1;
           
-          // Salvar valores atuais no sessionStorage (backup)
-          sessionStorage.setItem('recebimento_unidade_id', hiddenField?.value || '');
-          sessionStorage.setItem('recebimento_portador_id', portadorSelect?.value || '');
+          // Salvar valores atuais no sessionStorage (backup) - apenas se não for trânsito
+          if (!payload.is_transit) {
+            sessionStorage.setItem('recebimento_unidade_id', hiddenField?.value || '');
+            sessionStorage.setItem('recebimento_portador_id', portadorSelect?.value || '');
+          }
         }
       } catch (error) {
         console.error('Erro na validação:', error);

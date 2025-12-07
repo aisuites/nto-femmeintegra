@@ -246,7 +246,34 @@
 
 ---
 
+## 🔴 ALTA PRIORIDADE
+
+### 📌 Sistema de Cadastro de Requisições por Representantes
+**Status**: Planejado  
+**Localização**: A definir  
+**Descrição**: Sistema para representantes cadastrarem requisições que ficarão com status 10 (EM TRÂNSITO) até serem recebidas no NTO.
+
+**Requisitos a definir:**
+- [ ] Interface web ou app mobile?
+- [ ] Autenticação de representantes
+- [ ] Campos obrigatórios do cadastro
+- [ ] Upload de fotos/documentos?
+- [ ] Validações de dados
+- [ ] Notificação ao NTO quando cadastrar
+
+**Dependências:**
+- Nenhuma (fluxo de recebimento já está pronto)
+
+**Estimativa**: 5-7 dias
+
+---
+
 ## ✅ CONCLUÍDOS
+
+### ✅ Recebimento de Requisições em Trânsito (Status 10)
+**Concluído em**: 07/12/2024  
+**Commit**: `[pendente]`  
+**Descrição**: Implementado fluxo completo para receber requisições já cadastradas com status 10 (EM TRÂNSITO). Sistema detecta automaticamente, valida amostras cadastradas vs bipadas, atualiza status para 1 (ABERTO NTO), adiciona recebido_por e cria histórico.
 
 ### ✅ Fluxo de Divergência de Códigos
 **Concluído em**: 07/12/2024  

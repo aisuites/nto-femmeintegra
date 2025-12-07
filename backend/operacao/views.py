@@ -135,18 +135,10 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
         unidade_id = payload.get('unidade_id')
         portador_id = payload.get('portador_id')
         origem_id = payload.get('origem_id')
+        requisicao_id = payload.get('requisicao_id')  # Para requisições em trânsito
+        is_transit = payload.get('is_transit', False)  # Flag para identificar fluxo
 
         # Validações básicas de entrada
-        if not unidade_id:
-            return JsonResponse(
-                {'status': 'error', 'message': 'Unidade não informada.'},
-                status=400,
-            )
-        if not portador_id:
-            return JsonResponse(
-                {'status': 'error', 'message': 'Portador não informado.'},
-                status=400,
-            )
         if not cod_barras_req:
             return JsonResponse(
                 {'status': 'error', 'message': 'Código de barras da requisição não informado.'},
@@ -160,14 +152,35 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
 
         # Delegar toda a lógica de negócio para o service
         try:
-            resultado = RequisicaoService.criar_requisicao(
-                cod_barras_req=cod_barras_req,
-                cod_barras_amostras=cod_barras_amostras,
-                unidade_id=unidade_id,
-                portador_id=portador_id,
-                origem_id=origem_id,
-                user=request.user,
-            )
+            # Fluxo para requisição em trânsito
+            if is_transit and requisicao_id:
+                resultado = RequisicaoService.atualizar_requisicao_transito(
+                    requisicao_id=requisicao_id,
+                    cod_barras_amostras=cod_barras_amostras,
+                    user=request.user,
+                )
+            # Fluxo para nova requisição
+            else:
+                # Validações específicas para nova requisição
+                if not unidade_id:
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'Unidade não informada.'},
+                        status=400,
+                    )
+                if not portador_id:
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'Portador não informado.'},
+                        status=400,
+                    )
+                
+                resultado = RequisicaoService.criar_requisicao(
+                    cod_barras_req=cod_barras_req,
+                    cod_barras_amostras=cod_barras_amostras,
+                    unidade_id=unidade_id,
+                    portador_id=portador_id,
+                    origem_id=origem_id,
+                    user=request.user,
+                )
             
             # Determinar status HTTP baseado no resultado
             status_code = 200 if resultado['status'] == 'success' else 400
