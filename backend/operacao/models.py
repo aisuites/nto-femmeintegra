@@ -111,8 +111,8 @@ class DadosRequisicao(TimeStampedModel):
 
     class Meta:
         ordering = ('-created_at',)
-        verbose_name = 'Dados da requisição'
-        verbose_name_plural = 'Dados das requisições'
+        verbose_name = 'Dados da requisição (JSON)'
+        verbose_name_plural = 'Dados das requisições (JSON)'
         indexes = [
             models.Index(fields=('cod_barras_req',)),
         ]

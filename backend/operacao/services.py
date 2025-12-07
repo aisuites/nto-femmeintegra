@@ -17,6 +17,7 @@ from .models import (
     DadosRequisicao,
     StatusRequisicao,
     RequisicaoStatusHistorico,
+    Amostra,
     Unidade,
     PortadorRepresentante,
     Origem,
@@ -283,7 +284,9 @@ class RequisicaoService:
         
         # Criar registros (transação atômica)
         try:
-            # 1. Criar DadosRequisicao
+            from django.utils import timezone # Import local para garantir data correta
+            
+            # 1. Criar DadosRequisicao (Log/JSON)
             dados_req = DadosRequisicao.objects.create(
                 cod_barras_req=cod_barras_req,
                 dados={
@@ -292,7 +295,7 @@ class RequisicaoService:
                 },
             )
             
-            # 2. Criar Requisicao
+            # 2. Criar Requisicao (Tabela Principal)
             requisicao = Requisicao.objects.create(
                 cod_req=cod_req,
                 cod_barras_req=cod_barras_req,
@@ -305,7 +308,20 @@ class RequisicaoService:
                 updated_by=user,
             )
             
-            # 3. Criar registro no histórico de status
+            # 3. Criar Amostras (Tabela Relacional)
+            # Essencial para rastreabilidade e relatórios
+            data_atual = timezone.now()
+            for idx, cod_amostra in enumerate(cod_barras_amostras, start=1):
+                Amostra.objects.create(
+                    requisicao=requisicao,
+                    cod_barras_amostra=cod_amostra,
+                    data_hora_bipagem=data_atual,
+                    ordem=idx,
+                    created_by=user,
+                    updated_by=user
+                )
+            
+            # 4. Criar registro no histórico de status
             RequisicaoStatusHistorico.objects.create(
                 requisicao=requisicao,
                 cod_req=cod_req,
@@ -316,10 +332,11 @@ class RequisicaoService:
             
             logger.info(
                 'Requisição criada com sucesso. '
-                'Código: %s, Usuário: %s, Unidade: %s',
+                'Código: %s, Usuário: %s, Unidade: %s, Amostras: %d',
                 cod_req,
                 user.username,
-                fks['unidade'].nome
+                fks['unidade'].nome,
+                len(cod_barras_amostras)
             )
             
             return {

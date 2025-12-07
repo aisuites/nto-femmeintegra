@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     'operacao',
     'gestao',
     'atendimento',
+    'tabelas_sistema', # App virtual para visualização de tabelas
 ]
 
 MIDDLEWARE = [
@@ -174,6 +175,19 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 
 USE_TZ = True
+
+# Desabilitar localização automática de formatos para respeitar os definidos abaixo
+USE_L10N = False
+
+# Formatação de Datas (DD/MM/YYYY)
+DATE_FORMAT = 'd/m/Y'
+DATETIME_FORMAT = 'd/m/Y H:i:s'
+SHORT_DATE_FORMAT = 'd/m/Y'
+SHORT_DATETIME_FORMAT = 'd/m/Y H:i'
+
+# Forçar uso desses formatos no input/output
+DATE_INPUT_FORMATS = ['%d/%m/%Y']
+DATETIME_INPUT_FORMATS = ['%d/%m/%Y %H:%M:%S', '%d/%m/%Y %H:%M']
 
 
 # Static files (CSS, JavaScript, Images)
