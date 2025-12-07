@@ -663,6 +663,10 @@
         btnValidar.setAttribute('disabled', 'disabled');
       }
 
+      // DEBUG: Log do payload
+      console.log('🔍 Payload sendo enviado:', payload);
+      console.log('🔍 Dados requisição trânsito:', dadosRequisicaoTransito);
+
       try {
         const response = await fetch(urlValidar, {
           method: 'POST',
