@@ -276,29 +276,42 @@ class RequisicaoService:
                     'message': 'Requisição já foi recebida anteriormente.',
                 }
             
-            # Buscar amostras cadastradas
-            amostras_cadastradas = set(
+            # Buscar amostras cadastradas (mantém duplicatas)
+            amostras_cadastradas = list(
                 requisicao.amostras.values_list('cod_barras_amostra', flat=True)
             )
-            amostras_bipadas = set(cod_barras_amostras)
+            amostras_bipadas = cod_barras_amostras  # Lista com duplicatas
             
-            # Validar quantidade
+            # Validar quantidade (deve ser exatamente igual)
             if len(amostras_bipadas) != len(amostras_cadastradas):
                 return {
                     'status': 'error',
                     'message': f'Quantidade de amostras divergente. Cadastradas: {len(amostras_cadastradas)}, Bipadas: {len(amostras_bipadas)}',
                 }
             
-            # Validar códigos (todas as bipadas devem existir nas cadastradas)
-            amostras_faltando = amostras_cadastradas - amostras_bipadas
-            amostras_extras = amostras_bipadas - amostras_cadastradas
+            # Validar códigos (comparar listas ordenadas para permitir duplicatas)
+            amostras_cadastradas_sorted = sorted(amostras_cadastradas)
+            amostras_bipadas_sorted = sorted(amostras_bipadas)
             
-            if amostras_faltando or amostras_extras:
+            if amostras_cadastradas_sorted != amostras_bipadas_sorted:
+                # Identificar diferenças
+                cadastradas_counter = {}
+                for cod in amostras_cadastradas:
+                    cadastradas_counter[cod] = cadastradas_counter.get(cod, 0) + 1
+                
+                bipadas_counter = {}
+                for cod in amostras_bipadas:
+                    bipadas_counter[cod] = bipadas_counter.get(cod, 0) + 1
+                
                 mensagem_erro = 'Divergência nas amostras bipadas.'
-                if amostras_faltando:
-                    mensagem_erro += f' Faltam: {", ".join(amostras_faltando)}.'
-                if amostras_extras:
-                    mensagem_erro += f' Extras: {", ".join(amostras_extras)}.'
+                
+                # Verificar códigos faltando ou em excesso
+                todos_codigos = set(cadastradas_counter.keys()) | set(bipadas_counter.keys())
+                for cod in todos_codigos:
+                    qtd_cadastrada = cadastradas_counter.get(cod, 0)
+                    qtd_bipada = bipadas_counter.get(cod, 0)
+                    if qtd_cadastrada != qtd_bipada:
+                        mensagem_erro += f' Código {cod}: cadastradas={qtd_cadastrada}, bipadas={qtd_bipada}.'
                 
                 return {
                     'status': 'error',
