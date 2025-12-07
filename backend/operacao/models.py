@@ -7,6 +7,7 @@ from core.models import AuditModel, TimeStampedModel
 class Unidade(TimeStampedModel):
     codigo = models.CharField(max_length=10, default='')
     nome = models.CharField(max_length=120)
+    ativo = models.BooleanField(default=True)
 
     class Meta:
         ordering = ('codigo', 'nome')
@@ -71,6 +72,7 @@ class StatusRequisicao(TimeStampedModel):
     descricao = models.CharField(max_length=120)
     ordem = models.PositiveSmallIntegerField(default=0)
     permite_edicao = models.BooleanField(default=True)
+    ativo = models.BooleanField(default=True)
 
     class Meta:
         ordering = ('ordem',)
