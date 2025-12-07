@@ -9,53 +9,52 @@ import logging
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
-from .models import Requisicao, DadosRequisicao
+from .models import DadosRequisicao, LogRecebimento
 
 logger = logging.getLogger(__name__)
 
 
-@receiver(post_delete, sender=Requisicao)
-def deletar_dados_requisicao(sender, instance, **kwargs):
+@receiver(post_delete, sender=DadosRequisicao)
+def deletar_log_recebimento(sender, instance, **kwargs):
     """
-    Deleta DadosRequisicao quando uma Requisicao é deletada.
+    Deleta LogRecebimento quando um DadosRequisicao é deletado.
     
-    Como não há FK direta entre Requisicao e DadosRequisicao
-    (apenas o campo cod_barras_req em comum), precisamos
-    deletar manualmente via signal.
+    Como não há FK direta entre eles (apenas o campo cod_barras_req em comum),
+    precisamos deletar manualmente via signal.
     
     Args:
-        sender: Model class (Requisicao)
-        instance: Instância da Requisicao sendo deletada
+        sender: Model class (DadosRequisicao)
+        instance: Instância sendo deletada
         **kwargs: Argumentos adicionais do signal
     """
     try:
-        # Buscar e deletar DadosRequisicao relacionado
-        dados = DadosRequisicao.objects.filter(
+        # Buscar e deletar LogRecebimento relacionado
+        logs = LogRecebimento.objects.filter(
             cod_barras_req=instance.cod_barras_req
         )
         
-        if dados.exists():
-            count = dados.count()
-            dados.delete()
+        if logs.exists():
+            count = logs.count()
+            logs.delete()
             logger.info(
-                'DadosRequisicao deletado automaticamente. '
-                'Requisicao: %s, Código de barras: %s, Registros deletados: %d',
+                'LogRecebimento deletado automaticamente. '
+                'DadosRequisicao: %s, Código de barras: %s, Registros deletados: %d',
                 instance.cod_req,
                 instance.cod_barras_req,
                 count
             )
         else:
             logger.warning(
-                'Nenhum DadosRequisicao encontrado para deletar. '
-                'Requisicao: %s, Código de barras: %s',
+                'Nenhum LogRecebimento encontrado para deletar. '
+                'DadosRequisicao: %s, Código de barras: %s',
                 instance.cod_req,
                 instance.cod_barras_req
             )
             
     except Exception as e:
         logger.exception(
-            'Erro ao deletar DadosRequisicao automaticamente. '
-            'Requisicao: %s, Erro: %s',
+            'Erro ao deletar LogRecebimento automaticamente. '
+            'DadosRequisicao: %s, Erro: %s',
             instance.cod_req,
             str(e)
         )

@@ -1,23 +1,55 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.core.cache import cache
 
 from .models import (
     Amostra,
-    DadosRequisicao,
+    LogRecebimento,
     MotivoPreenchimento,
     MotivoStatusManual,
     Origem,
     PortadorRepresentante,
-    Requisicao,
+    DadosRequisicao,
     RequisicaoStatusHistorico,
     StatusRequisicao,
     Unidade,
 )
 
 
+# Action global para limpar cache
+@admin.action(description='🔄 Limpar cache (Unidades e Portadores)')
+def limpar_cache_recebimento(modeladmin, request, queryset):
+    """Action para limpar o cache de unidades e portadores."""
+    cache.delete('recebimento:unidades')
+    cache.delete('recebimento:portadores')
+    messages.success(
+        request,
+        '✅ Cache limpo com sucesso! As unidades e portadores serão recarregados na próxima requisição.'
+    )
+
+
+@admin.action(description='🗑️ Limpar TODO o cache do sistema')
+def limpar_cache_completo(modeladmin, request, queryset):
+    """Action para limpar todo o cache do sistema."""
+    cache.clear()
+    messages.success(
+        request,
+        '✅ Todo o cache do sistema foi limpo com sucesso!'
+    )
+
+
 @admin.register(Unidade)
 class UnidadeAdmin(admin.ModelAdmin):
-    list_display = ('codigo', 'nome', 'created_at')
+    list_display = ('codigo', 'nome', 'created_at_formatted')
     search_fields = ('codigo', 'nome')
+    actions = [limpar_cache_recebimento, limpar_cache_completo]
+    
+    def created_at_formatted(self, obj):
+        """Exibe created_at no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Data Criação'
+    created_at_formatted.admin_order_field = 'created_at'
 
 
 @admin.register(Origem)
@@ -32,6 +64,7 @@ class PortadorRepresentanteAdmin(admin.ModelAdmin):
     list_display = ('nome', 'tipo', 'origem', 'ativo')
     list_filter = ('tipo', 'ativo')
     search_fields = ('nome',)
+    actions = [limpar_cache_recebimento, limpar_cache_completo]
 
 
 @admin.register(StatusRequisicao)
@@ -73,15 +106,15 @@ class RequisicaoStatusHistoricoInline(admin.TabularInline):
         return False
 
 
-@admin.register(Requisicao)
-class RequisicaoAdmin(admin.ModelAdmin):
+@admin.register(DadosRequisicao)
+class DadosRequisicaoAdmin(admin.ModelAdmin):
     list_display = (
         'cod_req',
         'cod_barras_req',
         'unidade',
         'status',
         'representante',
-        'created_at',
+        'created_at_formatted',
     )
     list_filter = ('status', 'unidade', 'origem', 'flag_erro_preenchimento', 'korus_bloqueado')
     search_fields = ('cod_req', 'cod_barras_req', 'nome_paciente', 'crm')
@@ -95,29 +128,61 @@ class RequisicaoAdmin(admin.ModelAdmin):
         'motivo_preenchimento',
         'motivo_status_manual',
     )
+    
+    def created_at_formatted(self, obj):
+        """Exibe created_at no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Data Criação'
+    created_at_formatted.admin_order_field = 'created_at'
 
 
 @admin.register(Amostra)
 class AmostraAdmin(admin.ModelAdmin):
-    list_display = ('requisicao', 'cod_barras_amostra', 'ordem', 'data_hora_bipagem')
+    list_display = ('requisicao', 'cod_barras_amostra', 'ordem', 'data_hora_bipagem_formatted')
     list_filter = ('requisicao__unidade',)
     search_fields = ('cod_barras_amostra', 'requisicao__cod_barras_req')
+    
+    def data_hora_bipagem_formatted(self, obj):
+        """Exibe data_hora_bipagem no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.data_hora_bipagem:
+            return obj.data_hora_bipagem.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    data_hora_bipagem_formatted.short_description = 'Data/Hora Bipagem'
+    data_hora_bipagem_formatted.admin_order_field = 'data_hora_bipagem'
 
 
-@admin.register(DadosRequisicao)
-class DadosRequisicaoAdmin(admin.ModelAdmin):
-    list_display = ('cod_barras_req', 'created_at')
+@admin.register(LogRecebimento)
+class LogRecebimentoAdmin(admin.ModelAdmin):
+    list_display = ('cod_barras_req', 'created_at_formatted')
     search_fields = ('cod_barras_req',)
+    
+    def created_at_formatted(self, obj):
+        """Exibe created_at no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Data Criação'
+    created_at_formatted.admin_order_field = 'created_at'
 
 
 @admin.register(RequisicaoStatusHistorico)
 class RequisicaoStatusHistoricoAdmin(admin.ModelAdmin):
     """Admin para visualização do histórico de status."""
-    list_display = ('cod_req', 'status', 'usuario', 'data_registro')
+    list_display = ('cod_req', 'status', 'usuario', 'data_registro_formatted')
     list_filter = ('status', 'data_registro')
     search_fields = ('cod_req', 'requisicao__cod_barras_req')
     readonly_fields = ('requisicao', 'cod_req', 'status', 'usuario', 'data_registro', 'observacao')
     date_hierarchy = 'data_registro'
+    
+    def data_registro_formatted(self, obj):
+        """Exibe data_registro no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.data_registro:
+            return obj.data_registro.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    data_registro_formatted.short_description = 'Data/Hora Registro'
+    data_registro_formatted.admin_order_field = 'data_registro'
     
     def has_add_permission(self, request):
         """Não permite adicionar histórico manualmente."""

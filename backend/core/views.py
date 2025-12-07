@@ -2,7 +2,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
 from django.views.generic import TemplateView
 
-from operacao.models import Requisicao, StatusRequisicao, Unidade
+from operacao.models import DadosRequisicao, StatusRequisicao, Unidade
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -11,9 +11,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        total_requisicoes = Requisicao.objects.count()
+        total_requisicoes = DadosRequisicao.objects.count()
         requisicoes_recent = (
-            Requisicao.objects.select_related('unidade', 'status').order_by('-created_at')[:5]
+            DadosRequisicao.objects.select_related('unidade', 'status').order_by('-created_at')[:5]
         )
         status_totais = (
             StatusRequisicao.objects.annotate(total=Count('requisicoes'))

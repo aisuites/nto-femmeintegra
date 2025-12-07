@@ -105,14 +105,14 @@ class MotivoStatusManual(TimeStampedModel):
         return self.descricao
 
 
-class DadosRequisicao(TimeStampedModel):
+class LogRecebimento(TimeStampedModel):
     cod_barras_req = models.CharField('Código de barras da requisição', max_length=64, unique=True)
     dados = models.JSONField('Payload bruto', default=dict, blank=True)
 
     class Meta:
         ordering = ('-created_at',)
-        verbose_name = 'Dados da requisição (JSON)'
-        verbose_name_plural = 'Dados das requisições (JSON)'
+        verbose_name = 'Log de Recebimento (JSON)'
+        verbose_name_plural = 'Logs de Recebimento (JSON)'
         indexes = [
             models.Index(fields=('cod_barras_req',)),
         ]
@@ -121,7 +121,7 @@ class DadosRequisicao(TimeStampedModel):
         return self.cod_barras_req
 
 
-class Requisicao(AuditModel):
+class DadosRequisicao(AuditModel):
     cod_req = models.CharField('Código da requisição', max_length=30, unique=True)
     cod_barras_req = models.CharField('Código de barras', max_length=64, unique=True)
     lote_req = models.CharField('Lote', max_length=50, blank=True)
@@ -222,12 +222,9 @@ class Requisicao(AuditModel):
 class RequisicaoStatusHistorico(models.Model):
     """
     Histórico de mudanças de status das requisições.
-    
-    Registra todas as alterações de status, permitindo auditoria
-    e rastreamento completo do ciclo de vida de cada requisição.
     """
     requisicao = models.ForeignKey(
-        Requisicao,
+        DadosRequisicao,
         on_delete=models.CASCADE,
         related_name='historico_status',
         verbose_name='Requisição',
@@ -278,7 +275,7 @@ class RequisicaoStatusHistorico(models.Model):
 
 class Amostra(AuditModel):
     requisicao = models.ForeignKey(
-        Requisicao,
+        DadosRequisicao,
         on_delete=models.CASCADE,
         related_name='amostras',
     )

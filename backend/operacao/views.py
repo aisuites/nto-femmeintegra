@@ -18,7 +18,6 @@ from .models import (
     DadosRequisicao,
     Origem,
     PortadorRepresentante,
-    Requisicao,
     StatusRequisicao,
     Unidade,
 )
@@ -53,7 +52,7 @@ class RecebimentoView(LoginRequiredMixin, TemplateView):
         
         # Requisições recebidas pelo usuário logado com status 1 (ABERTO_NTO)
         requisicoes = (
-            Requisicao.objects
+            DadosRequisicao.objects
             .filter(
                 recebido_por=self.request.user,
                 status__codigo='1'

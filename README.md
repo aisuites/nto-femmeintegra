@@ -57,24 +57,20 @@ python manage.py migrate
 python manage.py createsuperuser
 ```
 
-### 7. Popular dados iniciais
+### 7. Popular dados iniciais ⭐
 ```bash
-python manage.py shell -c "
-from operacao.models import StatusRequisicao
-dados = [
-    {'codigo': 'ABERTO_NTO', 'descricao': 'ABERTO NTO', 'ordem': 1},
-    {'codigo': 'RECEBIDO', 'descricao': 'RECEBIDO', 'ordem': 2},
-    {'codigo': 'CAIXA_LIDERANCA', 'descricao': 'CAIXA LIDERANÇA', 'ordem': 3},
-    {'codigo': 'CAIXA_BO', 'descricao': 'CAIXA BO', 'ordem': 4},
-    {'codigo': 'CAIXA_BARRADOS', 'descricao': 'CAIXA BARRADOS', 'ordem': 5},
-    {'codigo': 'PENDENCIA', 'descricao': 'PENDÊNCIA', 'ordem': 6},
-    {'codigo': 'TRIAGEM1_OK', 'descricao': 'TRIAGEM1-OK', 'ordem': 7},
-    {'codigo': 'TRIAGEM2_OK', 'descricao': 'TRIAGEM2-OK', 'ordem': 8},
-]
-for item in dados:
-    StatusRequisicao.objects.get_or_create(codigo=item['codigo'], defaults={'descricao': item['descricao'], 'ordem': item['ordem']})
-"
+# Popular Status de Requisição (8) e Origens Papabrasil (14)
+python manage.py popular_dados_iniciais
+
+# Ou limpar e repopular
+python manage.py popular_dados_iniciais --limpar
 ```
+
+**Dados criados:**
+- ✅ 8 Status de Requisição (ABERTO NTO, RECEBIDO, CAIXA LIDERANÇA, etc.)
+- ✅ 14 Origens Papabrasil (FEMME, PP BRASIL RIO DE JANEIRO, etc.)
+
+Ver detalhes completos em: `DADOS_INICIAIS_POPULADOS.md`
 
 ### 8. Iniciar Redis (opcional)
 ```bash
@@ -142,6 +138,31 @@ python manage.py test
 # Verificar deploy
 python manage.py check --deploy
 ```
+
+## 🛠️ Comandos Úteis
+
+### Gerenciamento de Cache
+```bash
+# Limpar cache de unidades e portadores
+python manage.py limpar_cache
+
+# Limpar todo o cache do sistema
+python manage.py limpar_cache --all
+
+# Limpar chave específica
+python manage.py limpar_cache --key recebimento:unidades
+```
+
+### Dados Iniciais
+```bash
+# Popular dados iniciais (Status e Origens)
+python manage.py popular_dados_iniciais
+
+# Limpar e repopular
+python manage.py popular_dados_iniciais --limpar
+```
+
+**Nota:** Também é possível limpar o cache via Django Admin usando as actions disponíveis em Unidades e Portadores.
 
 ## 📝 Variáveis de Ambiente
 
