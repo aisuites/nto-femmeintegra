@@ -97,14 +97,12 @@ class Command(BaseCommand):
             cod_req='REQ-TESTE-999',
             cod_barras_req='999',
             unidade=unidade,
-            portador=maria,
+            portador_representante=maria,
             origem=origem,
             status=status_transito,
-            data_cadastro_representante=data_cadastro,
-            data_envio_representante=data_envio,
+            data_cadastro_representante=data_cadastro.date(),
+            data_envio_representante=data_envio.date(),
             recebido_por=None,  # Vazio - ainda não foi recebido
-            created_at=data_cadastro,
-            updated_at=data_envio,
         )
         self.stdout.write(f'✅ Requisição criada: {requisicao.cod_req}')
         
@@ -120,7 +118,6 @@ class Command(BaseCommand):
                 cod_barras_amostra=amostra_data['cod_barras'],
                 data_hora_bipagem=data_cadastro,
                 ordem=amostra_data['ordem'],
-                created_at=data_cadastro,
             )
             self.stdout.write(f'✅ Amostra criada: {amostra.cod_barras_amostra}')
         
