@@ -339,6 +339,109 @@
       }
     }
 
+    /**
+     * Valida divergências entre dados selecionados e dados cadastrados
+     * para requisições em trânsito
+     */
+    function validarDivergenciasTransito(data, validacao) {
+      const divergencias = [];
+      
+      try {
+        // Validar portador/representante
+        const portadorSelecionado = portadorSelect?.value;
+        if (portadorSelecionado && data.portador_representante_id && 
+            parseInt(portadorSelecionado) !== data.portador_representante_id) {
+          const portadorNome = portadorSelect.options[portadorSelect.selectedIndex]?.text || 'Desconhecido';
+          divergencias.push({
+            campo: 'Portador/Representante',
+            selecionado: portadorNome,
+            cadastrado: data.portador_representante_nome || 'Não informado'
+          });
+        }
+        
+        // Validar quantidade de amostras
+        const qtdSelecionada = parseInt(quantidadeInput?.value || 0);
+        if (qtdSelecionada && data.qtd_amostras && qtdSelecionada !== data.qtd_amostras) {
+          divergencias.push({
+            campo: 'Quantidade de Amostras',
+            selecionado: qtdSelecionada.toString(),
+            cadastrado: data.qtd_amostras.toString()
+          });
+        }
+        
+        // Se houver divergências, mostrar aviso
+        if (divergencias.length > 0) {
+          mostrarModalDivergencias(divergencias, data, validacao);
+        } else {
+          // Sem divergências, abrir modal normalmente
+          abrirModal(data.qtd_amostras, validacao.codigo, data);
+        }
+      } catch (error) {
+        console.error('Erro ao validar divergências:', error);
+        // Em caso de erro, abrir modal normalmente
+        abrirModal(data.qtd_amostras, validacao.codigo, data);
+      }
+    }
+    
+    /**
+     * Mostra modal com aviso de divergências
+     */
+    function mostrarModalDivergencias(divergencias, data, validacao) {
+      const divergenciasHtml = divergencias.map(div => `
+        <div style="background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; padding: 12px; margin-bottom: 8px; border-radius: 4px;">
+          <strong style="color: #7a3d8a;">${div.campo}:</strong><br>
+          <span style="color: #77767c; font-size: 13px;">
+            Selecionado: <strong>${div.selecionado}</strong><br>
+            Cadastrado: <strong style="color: #00bca4;">${div.cadastrado}</strong>
+          </span>
+        </div>
+      `).join('');
+      
+      const modalHtml = `
+        <div class="modal-divergencias" id="modal-divergencias" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+          <div style="background: white; border-radius: 18px; padding: 32px; max-width: 550px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <h3 style="margin: 0 0 16px; color: #ffc107; font-size: 20px;">⚠️ Divergências Detectadas</h3>
+            <p style="margin: 0 0 20px; color: #34343a; line-height: 1.6;">
+              Os dados selecionados <strong>não correspondem</strong> aos dados cadastrados para esta requisição em trânsito:
+            </p>
+            
+            ${divergenciasHtml}
+            
+            <p style="margin: 20px 0 24px; color: #77767c; font-size: 14px; line-height: 1.5;">
+              <strong>Os dados cadastrados serão preservados.</strong> Deseja continuar com o recebimento usando os dados originais?
+            </p>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+              <button id="btn-cancelar-divergencias" style="padding: 10px 20px; border: 1px solid #ddd; background: white; color: #77767c; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                Cancelar
+              </button>
+              <button id="btn-continuar-divergencias" style="padding: 10px 20px; border: none; background: #00bca4; color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                Continuar Mesmo Assim
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+      const modal = document.getElementById('modal-divergencias');
+      const btnCancelar = document.getElementById('btn-cancelar-divergencias');
+      const btnContinuar = document.getElementById('btn-continuar-divergencias');
+      
+      function fecharModalDiv() {
+        modal?.remove();
+      }
+      
+      btnCancelar?.addEventListener('click', fecharModalDiv);
+      
+      btnContinuar?.addEventListener('click', () => {
+        fecharModalDiv();
+        // Abrir modal de bipagem com dados cadastrados
+        abrirModal(data.qtd_amostras, validacao.codigo, data);
+      });
+    }
+
     localizarBtn?.addEventListener('click', localizarCodigo);
     barcodeInput?.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
@@ -780,109 +883,6 @@
       }
     }
   });
-
-  /**
-   * Valida divergências entre dados selecionados e dados cadastrados
-   * para requisições em trânsito
-   */
-  function validarDivergenciasTransito(data, validacao) {
-    const divergencias = [];
-    
-    try {
-      // Validar portador/representante
-      const portadorSelecionado = portadorSelect?.value;
-      if (portadorSelecionado && data.portador_representante_id && 
-          parseInt(portadorSelecionado) !== data.portador_representante_id) {
-        const portadorNome = portadorSelect.options[portadorSelect.selectedIndex]?.text || 'Desconhecido';
-        divergencias.push({
-          campo: 'Portador/Representante',
-          selecionado: portadorNome,
-          cadastrado: data.portador_representante_nome || 'Não informado'
-        });
-      }
-      
-      // Validar quantidade de amostras
-      const qtdSelecionada = parseInt(quantidadeInput?.value || 0);
-      if (qtdSelecionada && data.qtd_amostras && qtdSelecionada !== data.qtd_amostras) {
-        divergencias.push({
-          campo: 'Quantidade de Amostras',
-          selecionado: qtdSelecionada.toString(),
-          cadastrado: data.qtd_amostras.toString()
-        });
-      }
-      
-      // Se houver divergências, mostrar aviso
-      if (divergencias.length > 0) {
-        mostrarModalDivergencias(divergencias, data, validacao);
-      } else {
-        // Sem divergências, abrir modal normalmente
-        abrirModal(data.qtd_amostras, validacao.codigo, data);
-      }
-    } catch (error) {
-      console.error('Erro ao validar divergências:', error);
-      // Em caso de erro, abrir modal normalmente
-      abrirModal(data.qtd_amostras, validacao.codigo, data);
-    }
-  }
-  
-  /**
-   * Mostra modal com aviso de divergências
-   */
-  function mostrarModalDivergencias(divergencias, data, validacao) {
-    const divergenciasHtml = divergencias.map(div => `
-      <div style="background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; padding: 12px; margin-bottom: 8px; border-radius: 4px;">
-        <strong style="color: #7a3d8a;">${div.campo}:</strong><br>
-        <span style="color: #77767c; font-size: 13px;">
-          Selecionado: <strong>${div.selecionado}</strong><br>
-          Cadastrado: <strong style="color: #00bca4;">${div.cadastrado}</strong>
-        </span>
-      </div>
-    `).join('');
-    
-    const modalHtml = `
-      <div class="modal-divergencias" id="modal-divergencias" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
-        <div style="background: white; border-radius: 18px; padding: 32px; max-width: 550px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-          <h3 style="margin: 0 0 16px; color: #ffc107; font-size: 20px;">⚠️ Divergências Detectadas</h3>
-          <p style="margin: 0 0 20px; color: #34343a; line-height: 1.6;">
-            Os dados selecionados <strong>não correspondem</strong> aos dados cadastrados para esta requisição em trânsito:
-          </p>
-          
-          ${divergenciasHtml}
-          
-          <p style="margin: 20px 0 24px; color: #77767c; font-size: 14px; line-height: 1.5;">
-            <strong>Os dados cadastrados serão preservados.</strong> Deseja continuar com o recebimento usando os dados originais?
-          </p>
-          
-          <div style="display: flex; gap: 12px; justify-content: flex-end;">
-            <button id="btn-cancelar-divergencias" style="padding: 10px 20px; border: 1px solid #ddd; background: white; color: #77767c; border-radius: 8px; cursor: pointer; font-weight: 500;">
-              Cancelar
-            </button>
-            <button id="btn-continuar-divergencias" style="padding: 10px 20px; border: none; background: #00bca4; color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">
-              Continuar Mesmo Assim
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = document.getElementById('modal-divergencias');
-    const btnCancelar = document.getElementById('btn-cancelar-divergencias');
-    const btnContinuar = document.getElementById('btn-continuar-divergencias');
-    
-    function fecharModal() {
-      modal?.remove();
-    }
-    
-    btnCancelar?.addEventListener('click', fecharModal);
-    
-    btnContinuar?.addEventListener('click', () => {
-      fecharModal();
-      // Abrir modal de bipagem com dados cadastrados
-      abrirModal(data.qtd_amostras, validacao.codigo, data);
-    });
-  }
   
   /**
    * Mostra modal de confirmação de transferência de requisição
