@@ -842,14 +842,11 @@ const RecebimentoModule = (() => {
      * Handler para finalizar recebimento
      */
     async onFinalizarClick() {
-      console.log('🎯 onFinalizarClick chamado!');
+      // Verifica se há itens na tabela através do contador (lógica original)
+      const counterSpan = document.getElementById('kit_counter');
+      const count = counterSpan ? parseInt(counterSpan.textContent) : 0;
       
-      const tableWrapper = document.querySelector('.kit-table-wrapper');
-      const tbody = tableWrapper?.querySelector('.kit-table tbody');
-      console.log('tbody encontrado:', !!tbody, 'linhas:', tbody?.querySelectorAll('tr').length);
-      
-      if (!tbody || tbody.querySelectorAll('tr').length === 0) {
-        mostrarAlerta('Não há requisições para finalizar.');
+      if (count === 0 && !confirm('Não há requisições bipadas visíveis neste kit. Deseja finalizar mesmo assim?')) {
         return;
       }
       
