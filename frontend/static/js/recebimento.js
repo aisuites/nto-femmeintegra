@@ -844,7 +844,8 @@ const RecebimentoModule = (() => {
     async onFinalizarClick() {
       console.log('🎯 onFinalizarClick chamado!');
       
-      const tbody = document.querySelector('.kit-table tbody');
+      const tableWrapper = document.querySelector('.kit-table-wrapper');
+      const tbody = tableWrapper?.querySelector('.kit-table tbody');
       console.log('tbody encontrado:', !!tbody, 'linhas:', tbody?.querySelectorAll('tr').length);
       
       if (!tbody || tbody.querySelectorAll('tr').length === 0) {
