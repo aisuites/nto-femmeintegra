@@ -78,20 +78,6 @@ class RequisicaoService:
         return resultado
     
     @staticmethod
-    def validar_codigo_barras_duplicado(cod_barras_req: str) -> bool:
-        existe = LogRecebimento.objects.filter(
-            cod_barras_req=cod_barras_req
-        ).exists()
-        
-        if existe:
-            logger.warning(
-                'Código de barras duplicado detectado: %s',
-                cod_barras_req
-            )
-        
-        return existe
-    
-    @staticmethod
     def validar_foreign_keys(
         unidade_id: int,
         portador_representante_id: int,
@@ -152,7 +138,14 @@ class RequisicaoService:
                 'message': 'Todos os códigos de barras devem ser iguais.',
             }
         
-        if cls.validar_codigo_barras_duplicado(cod_barras_req):
+        # Verificar se código já foi recebido (status RECEBIDO = 2)
+        existe_recebido = DadosRequisicao.objects.filter(
+            cod_barras_req=cod_barras_req,
+            status__codigo='2'  # RECEBIDO
+        ).exists()
+        
+        if existe_recebido:
+            logger.warning('Código de barras já recebido: %s', cod_barras_req)
             return {
                 'status': 'error',
                 'message': 'Já existe um registro com este código de barras.',
@@ -178,16 +171,8 @@ class RequisicaoService:
         try:
             from django.utils import timezone
             
-            # 1. Criar LogRecebimento (Log/JSON)
-            dados_req = LogRecebimento.objects.create(
-                cod_barras_req=cod_barras_req,
-                dados={
-                    'cod_barras_amostras': cod_barras_amostras,
-                    'quantidade': len(cod_barras_amostras),
-                },
-            )
-            
-            # 2. Criar DadosRequisicao (Tabela Principal)
+            # 1. Criar DadosRequisicao (Tabela Principal)
+            # NOTA: LogRecebimento será criado apenas ao finalizar kit (status RECEBIDO)
             requisicao = DadosRequisicao.objects.create(
                 cod_req=cod_req,
                 cod_barras_req=cod_barras_req,
@@ -200,7 +185,7 @@ class RequisicaoService:
                 updated_by=user,
             )
             
-            # 3. Criar Amostras
+            # 2. Criar Amostras
             data_atual = timezone.now()
             for idx, cod_amostra in enumerate(cod_barras_amostras, start=1):
                 Amostra.objects.create(
@@ -212,7 +197,7 @@ class RequisicaoService:
                     updated_by=user
                 )
             
-            # 4. Histórico
+            # 3. Histórico
             RequisicaoStatusHistorico.objects.create(
                 requisicao=requisicao,
                 cod_req=cod_req,
@@ -402,11 +387,25 @@ class RequisicaoService:
         
         for req in requisicoes:
             try:
+                # Atualizar status da requisição
                 req.status = status_recebido
                 req.data_recebimento_nto = agora
                 req.updated_by = user
                 req.save()
                 
+                # Criar LogRecebimento (marca como recebido definitivamente)
+                amostras = list(req.amostras.values_list('cod_barras_amostra', flat=True))
+                LogRecebimento.objects.create(
+                    cod_barras_req=req.cod_barras_req,
+                    dados={
+                        'cod_barras_amostras': amostras,
+                        'quantidade': len(amostras),
+                        'cod_req': req.cod_req,
+                        'finalizado_em': agora.isoformat(),
+                    },
+                )
+                
+                # Registrar no histórico
                 RequisicaoStatusHistorico.objects.create(
                     requisicao=req,
                     cod_req=req.cod_req,
@@ -444,12 +443,13 @@ class BuscaService:
         - already_started: Código existe com status 1 de outro usuário (transferência)
         - already_yours: Código existe com status 1 do mesmo usuário
         """
-        # Verificar se já foi recebido (existe no log)
-        existe_log = LogRecebimento.objects.filter(
-            cod_barras_req=cod_barras
+        # Verificar se já foi recebido (status RECEBIDO = 2)
+        existe_recebido = DadosRequisicao.objects.filter(
+            cod_barras_req=cod_barras,
+            status__codigo='2'  # RECEBIDO
         ).exists()
         
-        if existe_log:
+        if existe_recebido:
             logger.info('Código de barras já recebido anteriormente: %s', cod_barras)
             return {'status': 'found'}
         
