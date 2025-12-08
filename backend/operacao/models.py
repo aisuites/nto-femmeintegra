@@ -353,3 +353,79 @@ class Notificacao(TimeStampedModel):
             self.lida = True
             self.data_leitura = timezone.now()
             self.save(update_fields=['lida', 'data_leitura'])
+
+
+class TipoArquivo(TimeStampedModel):
+    """
+    Tipos de arquivos que podem ser anexados às requisições.
+    Ex: Requisição, Laudo, Resultado, Documento de Identificação, etc.
+    """
+    descricao = models.CharField(
+        'Descrição',
+        max_length=100,
+        help_text='Descrição do tipo de arquivo'
+    )
+    ativo = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ('descricao',)
+        verbose_name = 'Tipo de Arquivo'
+        verbose_name_plural = 'Tipos de Arquivo'
+    
+    def __str__(self) -> str:
+        return self.descricao
+
+
+class RequisicaoArquivo(AuditModel):
+    """
+    Arquivos anexados a uma requisição.
+    Armazena uploads de imagens, PDFs, documentos relacionados à requisição.
+    """
+    requisicao = models.ForeignKey(
+        DadosRequisicao,
+        on_delete=models.CASCADE,
+        related_name='arquivos',
+        verbose_name='Requisição',
+        help_text='Requisição à qual o arquivo pertence',
+    )
+    cod_req = models.CharField(
+        'Código da requisição',
+        max_length=30,
+        db_index=True,
+        help_text='Código da requisição (desnormalizado para performance)',
+    )
+    tipo_arquivo = models.ForeignKey(
+        TipoArquivo,
+        on_delete=models.PROTECT,
+        related_name='arquivos',
+        verbose_name='Tipo de Arquivo',
+        help_text='Tipo/categoria do arquivo',
+    )
+    nome_arquivo = models.CharField(
+        'Nome do arquivo',
+        max_length=255,
+        help_text='Nome original do arquivo enviado',
+    )
+    url_arquivo = models.CharField(
+        'URL do arquivo',
+        max_length=500,
+        help_text='URL ou caminho do arquivo armazenado',
+    )
+    data_upload = models.DateTimeField(
+        'Data de upload',
+        auto_now_add=True,
+        db_index=True,
+    )
+    
+    class Meta:
+        ordering = ('-data_upload',)
+        verbose_name = 'Arquivo da Requisição'
+        verbose_name_plural = 'Arquivos das Requisições'
+        indexes = [
+            models.Index(fields=['requisicao', '-data_upload']),
+            models.Index(fields=['cod_req', '-data_upload']),
+            models.Index(fields=['tipo_arquivo', '-data_upload']),
+        ]
+    
+    def __str__(self) -> str:
+        return f'{self.cod_req} - {self.nome_arquivo}'

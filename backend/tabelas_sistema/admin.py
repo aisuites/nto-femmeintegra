@@ -7,7 +7,9 @@ from .models import (
     DbHistorico,
     DbUnidade,
     DbPortador,
-    DbAmostra
+    DbAmostra,
+    DbTipoArquivo,
+    DbRequisicaoArquivo,
 )
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -94,3 +96,13 @@ class DbUnidadeAdmin(ReadOnlyAdmin):
 class DbPortadorAdmin(ReadOnlyAdmin):
     search_fields = ['nome']
     list_filter = ['tipo', 'ativo']
+
+@admin.register(DbTipoArquivo)
+class DbTipoArquivoAdmin(ReadOnlyAdmin):
+    search_fields = ['descricao']
+    list_filter = ['ativo']
+
+@admin.register(DbRequisicaoArquivo)
+class DbRequisicaoArquivoAdmin(ReadOnlyAdmin):
+    search_fields = ['cod_req', 'nome_arquivo']
+    list_filter = ['tipo_arquivo', 'data_upload']

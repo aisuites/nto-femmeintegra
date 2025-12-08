@@ -7,7 +7,9 @@ from operacao.models import (
     Unidade,
     PortadorRepresentante,
     Origem,
-    Amostra
+    Amostra,
+    TipoArquivo,
+    RequisicaoArquivo,
 )
 
 # Criamos modelos "Proxy" para exibir no novo menu sem duplicar tabelas no banco
@@ -53,3 +55,15 @@ class DbPortador(PortadorRepresentante):
         proxy = True
         verbose_name = 'portador_representante'
         verbose_name_plural = 'portador_representante'
+
+class DbTipoArquivo(TipoArquivo):
+    class Meta:
+        proxy = True
+        verbose_name = 'tipo_arquivo'
+        verbose_name_plural = 'tipo_arquivo'
+
+class DbRequisicaoArquivo(RequisicaoArquivo):
+    class Meta:
+        proxy = True
+        verbose_name = 'requisicao_arquivo'
+        verbose_name_plural = 'requisicao_arquivo'

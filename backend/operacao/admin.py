@@ -13,6 +13,8 @@ from .models import (
     RequisicaoStatusHistorico,
     StatusRequisicao,
     Unidade,
+    TipoArquivo,
+    RequisicaoArquivo,
 )
 
 
@@ -107,6 +109,18 @@ class RequisicaoStatusHistoricoInline(admin.TabularInline):
         return False
 
 
+class RequisicaoArquivoInline(admin.TabularInline):
+    """Inline para exibir arquivos na página de Requisição."""
+    model = RequisicaoArquivo
+    extra = 0
+    readonly_fields = ('data_upload', 'created_by', 'updated_by')
+    fields = ('tipo_arquivo', 'nome_arquivo', 'url_arquivo', 'data_upload')
+    
+    def has_delete_permission(self, request, obj=None):
+        """Permite deletar apenas para superusuários."""
+        return request.user.is_superuser
+
+
 @admin.register(DadosRequisicao)
 class DadosRequisicaoAdmin(admin.ModelAdmin):
     list_display = (
@@ -119,7 +133,7 @@ class DadosRequisicaoAdmin(admin.ModelAdmin):
     )
     list_filter = ('status', 'unidade', 'origem', 'flag_erro_preenchimento', 'korus_bloqueado')
     search_fields = ('cod_req', 'cod_barras_req', 'nome_paciente', 'crm')
-    inlines = [AmostraInline, RequisicaoStatusHistoricoInline]
+    inlines = [AmostraInline, RequisicaoStatusHistoricoInline, RequisicaoArquivoInline]
     autocomplete_fields = (
         'unidade',
         'status',
@@ -213,3 +227,52 @@ class NotificacaoAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         """Não permite adicionar notificações manualmente."""
         return False
+
+
+@admin.register(TipoArquivo)
+class TipoArquivoAdmin(admin.ModelAdmin):
+    """Admin para tipos de arquivo."""
+    list_display = ('descricao', 'ativo', 'created_at_formatted')
+    list_filter = ('ativo', 'created_at')
+    search_fields = ('descricao',)
+    list_editable = ('ativo',)
+    
+    def created_at_formatted(self, obj):
+        """Exibe created_at no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Data Criação'
+    created_at_formatted.admin_order_field = 'created_at'
+
+
+@admin.register(RequisicaoArquivo)
+class RequisicaoArquivoAdmin(admin.ModelAdmin):
+    """Admin para arquivos das requisições."""
+    list_display = ('cod_req', 'nome_arquivo', 'tipo_arquivo', 'data_upload_formatted', 'created_by')
+    list_filter = ('tipo_arquivo', 'data_upload', 'created_at')
+    search_fields = ('cod_req', 'requisicao__cod_barras_req', 'nome_arquivo')
+    readonly_fields = ('data_upload', 'created_at', 'updated_at', 'created_by', 'updated_by')
+    autocomplete_fields = ('requisicao', 'tipo_arquivo')
+    date_hierarchy = 'data_upload'
+    
+    fieldsets = (
+        ('Requisição', {
+            'fields': ('requisicao', 'cod_req')
+        }),
+        ('Arquivo', {
+            'fields': ('tipo_arquivo', 'nome_arquivo', 'url_arquivo', 'data_upload')
+        }),
+        ('Auditoria', {
+            'fields': ('created_at', 'updated_at', 'created_by', 'updated_by'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def data_upload_formatted(self, obj):
+        """Exibe data_upload no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.data_upload:
+            return obj.data_upload.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    data_upload_formatted.short_description = 'Data Upload'
+    data_upload_formatted.admin_order_field = 'data_upload'

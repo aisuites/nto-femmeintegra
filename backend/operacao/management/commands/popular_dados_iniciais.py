@@ -8,11 +8,11 @@ Uso:
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from operacao.models import StatusRequisicao, Origem
+from operacao.models import StatusRequisicao, Origem, TipoArquivo
 
 
 class Command(BaseCommand):
-    help = 'Popula dados iniciais no banco de dados (Status e Origens)'
+    help = 'Popula dados iniciais no banco de dados (Status, Origens e Tipos de Arquivo)'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -27,6 +27,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING('⚠️  Limpando dados existentes...'))
             StatusRequisicao.objects.all().delete()
             Origem.objects.all().delete()
+            TipoArquivo.objects.all().delete()
             self.stdout.write(self.style.SUCCESS('✅ Dados limpos!'))
 
         # ========================================
@@ -114,6 +115,45 @@ class Command(BaseCommand):
                 )
         
         # ========================================
+        # TIPOS DE ARQUIVO
+        # ========================================
+        self.stdout.write('\n📎 Criando Tipos de Arquivo...')
+        
+        tipos_arquivo_data = [
+            'Requisição',
+            'Laudo',
+            'Resultado',
+            'Documento de Identificação',
+            'Comprovante de Endereço',
+            'Pedido Médico',
+            'Cartão SUS',
+            'Carteirinha Convênio',
+            'Prontuário',
+            'Termo de Consentimento',
+            'Nota Fiscal',
+            'Outros',
+        ]
+        
+        tipos_criados = 0
+        tipos_existentes = 0
+        
+        for descricao in tipos_arquivo_data:
+            tipo, created = TipoArquivo.objects.get_or_create(
+                descricao=descricao,
+                defaults={'ativo': True}
+            )
+            if created:
+                tipos_criados += 1
+                self.stdout.write(
+                    self.style.SUCCESS(f'  ✅ Tipo criado: {descricao}')
+                )
+            else:
+                tipos_existentes += 1
+                self.stdout.write(
+                    self.style.WARNING(f'  ⚠️  Tipo já existe: {descricao}')
+                )
+        
+        # ========================================
         # RESUMO
         # ========================================
         self.stdout.write('\n' + '='*60)
@@ -124,7 +164,10 @@ class Command(BaseCommand):
         self.stdout.write(f'  • Status já existentes: {status_existentes}')
         self.stdout.write(f'  • Origens criadas: {origens_criadas}')
         self.stdout.write(f'  • Origens já existentes: {origens_existentes}')
+        self.stdout.write(f'  • Tipos de arquivo criados: {tipos_criados}')
+        self.stdout.write(f'  • Tipos de arquivo já existentes: {tipos_existentes}')
         self.stdout.write(f'\n  Total de Status: {StatusRequisicao.objects.count()}')
         self.stdout.write(f'  Total de Origens: {Origem.objects.count()}')
+        self.stdout.write(f'  Total de Tipos de Arquivo: {TipoArquivo.objects.count()}')
         self.stdout.write('\n💡 Dica: Use --limpar para remover dados existentes antes de popular')
         self.stdout.write('')

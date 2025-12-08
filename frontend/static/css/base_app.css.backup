@@ -219,7 +219,7 @@ header {
    ============================================ */
 
 /* DESCOMENTE A LINHA ABAIXO PARA ATIVAR SIDEBAR FIXO */
-.sidebar { position: sticky; top: 88px; align-self: flex-start; max-height: calc(100vh - 108px); overflow-y: auto; }
+/* .sidebar { position: sticky; top: 88px; align-self: flex-start; max-height: calc(100vh - 108px); overflow-y: auto; } */
 
 /* Scrollbar customizada para sidebar fixo */
 .sidebar::-webkit-scrollbar {

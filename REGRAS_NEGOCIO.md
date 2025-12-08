@@ -81,35 +81,71 @@ if (!quantidade || quantidade < 1) {
 
 #### Regra: Busca de Código Existente
 - **Descrição**: Ao bipar um código de barras, o sistema verifica se ele já existe no banco de dados.
-- **Fluxos Possíveis**:
-  1. **Código não existe** → Abre modal para cadastro novo
-  2. **Código existe e já foi recebido** → Alerta de duplicidade
-  3. **Código existe com status "EM TRÂNSITO"** → Abre modal com dados pré-preenchidos
-  4. **Código existe com outros status** → Alerta conforme status
-- **Código**: `backend/operacao/services.py:432-479`
+- **Fluxos Possíveis** (em ordem de verificação):
+  1. **Código já RECEBIDO** (status 2) → Alerta de duplicidade
+  2. **Código EM TRÂNSITO** (status 10) → Abre modal com dados pré-preenchidos
+  3. **Código ABERTO NTO do mesmo usuário** (status 1) → Alerta "Você já iniciou esta requisição"
+  4. **Código ABERTO NTO de outro usuário** (status 1) → Modal de transferência
+  5. **Código não existe** → Abre modal para cadastro novo
+- **Código**: `backend/operacao/services.py:431-523` (classe `BuscaService`)
 
 #### Regra: Código Já Recebido (Duplicidade)
-- **Descrição**: Se o código já existe no `LogRecebimento`, significa que já foi recebido anteriormente.
+- **Descrição**: Se o código já existe com status RECEBIDO (código '2'), significa que já foi finalizado anteriormente.
 - **Ação**: Bloqueia recebimento e exibe alerta.
 - **Mensagem**: "Já existe registro para este código de barras."
-- **Status HTTP**: 200 (com status='found')
-- **Código**: `backend/operacao/services.py:442-448`
+- **Retorno**: `{'status': 'found'}`
+- **Código**: `backend/operacao/services.py:446-454`
 
 ```python
-existe_log = LogRecebimento.objects.filter(
-    cod_barras_req=cod_barras
+# Verificar se já foi recebido (status RECEBIDO = 2)
+existe_recebido = DadosRequisicao.objects.filter(
+    cod_barras_req=cod_barras,
+    status__codigo='2'  # RECEBIDO
 ).exists()
 
-if existe_log:
+if existe_recebido:
     logger.info('Código de barras já recebido anteriormente: %s', cod_barras)
     return {'status': 'found'}
 ```
 
+⚠️ **MUDANÇA**: Verificação agora é feita por status RECEBIDO (código '2') ao invés de `LogRecebimento`.
+
+#### Regra: Código Em Trânsito
+- **Descrição**: Se o código existe com status EM TRÂNSITO (código '10'), retorna dados para pré-preenchimento.
+- **Dados Retornados**:
+  - `requisicao_id` - ID da requisição
+  - `cod_req` - Código da requisição
+  - `unidade_nome` e `unidade_id`
+  - `origem_descricao` e `origem_id`
+  - `portador_representante_nome` e `portador_representante_id`
+  - `qtd_amostras` - Quantidade de amostras cadastradas
+  - `cod_barras_amostras` - Lista de códigos das amostras
+- **Retorno**: `{'status': 'in_transit', ...}`
+- **Código**: `backend/operacao/services.py:456-486`
+
+#### Regra: Código Já Iniciado (Mesmo Usuário)
+- **Descrição**: Se o código existe com status ABERTO NTO (código '1') e foi iniciado pelo mesmo usuário.
+- **Ação**: Alerta informando que a requisição já foi iniciada.
+- **Retorno**: `{'status': 'already_yours'}`
+- **Código**: `backend/operacao/services.py:498-501`
+
+#### Regra: Código Já Iniciado (Outro Usuário) - Transferência
+- **Descrição**: Se o código existe com status ABERTO NTO (código '1') e foi iniciado por outro usuário.
+- **Ação**: Oferece opção de transferência (assumir a requisição).
+- **Dados Retornados**:
+  - `requisicao_id` - ID da requisição
+  - `cod_req` - Código da requisição
+  - `usuario_anterior` - Username do usuário anterior
+  - `usuario_anterior_nome` - Nome completo do usuário anterior
+  - `created_at` - Data/hora de início formatada
+- **Retorno**: `{'status': 'already_started', ...}`
+- **Código**: `backend/operacao/services.py:489-517`
+
 #### Regra: Código Não Encontrado
-- **Descrição**: Se o código não existe em nenhuma tabela, é uma nova requisição.
+- **Descrição**: Se o código não existe em nenhum status, é uma nova requisição.
 - **Ação**: Abre modal para bipagem de amostras.
-- **Status HTTP**: 200 (com status='not_found')
-- **Código**: `backend/operacao/services.py:476-478`
+- **Retorno**: `{'status': 'not_found'}`
+- **Código**: `backend/operacao/services.py:521-523`
 
 ---
 
@@ -118,30 +154,29 @@ if existe_log:
 ### 2.1. Criação de Requisição
 
 #### Regra: Geração de Código de Requisição
-- **Descrição**: O sistema gera automaticamente um código único no formato `REQ-YYYYMMDD-NNNN`.
+- **Descrição**: O sistema gera automaticamente um código único alfanumérico aleatório.
 - **Formato**: 
-  - `REQ-` (prefixo fixo)
-  - `YYYYMMDD` (data atual)
-  - `NNNN` (sequencial de 4 dígitos)
-- **Exemplo**: `REQ-20241207-0001`
-- **Código**: `backend/operacao/services.py:22-56`
+  - 10 caracteres alfanuméricos (letras maiúsculas A-Z e dígitos 0-9)
+  - Gerado usando `secrets.choice()` para garantir aleatoriedade criptográfica
+  - Valida unicidade no banco antes de retornar
+- **Exemplo**: `A3B7XK9M2P`, `K1D8F2N5Q7`
+- **Tentativas**: Até 10 tentativas para gerar código único
+- **Código**: `backend/operacao/services.py:32-55`
 
 ```python
-def gerar_codigo_requisicao() -> str:
-    hoje = timezone.now().date()
-    prefixo = f'REQ-{hoje.strftime("%Y%m%d")}'
+def gerar_codigo_requisicao(tamanho: int = 10, max_tentativas: int = 10) -> str:
+    chars = string.ascii_uppercase + string.digits
     
-    ultima_req = DadosRequisicao.objects.filter(
-        cod_req__startswith=prefixo
-    ).order_by('-cod_req').first()
+    for tentativa in range(max_tentativas):
+        codigo = ''.join(secrets.choice(chars) for _ in range(tamanho))
+        
+        # Verificar se código já existe
+        if not DadosRequisicao.objects.filter(cod_req=codigo).exists():
+            return codigo
     
-    if ultima_req:
-        ultimo_numero = int(ultima_req.cod_req.split('-')[-1])
-        proximo_numero = ultimo_numero + 1
-    else:
-        proximo_numero = 1
-    
-    return f'{prefixo}-{proximo_numero:04d}'
+    raise ValueError(
+        f'Não foi possível gerar código único após {max_tentativas} tentativas'
+    )
 ```
 
 #### Regra: Validação de Foreign Keys
@@ -151,41 +186,51 @@ def gerar_codigo_requisicao() -> str:
   - ✅ Portador/Representante DEVE existir
   - ✅ Origem é opcional (pode ser NULL)
   - ✅ Status inicial (código '1' - ABERTO NTO) DEVE existir
-- **Código**: `backend/operacao/services.py:94-136`
+- **Código**: `backend/operacao/services.py:81-122`
 
 #### Regra: Criação Atômica (Transaction)
 - **Descrição**: A criação de uma requisição é uma transação atômica. Se qualquer etapa falhar, TUDO é revertido.
 - **Etapas**:
-  1. Criar `LogRecebimento` (JSON)
-  2. Criar `DadosRequisicao` (tabela principal)
-  3. Criar `Amostra` (uma para cada código bipado)
-  4. Criar `RequisicaoStatusHistorico` (registro inicial)
-- **Código**: `backend/operacao/services.py:138-240` (decorator `@transaction.atomic`)
+  1. Criar `DadosRequisicao` (tabela principal com status ABERTO NTO)
+  2. Criar `Amostra` (uma para cada código bipado)
+  3. Criar `RequisicaoStatusHistorico` (registro inicial)
+  4. `LogRecebimento` é criado apenas ao finalizar kit (status RECEBIDO)
+- **Código**: `backend/operacao/services.py:124-230` (decorator `@transaction.atomic`)
+
+⚠️ **IMPORTANTE**: `LogRecebimento` NÃO é criado ao receber a requisição inicialmente. Ele é criado apenas quando o kit é finalizado (status muda para RECEBIDO = 2).
 
 ---
 
 ### 2.2. Validação de Amostras
 
-#### Regra: Códigos Iguais (Recomendado)
-- **Descrição**: O sistema RECOMENDA que todos os códigos de barras (requisição + amostras) sejam iguais.
-- **Comportamento**: Se forem diferentes, apenas loga um warning (não bloqueia).
-- **Código**: `backend/operacao/services.py:58-92`
+#### Regra: Códigos Iguais (OBRIGATÓRIO)
+- **Descrição**: O sistema EXIGE que todos os códigos de barras (requisição + amostras) sejam IGUAIS.
+- **Comportamento**: Se forem diferentes, retorna erro e BLOQUEIA a criação da requisição.
+- **Mensagem de Erro**: "Todos os códigos de barras devem ser iguais."
+- **Validação**: Cria um conjunto (set) com todos os códigos e verifica se há apenas 1 código único.
+- **Código**: `backend/operacao/services.py:57-78`
 
 ```python
 def validar_codigos_iguais(cod_barras_req: str, cod_barras_amostras: List[str]) -> bool:
     if not cod_barras_amostras:
-        return True
+        return False
     
-    todos_iguais = all(cod == cod_barras_req for cod in cod_barras_amostras)
+    todos_codigos = [cod_barras_req] + cod_barras_amostras
+    codigos_unicos = set(todos_codigos)
     
-    if not todos_iguais:
+    resultado = len(codigos_unicos) == 1
+    
+    if not resultado:
         logger.warning(
-            'Códigos de barras divergentes - Requisição: %s, Amostras: %s',
+            'Códigos de barras diferentes detectados. '
+            'Requisição: %s, Amostras: %s',
             cod_barras_req, cod_barras_amostras
         )
     
-    return todos_iguais
+    return resultado
 ```
+
+⚠️ **IMPORTANTE**: Esta é uma validação BLOQUEANTE. A requisição NÃO é criada se os códigos forem diferentes.
 
 #### Regra: Quantidade de Amostras
 - **Descrição**: A quantidade de amostras bipadas DEVE corresponder à quantidade informada no formulário.
@@ -195,9 +240,10 @@ def validar_codigos_iguais(cod_barras_req: str, cod_barras_amostras: List[str]) 
 #### Regra: Ordem das Amostras
 - **Descrição**: Cada amostra recebe um número de ordem sequencial (1, 2, 3...).
 - **Comportamento**: A ordem é definida pela sequência de bipagem.
-- **Código**: `backend/operacao/services.py:203-213`
+- **Código**: `backend/operacao/services.py:189-198`
 
 ```python
+data_atual = timezone.now()
 for idx, cod_amostra in enumerate(cod_barras_amostras, start=1):
     Amostra.objects.create(
         requisicao=requisicao,
@@ -226,16 +272,33 @@ for idx, cod_amostra in enumerate(cod_barras_amostras, start=1):
   - `status` → 2 (RECEBIDO)
   - `data_recebimento_nto` → Data/hora atual
   - `updated_by` → Usuário logado
-- **Código**: `backend/operacao/services.py:403-421`
+- **Registros Criados**:
+  - `LogRecebimento` - Marca definitivamente como recebido (JSON com amostras)
+  - `RequisicaoStatusHistorico` - Registro da mudança de status
+- **Código**: `backend/operacao/services.py:358-426`
 
 ```python
 for req in requisicoes:
     try:
+        # Atualizar status da requisição
         req.status = status_recebido
         req.data_recebimento_nto = agora
         req.updated_by = user
         req.save()
         
+        # Criar LogRecebimento (marca como recebido definitivamente)
+        amostras = list(req.amostras.values_list('cod_barras_amostra', flat=True))
+        LogRecebimento.objects.create(
+            cod_barras_req=req.cod_barras_req,
+            dados={
+                'cod_barras_amostras': amostras,
+                'quantidade': len(amostras),
+                'cod_req': req.cod_req,
+                'finalizado_em': agora.isoformat(),
+            },
+        )
+        
+        # Registrar no histórico
         RequisicaoStatusHistorico.objects.create(
             requisicao=req,
             cod_req=req.cod_req,
@@ -250,6 +313,8 @@ for req in requisicoes:
         continue
 ```
 
+⚠️ **IMPORTANTE**: `LogRecebimento` é criado APENAS nesta etapa, quando o kit é finalizado. Ele NÃO é criado ao receber a requisição inicialmente.
+
 ---
 
 ## 3. VALIDAÇÕES DE CÓDIGO DE BARRAS
@@ -257,19 +322,28 @@ for req in requisicoes:
 ### 3.1. Duplicidade
 
 #### Regra: Código de Barras Único
-- **Descrição**: Não é permitido criar uma requisição com um código de barras que já existe no `LogRecebimento`.
-- **Validação**: Backend verifica antes de criar.
+- **Descrição**: Não é permitido criar uma requisição com um código de barras que já foi RECEBIDO (status 2).
+- **Validação**: Backend verifica se existe requisição com o código e status RECEBIDO.
 - **Mensagem**: "Já existe um registro com este código de barras."
 - **Status HTTP**: 400
-- **Código**: `backend/operacao/services.py:155-159`
+- **Código**: `backend/operacao/services.py:141-152`
 
 ```python
-if cls.validar_codigo_barras_duplicado(cod_barras_req):
+# Verificar se código já foi recebido (status RECEBIDO = 2)
+existe_recebido = DadosRequisicao.objects.filter(
+    cod_barras_req=cod_barras_req,
+    status__codigo='2'  # RECEBIDO
+).exists()
+
+if existe_recebido:
+    logger.warning('Código de barras já recebido: %s', cod_barras_req)
     return {
         'status': 'error',
         'message': 'Já existe um registro com este código de barras.',
     }
 ```
+
+⚠️ **MUDANÇA**: A verificação agora é feita na tabela `DadosRequisicao` com filtro de status '2' ao invés de verificar `LogRecebimento`.
 
 ---
 
@@ -299,15 +373,15 @@ if not cod_barras_req:
 #### Regra: Status "EM TRÂNSITO" (código 10)
 - **Descrição**: Requisições com status 10 são consideradas "em trânsito" - enviadas por representantes de fora de SP.
 - **Características**:
-  - Já possuem dados cadastrados (unidade, origem, representante)
+  - Já possuem dados cadastrados (unidade, origem, portador/representante)
   - Já possuem amostras cadastradas
   - Aguardam apenas confirmação de recebimento físico no NTO
-- **Código**: `backend/operacao/services.py:450-475`
+- **Código**: `backend/operacao/services.py:456-486`
 
 ```python
 try:
     requisicao = DadosRequisicao.objects.select_related(
-        'unidade', 'origem', 'status'
+        'unidade', 'origem', 'status', 'recebido_por', 'portador_representante'
     ).get(
         cod_barras_req=cod_barras,
         status__codigo='10'  # EM TRÂNSITO
@@ -321,12 +395,16 @@ try:
         'requisicao_id': requisicao.id,
         'cod_req': requisicao.cod_req,
         'unidade_nome': requisicao.unidade.nome,
+        'unidade_id': requisicao.unidade_id,
         'origem_descricao': requisicao.origem.descricao if requisicao.origem else None,
+        'origem_id': requisicao.origem_id,
+        'portador_representante_nome': requisicao.portador_representante.nome if requisicao.portador_representante else None,
+        'portador_representante_id': requisicao.portador_representante_id,
         'qtd_amostras': len(amostras),
         'cod_barras_amostras': amostras,
     }
 except DadosRequisicao.DoesNotExist:
-    return {'status': 'not_found'}
+    pass
 ```
 
 ---
@@ -338,7 +416,7 @@ except DadosRequisicao.DoesNotExist:
 - **Validação**: Backend compara `len(amostras_bipadas)` com `len(amostras_cadastradas)`.
 - **Mensagem**: "Quantidade de amostras divergente. Cadastradas: X, Bipadas: Y"
 - **Status HTTP**: 400
-- **Código**: `backend/operacao/services.py:279-290`
+- **Código**: `backend/operacao/services.py:264-275`
 
 ```python
 amostras_cadastradas = list(
@@ -358,7 +436,7 @@ if len(amostras_bipadas) != len(amostras_cadastradas):
 - **Descrição**: Os códigos bipados DEVEM corresponder aos códigos cadastrados, permitindo duplicatas (mesmo código para várias amostras).
 - **Validação**: Compara listas ordenadas.
 - **Mensagem**: "Divergência nas amostras bipadas. Código X: cadastradas=Y, bipadas=Z."
-- **Código**: `backend/operacao/services.py:292-319`
+- **Código**: `backend/operacao/services.py:277-304`
 
 ```python
 # Validar códigos (comparar listas ordenadas para permitir duplicatas)
@@ -402,7 +480,7 @@ if amostras_cadastradas_sorted != amostras_bipadas_sorted:
   - `recebido_por` → Usuário logado
   - `updated_by` → Usuário logado
 - **Histórico**: Cria registro no `RequisicaoStatusHistorico`.
-- **Código**: `backend/operacao/services.py:321-349`
+- **Código**: `backend/operacao/services.py:306-341`
 
 ```python
 # Buscar status
@@ -541,22 +619,33 @@ def migrar_dados_portador(apps, schema_editor):
 ### 6.2. LogRecebimento (JSON)
 
 #### Regra: Log Imutável
-- **Descrição**: Cada requisição recebida gera um registro JSON no `LogRecebimento`.
+- **Descrição**: Cada requisição FINALIZADA gera um registro JSON no `LogRecebimento`.
+- **Momento de Criação**: Apenas ao finalizar kit (status ABERTO NTO → RECEBIDO)
 - **Conteúdo**:
-  - `cod_barras_req` - Código de barras da requisição
-  - `dados` - Payload JSON com informações brutas
-- **Uso**: Auditoria e troubleshooting.
-- **Código**: `backend/operacao/models.py:108-122`
+  - `cod_barras_req` - Código de barras da requisição (unique)
+  - `dados` - Payload JSON com:
+    - `cod_barras_amostras` - Lista de códigos das amostras
+    - `quantidade` - Número de amostras
+    - `cod_req` - Código da requisição
+    - `finalizado_em` - Data/hora de finalização (ISO format)
+- **Uso**: Auditoria e verificação de duplicidade (requisições já recebidas)
+- **Código**: `backend/operacao/services.py:396-406`
 
 ```python
+# Criado ao finalizar kit
+amostras = list(req.amostras.values_list('cod_barras_amostra', flat=True))
 LogRecebimento.objects.create(
-    cod_barras_req=cod_barras_req,
+    cod_barras_req=req.cod_barras_req,
     dados={
-        'cod_barras_amostras': cod_barras_amostras,
-        'quantidade': len(cod_barras_amostras),
+        'cod_barras_amostras': amostras,
+        'quantidade': len(amostras),
+        'cod_req': req.cod_req,
+        'finalizado_em': agora.isoformat(),
     },
 )
 ```
+
+⚠️ **MUDANÇA**: `LogRecebimento` NÃO é mais criado ao receber a requisição. É criado apenas ao finalizar o kit.
 
 ---
 
@@ -807,26 +896,33 @@ if (contador > 0) {
 - **Fluxos Possíveis**:
   1. **Mesmo usuário** → Mensagem: "Você já iniciou esta requisição"
   2. **Outro usuário** → Modal de confirmação de transferência
-- **Código**: `backend/operacao/services.py:479-513`
+- **Código**: `backend/operacao/services.py:489-517` (método `buscar_codigo_barras`)
 
 ```python
 # Verificar se existe com status ABERTO NTO (status 1)
-requisicao = DadosRequisicao.objects.get(
-    cod_barras_req=cod_barras,
-    status__codigo='1'  # ABERTO NTO
-)
-
-# Verificar se é do mesmo usuário
-if user and requisicao.recebido_por == user:
-    return {'status': 'already_yours'}
-
-# É de outro usuário - permitir transferência
-return {
-    'status': 'already_started',
-    'requisicao_id': requisicao.id,
-    'usuario_anterior': requisicao.recebido_por.username,
-    # ...
-}
+try:
+    requisicao = DadosRequisicao.objects.select_related(
+        'recebido_por', 'status'
+    ).get(
+        cod_barras_req=cod_barras,
+        status__codigo='1'  # ABERTO NTO
+    )
+    
+    # Verificar se é do mesmo usuário
+    if user and requisicao.recebido_por == user:
+        return {'status': 'already_yours'}
+    
+    # É de outro usuário - permitir transferência
+    return {
+        'status': 'already_started',
+        'requisicao_id': requisicao.id,
+        'cod_req': requisicao.cod_req,
+        'usuario_anterior': requisicao.recebido_por.username,
+        'usuario_anterior_nome': requisicao.recebido_por.get_full_name() or requisicao.recebido_por.username,
+        'created_at': requisicao.created_at.strftime('%d/%m/%Y %H:%M'),
+    }
+except DadosRequisicao.DoesNotExist:
+    pass
 ```
 
 ---
@@ -854,24 +950,44 @@ return {
   1. Atualiza `recebido_por` para novo usuário
   2. Registra no histórico de status
   3. Cria notificação para usuário anterior
-- **Código**: `backend/operacao/services.py:515-564`
+- **Código**: `backend/operacao/services.py:526-609` (método `transferir_requisicao`)
 
 ```python
 @transaction.atomic
 def transferir_requisicao(cls, requisicao_id, novo_usuario, user_solicitante):
+    requisicao = DadosRequisicao.objects.select_related(
+        'recebido_por', 'status'
+    ).get(id=requisicao_id)
+    
+    usuario_anterior = requisicao.recebido_por
+    
     # 1. Transferir
     requisicao.recebido_por = novo_usuario
+    requisicao.updated_by = user_solicitante
     requisicao.save()
     
     # 2. Histórico
-    RequisicaoStatusHistorico.objects.create(...)
+    RequisicaoStatusHistorico.objects.create(
+        requisicao=requisicao,
+        cod_req=requisicao.cod_req,
+        status=requisicao.status,
+        usuario=novo_usuario,
+        observacao=f'Requisição transferida de {usuario_anterior.username} para {novo_usuario.username}',
+    )
     
     # 3. Notificação
     Notificacao.objects.create(
         usuario=usuario_anterior,
         tipo='TRANSFERENCIA',
         titulo='Requisição Transferida',
-        mensagem=f'A requisição {cod_req} foi assumida por {novo_usuario}.',
+        mensagem=f'A requisição {requisicao.cod_req} foi assumida por {novo_usuario.get_full_name() or novo_usuario.username}.',
+        dados={
+            'cod_req': requisicao.cod_req,
+            'cod_barras': requisicao.cod_barras_req,
+            'requisicao_id': requisicao.id,
+            'novo_usuario': novo_usuario.username,
+            'novo_usuario_nome': novo_usuario.get_full_name() or novo_usuario.username,
+        },
     )
 ```
 
@@ -879,7 +995,15 @@ def transferir_requisicao(cls, requisicao_id, novo_usuario, user_solicitante):
 - **Descrição**: Apenas requisições com status `1` (ABERTO NTO) ou `10` (EM TRÂNSITO) podem ser transferidas.
 - **Validação**: Backend valida antes de transferir.
 - **Mensagem**: "Requisição com status X não pode ser transferida."
-- **Código**: `backend/operacao/services.py:504-509`
+- **Código**: `backend/operacao/services.py:549-554`
+
+```python
+if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
+    return {
+        'status': 'error',
+        'message': f'Requisição com status {requisicao.status.descricao} não pode ser transferida.',
+    }
+```
 
 ---
 
@@ -891,8 +1015,13 @@ def transferir_requisicao(cls, requisicao_id, novo_usuario, user_solicitante):
   - **Tipo**: TRANSFERENCIA
   - **Título**: "Requisição Transferida"
   - **Mensagem**: "A requisição {cod_req} foi assumida por {novo_usuario}."
-  - **Dados**: JSON com informações da requisição
-- **Código**: `backend/operacao/services.py:525-538`
+  - **Dados**: JSON com:
+    - `cod_req` - Código da requisição
+    - `cod_barras` - Código de barras
+    - `requisicao_id` - ID da requisição
+    - `novo_usuario` - Username do novo usuário
+    - `novo_usuario_nome` - Nome completo do novo usuário
+- **Código**: `backend/operacao/services.py:570-583`
 
 #### Regra: Visualização da Notificação
 - **Descrição**: Usuário anterior verá notificação:
@@ -921,7 +1050,7 @@ def transferir_requisicao(cls, requisicao_id, novo_usuario, user_solicitante):
 - **Descrição**: Toda transferência é registrada no `RequisicaoStatusHistorico`.
 - **Observação**: "Requisição transferida de {usuario_anterior} para {novo_usuario}"
 - **Auditoria**: Permite rastrear todas as transferências de uma requisição.
-- **Código**: `backend/operacao/services.py:516-523`
+- **Código**: `backend/operacao/services.py:561-568`
 
 ---
 
@@ -943,6 +1072,23 @@ def transferir_requisicao(cls, requisicao_id, novo_usuario, user_solicitante):
 
 ---
 
-**Última Atualização**: 07/12/2024  
-**Versão**: 1.1  
+**Última Atualização**: 08/12/2024  
+**Versão**: 1.2  
 **Responsável**: Equipe de Desenvolvimento FEMME INTEGRA
+
+---
+
+## 🔄 HISTÓRICO DE ALTERAÇÕES
+
+### Versão 1.2 (08/12/2024)
+- **Alteração**: Geração de código de requisição mudou de sequencial baseado em data (`REQ-YYYYMMDD-NNNN`) para código alfanumérico aleatório (10 caracteres)
+- **Alteração**: `LogRecebimento` agora é criado apenas ao finalizar kit (status RECEBIDO), não mais ao receber a requisição
+- **Alteração**: Validação de duplicidade agora verifica status RECEBIDO (código '2') ao invés de `LogRecebimento`
+- **Alteração**: Validação de códigos iguais agora é OBRIGATÓRIA (bloqueante), não mais apenas recomendada
+- **Nova funcionalidade**: Busca de código de barras agora identifica requisições já iniciadas pelo mesmo usuário ou por outros usuários
+- **Nova funcionalidade**: Sistema de transferência de requisições entre usuários com notificação automática
+- **Nova funcionalidade**: Requisições em trânsito agora retornam mais dados (unidade_id, origem_id, portador_representante_id e nome)
+- Atualização de todas as referências de código para refletir linhas corretas do arquivo `services.py`
+
+### Versão 1.1 (07/12/2024)
+- Documentação inicial das regras de negócio
