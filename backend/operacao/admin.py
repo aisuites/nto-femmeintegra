@@ -113,7 +113,7 @@ class DadosRequisicaoAdmin(admin.ModelAdmin):
         'cod_barras_req',
         'unidade',
         'status',
-        'representante',
+        'portador_representante',
         'created_at_formatted',
     )
     list_filter = ('status', 'unidade', 'origem', 'flag_erro_preenchimento', 'korus_bloqueado')
@@ -122,9 +122,8 @@ class DadosRequisicaoAdmin(admin.ModelAdmin):
     autocomplete_fields = (
         'unidade',
         'status',
-        'representante',
+        'portador_representante',
         'origem',
-        'portador',
         'motivo_preenchimento',
         'motivo_status_manual',
     )

@@ -352,7 +352,7 @@
         if (data.status === 'success') {
             // Limpar sessionStorage
             sessionStorage.removeItem('recebimento_unidade_id');
-            sessionStorage.removeItem('recebimento_portador_id');
+            sessionStorage.removeItem('recebimento_portador_representante_id');
             
             mostrarToastSucesso(data.message || 'Recebimento finalizado com sucesso!');
             
@@ -636,18 +636,18 @@
         payload.is_transit = true;
         payload.requisicao_id = dadosRequisicaoTransito.requisicao_id;
       } else {
-        // Nova requisição - precisa de unidade, portador, origem
+        // Nova requisição - precisa de unidade, portador_representante, origem
         const unidadeId = hiddenField?.value;
-        const portadorId = portadorSelect?.value;
+        const portadorRepresentanteId = portadorSelect?.value;
         const origemId = portadorSelect?.options[portadorSelect.selectedIndex]?.dataset?.origemId;
         
-        if (!unidadeId || !portadorId) {
+        if (!unidadeId || !portadorRepresentanteId) {
           mostrarAlerta('Dados incompletos para validação.');
           return;
         }
         
         payload.unidade_id = unidadeId;
-        payload.portador_id = portadorId;
+        payload.portador_representante_id = portadorRepresentanteId;
         payload.origem_id = origemId;
       }
       
@@ -713,7 +713,7 @@
           // Salvar valores atuais no sessionStorage (backup) - apenas se não for trânsito
           if (!payload.is_transit) {
             sessionStorage.setItem('recebimento_unidade_id', hiddenField?.value || '');
-            sessionStorage.setItem('recebimento_portador_id', portadorSelect?.value || '');
+            sessionStorage.setItem('recebimento_portador_representante_id', portadorSelect?.value || '');
           }
         }
       } catch (error) {
@@ -737,7 +737,7 @@
 
     // Restaurar valores do sessionStorage
     const savedUnidadeId = sessionStorage.getItem('recebimento_unidade_id');
-    const savedPortadorId = sessionStorage.getItem('recebimento_portador_id');
+    const savedPortadorRepresentanteId = sessionStorage.getItem('recebimento_portador_representante_id');
     
     if (savedUnidadeId) {
       const radioToCheck = document.querySelector(`.unit-card input[type="radio"][value="${savedUnidadeId}"]`);
@@ -745,11 +745,11 @@
         radioToCheck.checked = true;
         updateSelectedState(radioToCheck);
         
-        // Restaurar portador após filtrar
-        if (savedPortadorId) {
+        // Restaurar portador_representante após filtrar
+        if (savedPortadorRepresentanteId) {
           setTimeout(() => {
             if (portadorSelect) {
-              portadorSelect.value = savedPortadorId;
+              portadorSelect.value = savedPortadorRepresentanteId;
               atualizarOrigemFromSelect();
             }
           }, 100);

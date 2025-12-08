@@ -140,26 +140,21 @@ class DadosRequisicao(AuditModel):
         help_text='Usuário que recebeu/criou a requisição no sistema',
         db_index=True,
     )
-    representante = models.ForeignKey(
+    portador_representante = models.ForeignKey(
         PortadorRepresentante,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='requisicoes_representante',
+        related_name='requisicoes',
+        verbose_name='Portador/Representante',
+        help_text='Pessoa que trouxe/enviou a requisição',
     )
     origem = models.ForeignKey(
         Origem,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='requisicoes',
-    )
-    portador = models.ForeignKey(
-        PortadorRepresentante,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='requisicoes_portador',
+        related_name='requisicoes_origem',
     )
 
     data_envio_representante = models.DateField(null=True, blank=True)

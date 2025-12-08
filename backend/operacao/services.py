@@ -94,7 +94,7 @@ class RequisicaoService:
     @staticmethod
     def validar_foreign_keys(
         unidade_id: int,
-        portador_id: int,
+        portador_representante_id: int,
         origem_id: Optional[int] = None
     ) -> Dict[str, any]:
         try:
@@ -104,11 +104,11 @@ class RequisicaoService:
             raise ValidationError(f'Unidade com ID {unidade_id} não encontrada')
         
         try:
-            portador = PortadorRepresentante.objects.get(id=portador_id)
+            portador_representante = PortadorRepresentante.objects.get(id=portador_representante_id)
         except PortadorRepresentante.DoesNotExist:
-            logger.error('Portador não encontrado: ID=%s', portador_id)
+            logger.error('Portador/Representante não encontrado: ID=%s', portador_representante_id)
             raise ValidationError(
-                f'Portador/Representante com ID {portador_id} não encontrado'
+                f'Portador/Representante com ID {portador_representante_id} não encontrado'
             )
         
         origem = None
@@ -130,7 +130,7 @@ class RequisicaoService:
         
         return {
             'unidade': unidade,
-            'portador': portador,
+            'portador_representante': portador_representante,
             'origem': origem,
             'status_inicial': status_inicial,
         }
@@ -142,7 +142,7 @@ class RequisicaoService:
         cod_barras_req: str,
         cod_barras_amostras: List[str],
         unidade_id: int,
-        portador_id: int,
+        portador_representante_id: int,
         origem_id: Optional[int],
         user,
     ) -> Dict[str, any]:
@@ -159,7 +159,7 @@ class RequisicaoService:
             }
         
         try:
-            fks = cls.validar_foreign_keys(unidade_id, portador_id, origem_id)
+            fks = cls.validar_foreign_keys(unidade_id, portador_representante_id, origem_id)
         except ValidationError as e:
             return {
                 'status': 'error',
@@ -193,7 +193,7 @@ class RequisicaoService:
                 cod_barras_req=cod_barras_req,
                 unidade=fks['unidade'],
                 status=fks['status_inicial'],
-                portador=fks['portador'],
+                portador_representante=fks['portador_representante'],
                 origem=fks['origem'],
                 recebido_por=user,
                 created_by=user,

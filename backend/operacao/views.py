@@ -133,7 +133,7 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
         cod_barras_req = (payload.get('cod_barras_req') or '').strip()
         cod_barras_amostras = payload.get('cod_barras_amostras', [])
         unidade_id = payload.get('unidade_id')
-        portador_id = payload.get('portador_id')
+        portador_representante_id = payload.get('portador_representante_id')
         origem_id = payload.get('origem_id')
         requisicao_id = payload.get('requisicao_id')  # Para requisições em trânsito
         is_transit = payload.get('is_transit', False)  # Flag para identificar fluxo
@@ -174,9 +174,9 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
                         {'status': 'error', 'message': 'Unidade não informada.'},
                         status=400,
                     )
-                if not portador_id:
+                if not portador_representante_id:
                     return JsonResponse(
-                        {'status': 'error', 'message': 'Portador não informado.'},
+                        {'status': 'error', 'message': 'Portador/Representante não informado.'},
                         status=400,
                     )
                 
@@ -184,7 +184,7 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
                     cod_barras_req=cod_barras_req,
                     cod_barras_amostras=cod_barras_amostras,
                     unidade_id=unidade_id,
-                    portador_id=portador_id,
+                    portador_representante_id=portador_representante_id,
                     origem_id=origem_id,
                     user=request.user,
                 )
