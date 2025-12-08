@@ -20,6 +20,21 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 
+# ============================================
+# CONSTANTES DE CONFIGURAÇÃO
+# ============================================
+
+# Status que bloqueiam novo recebimento de requisição
+# Adicione ou remova códigos conforme necessário
+STATUS_BLOQUEIO_RECEBIMENTO = [
+    '2',   # RECEBIDO - Requisição já foi recebida e finalizada
+    # '3',   # CAIXA LIDERANÇA - Descomentar quando implementado
+    # '4',   # CAIXA BO - Descomentar quando implementado
+    # '7',   # TRIAGEM1-OK - Descomentar quando implementado
+    # '8',   # TRIAGEM2-OK - Descomentar quando implementado
+]
+
+
 class RequisicaoService:
     """
     Serviço para gerenciar requisições.
@@ -138,14 +153,14 @@ class RequisicaoService:
                 'message': 'Todos os códigos de barras devem ser iguais.',
             }
         
-        # Verificar se código já foi recebido (status RECEBIDO = 2)
-        existe_recebido = DadosRequisicao.objects.filter(
+        # Verificar se requisição já existe com status que bloqueia recebimento
+        requisicao_bloqueada = DadosRequisicao.objects.filter(
             cod_barras_req=cod_barras_req,
-            status__codigo='2'  # RECEBIDO
+            status__codigo__in=STATUS_BLOQUEIO_RECEBIMENTO
         ).exists()
         
-        if existe_recebido:
-            logger.warning('Código de barras já recebido: %s', cod_barras_req)
+        if requisicao_bloqueada:
+            logger.warning('Código de barras com status bloqueado: %s', cod_barras_req)
             return {
                 'status': 'error',
                 'message': 'Ops! Essa requisição já foi recebida ou já está em processamento. Entre em contato com sua supervisora.',
@@ -443,14 +458,14 @@ class BuscaService:
         - already_started: Código existe com status 1 de outro usuário (transferência)
         - already_yours: Código existe com status 1 do mesmo usuário
         """
-        # Verificar se já foi recebido (status RECEBIDO = 2)
-        existe_recebido = DadosRequisicao.objects.filter(
+        # Verificar se já foi recebido ou está em processamento
+        requisicao_bloqueada = DadosRequisicao.objects.filter(
             cod_barras_req=cod_barras,
-            status__codigo='2'  # RECEBIDO
+            status__codigo__in=STATUS_BLOQUEIO_RECEBIMENTO
         ).exists()
         
-        if existe_recebido:
-            logger.info('Código de barras já recebido anteriormente: %s', cod_barras)
+        if requisicao_bloqueada:
+            logger.info('Código de barras com status bloqueado: %s', cod_barras)
             return {'status': 'found'}
         
         # Verificar se está em trânsito (status 10)
