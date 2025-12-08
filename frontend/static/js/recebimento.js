@@ -842,7 +842,11 @@ const RecebimentoModule = (() => {
      * Handler para finalizar recebimento
      */
     async onFinalizarClick() {
+      console.log('🎯 onFinalizarClick chamado!');
+      
       const tbody = document.querySelector('.kit-table tbody');
+      console.log('tbody encontrado:', !!tbody, 'linhas:', tbody?.querySelectorAll('tr').length);
+      
       if (!tbody || tbody.querySelectorAll('tr').length === 0) {
         mostrarAlerta('Não há requisições para finalizar.');
         return;
