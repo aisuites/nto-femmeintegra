@@ -2,6 +2,86 @@
    TRIAGEM.CSS - Estilos específicos da página de Triagem
    ============================================ */
 
+/* INPUTS E SELECTS */
+input[type="text"],
+input[type="date"],
+select {
+  border-radius: 999px;
+  border: 1px solid rgba(122, 61, 138, 0.18);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--femme-gray-dark);
+  outline: none;
+  transition: border 0.15s, box-shadow 0.15s;
+  width: 100%;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--femme-purple);
+  box-shadow: 0 0 0 1px rgba(122, 61, 138, 0.2);
+}
+
+/* BOTÕES */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--femme-green);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(0, 188, 164, 0.35);
+}
+
+.btn-primary:hover {
+  background: #00a08c;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-outline {
+  background: #fff;
+  color: var(--femme-purple);
+  border: 1px solid rgba(122, 61, 138, 0.4);
+}
+
+.btn-outline:hover {
+  background: var(--femme-purple-soft);
+}
+
+/* MAIN CONTAINER */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* CARD BASE */
+.card {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-subtle);
+  padding: 18px;
+}
+
 /* SEÇÃO DE BIPAGEM FIXA */
 .barcode-section-fixed {
   position: sticky;
@@ -156,15 +236,20 @@ input[readonly] {
   padding: 4px 8px;
   border-radius: 999px;
   background: #fff;
+  border: 1px solid rgba(122, 61, 138, 0.1);
 }
 
 .checkbox-item input[type="checkbox"] {
   accent-color: var(--femme-purple);
+  cursor: pointer;
 }
 
 .inline-dropdown {
   margin-left: 4px;
   min-width: 200px;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 11px;
 }
 
 /* AÇÕES */
