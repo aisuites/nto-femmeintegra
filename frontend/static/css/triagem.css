@@ -1,0 +1,193 @@
+/* ============================================
+   TRIAGEM.CSS - Estilos específicos da página de Triagem
+   ============================================ */
+
+/* SEÇÃO DE BIPAGEM FIXA */
+.barcode-section-fixed {
+  position: sticky;
+  top: 88px; /* Altura do header */
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(8px);
+}
+
+.barcode-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-kicker {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--femme-gray);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--femme-purple);
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: var(--femme-gray);
+}
+
+.barcode-row {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.info-inline {
+  font-size: 11px;
+  color: var(--femme-gray);
+}
+
+/* ETAPA 1 */
+.triagem-step {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.step-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--femme-purple-soft);
+  color: var(--femme-purple);
+  font-weight: 600;
+}
+
+/* GRID DE CAMPOS */
+.fields-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  font-size: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+}
+
+label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--femme-gray-dark);
+}
+
+input[readonly] {
+  background: #f4f2f7;
+  border-style: dashed;
+  color: var(--femme-gray);
+}
+
+/* SCANNER / UPLOAD */
+.scanner-box {
+  border-radius: var(--radius-md);
+  background: var(--femme-gray-light);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scanner-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid rgba(122, 61, 138, 0.18);
+}
+
+.file-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: #d9534f;
+}
+
+.file-remove:hover {
+  color: #c9302c;
+}
+
+/* CHECKBOXES */
+.checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.checkbox-item input[type="checkbox"] {
+  accent-color: var(--femme-purple);
+}
+
+.inline-dropdown {
+  margin-left: 4px;
+  min-width: 200px;
+}
+
+/* AÇÕES */
+.step-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 12px;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 720px) {
+  .fields-grid-2col {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .barcode-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .barcode-section-fixed {
+    position: relative;
+    top: 0;
+  }
+}

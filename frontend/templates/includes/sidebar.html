@@ -15,10 +15,10 @@
         <span class="icon">⬇</span>
         <span>Recebimento</span>
       </a>
-      <div class="sidebar-link subitem">
+      <a class="sidebar-link subitem {% if active_page == 'triagem' %}active{% endif %}" href="{% url 'operacao:triagem' %}">
         <span class="icon">🩺</span>
         <span>Triagem</span>
-      </div>
+      </a>
       <div class="sidebar-link subitem">
         <span class="icon">⏱</span>
         <span>Pendências</span>

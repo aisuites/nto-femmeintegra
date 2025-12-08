@@ -1,0 +1,161 @@
+{% extends "base_app.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/triagem.css' %}" />
+{% endblock %}
+
+{% block main_content %}
+<!-- SEÇÃO BIPAGEM (FIXA) -->
+<section class="card barcode-section-fixed">
+  <div class="barcode-section">
+    <div>
+      <div class="section-kicker">Triagem</div>
+      <div class="section-title">Localizar requisição para triagem</div>
+      <div class="section-subtitle">
+        Bipe o código de barras da requisição ou digite manualmente para iniciar a etapa de triagem.
+      </div>
+    </div>
+
+    <div class="barcode-row">
+      <input 
+        type="text" 
+        id="input-cod-barras-triagem" 
+        placeholder="Bipe ou digite o código de barras da requisição"
+        autocomplete="off"
+      />
+      <button class="btn btn-primary" type="button" id="btn-localizar-triagem">
+        🔍 Localizar
+      </button>
+    </div>
+
+    <div class="info-inline">
+      • Após localizar, a etapa da triagem será carregada abaixo de acordo com o status da requisição.
+    </div>
+  </div>
+</section>
+
+<!-- ÁREA DINÂMICA - ETAPA 1 DA TRIAGEM (INICIALMENTE OCULTA) -->
+<section class="card" id="triagem-step-container" style="display: none;">
+  <div class="triagem-step">
+
+    <div class="step-header">
+      <div>
+        <span class="step-badge">Etapa 1 · Conferência de dados e amostras</span>
+      </div>
+      <div style="font-size:11px; color:var(--femme-gray);">
+        Requisição <strong id="req-codigo-display">#---</strong> · Cód. barras <strong id="req-barras-display">---</strong>
+      </div>
+    </div>
+
+    <!-- CAMPOS PRINCIPAIS -->
+    <div class="fields-grid-2col">
+      <div class="field">
+        <label>Id da requisição</label>
+        <input type="text" id="req-id" readonly />
+      </div>
+
+      <div class="field">
+        <label>Código de barras bipado</label>
+        <input type="text" id="req-cod-barras" readonly />
+      </div>
+
+      <div class="field">
+        <label>Data de recebimento</label>
+        <input type="date" id="req-data-recebimento" />
+      </div>
+
+      <!-- SCANNER -->
+      <div class="field">
+        <label>Digitalização da requisição (Scanner)</label>
+        <div class="scanner-box">
+          <div class="scanner-row">
+            <button class="btn btn-outline" type="button" id="btn-scanner">📠 SCANNER</button>
+            <!-- Arquivos aparecerão aqui dinamicamente -->
+            <div id="scanner-files-container"></div>
+          </div>
+          <div class="info-inline">
+            Obrigatório: 1 imagem por requisição. Se necessário, exclua e faça novo scan.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DADOS POR AMOSTRA -->
+    <div class="fields-grid-2col">
+      <div class="field">
+        <label>Amostra vinculada</label>
+        <select id="select-amostra">
+          <option value="">Selecione uma amostra...</option>
+        </select>
+      </div>
+
+      <div></div>
+
+      <!-- DATA COLETA + CHECKBOX -->
+      <div class="field">
+        <label>Data da coleta</label>
+        <input type="date" id="amostra-data-coleta" />
+        <label class="checkbox-item" style="margin-top:6px; width:max-content;">
+          <input type="checkbox" id="check-data-rasurada" />
+          <span>Data rasurada</span>
+        </label>
+      </div>
+
+      <!-- DATA VALIDADE + CHECKBOX -->
+      <div class="field">
+        <label>Data de validade</label>
+        <input type="date" id="amostra-data-validade" />
+        <label class="checkbox-item" style="margin-top:6px; width:max-content;">
+          <input type="checkbox" id="check-sem-validade" />
+          <span>Sem data de validade</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- CHECKBOXES FINAIS EM 2x2 -->
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; margin-top:12px;">
+
+      <!-- Linha 1 -->
+      <label class="checkbox-item" style="padding:6px 10px;">
+        <input type="checkbox" id="check-sem-identificacao" />
+        <span>Amostra sem identificação – biópsia / swab</span>
+      </label>
+
+      <div class="checkbox-item" style="padding:6px 10px;">
+        <input type="checkbox" id="check-armazenamento-inadequado" />
+        <span>Armazenamento inadequado</span>
+        <select class="inline-dropdown" id="select-motivo-armazenamento" disabled>
+          <option value="">Selecione o motivo…</option>
+          <option value="temperatura">Temperatura fora do padrão</option>
+          <option value="transporte">Transporte inadequado</option>
+          <option value="tempo">Tempo de guarda excedido</option>
+        </select>
+      </div>
+
+      <!-- Linha 2 -->
+      <label class="checkbox-item" style="padding:6px 10px;">
+        <input type="checkbox" id="check-frasco-trocado" />
+        <span>Frasco trocado – tipo de coletor</span>
+      </label>
+
+      <label class="checkbox-item" style="padding:6px 10px;">
+        <input type="checkbox" id="check-material-nao-analisado" />
+        <span>Tipo de material não analisado pelo FEMME</span>
+      </label>
+
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="step-actions">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-triagem">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="btn-seguir-triagem">SEGUIR</button>
+    </div>
+
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/triagem.js' %}"></script>
+{% endblock %}

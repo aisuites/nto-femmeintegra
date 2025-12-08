@@ -28,6 +28,18 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(ensure_csrf_cookie, name='dispatch')
+class TriagemView(LoginRequiredMixin, TemplateView):
+    """View para página de Triagem."""
+    template_name = 'operacao/triagem.html'
+    login_url = 'admin:login'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_page'] = 'triagem'
+        return context
+
+
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class RecebimentoView(LoginRequiredMixin, TemplateView):
     template_name = 'operacao/recebimento.html'
     login_url = 'admin:login'
