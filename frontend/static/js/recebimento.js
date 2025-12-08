@@ -230,7 +230,7 @@ const RecebimentoModule = (() => {
      * Valida e cria/atualiza requisição
      */
     async validar(payload) {
-      const url = elements.modalValidar?.dataset?.url;
+      const url = window.FEMME_DATA?.urlValidar;
       if (!url) {
         throw new Error('Endpoint de validação não configurado.');
       }
@@ -257,7 +257,7 @@ const RecebimentoModule = (() => {
      * Finaliza kit de recebimento
      */
     async finalizar() {
-      const url = elements.btnFinalizarRecebimento?.dataset?.url;
+      const url = window.FEMME_DATA?.urlFinalizar;
       if (!url) {
         throw new Error('Endpoint de finalização não configurado.');
       }
