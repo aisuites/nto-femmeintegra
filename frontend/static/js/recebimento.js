@@ -923,6 +923,7 @@ const RecebimentoModule = (() => {
     updateSelectedState(radio) {
       document.querySelectorAll('.unit-card').forEach(card => {
         card.classList.remove('selected');
+        card.classList.remove('unit-card--selected'); // Remove classe do servidor também
       });
       
       const card = radio.closest('.unit-card');
@@ -949,9 +950,29 @@ const RecebimentoModule = (() => {
       
       elements.portadorSelect.innerHTML = '<option value="">Selecione...</option>';
       
-      const portadoresFiltrados = portadoresData.filter(
-        p => p.unidade_id === parseInt(unidadeId)
-      );
+      // Converter para número para garantir comparação correta
+      const unidadeIdNum = parseInt(unidadeId);
+      
+      console.log('🔍 Filtrando portadores para unidade:', unidadeIdNum);
+      console.log('📊 Total de portadores disponíveis:', portadoresData.length);
+      
+      const portadoresFiltrados = portadoresData.filter(p => {
+        const match = p.unidade_id === unidadeIdNum;
+        if (match) {
+          console.log('✅ Portador encontrado:', p.nome, '(unidade_id:', p.unidade_id, ')');
+        }
+        return match;
+      });
+      
+      console.log('📋 Portadores filtrados:', portadoresFiltrados.length);
+      
+      if (portadoresFiltrados.length === 0) {
+        console.warn('⚠️ Nenhum portador encontrado para unidade_id:', unidadeIdNum);
+        console.log('🔍 Portadores disponíveis:', portadoresData.map(p => ({
+          nome: p.nome,
+          unidade_id: p.unidade_id
+        })));
+      }
       
       portadoresFiltrados.forEach(item => {
         const opt = document.createElement('option');
