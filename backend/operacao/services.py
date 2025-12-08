@@ -11,7 +11,7 @@ from .models import (
     LogRecebimento,
     StatusRequisicao,
     RequisicaoStatusHistorico,
-    Amostra,
+    RequisicaoAmostra,
     Unidade,
     PortadorRepresentante,
     Origem,
@@ -70,7 +70,7 @@ class RequisicaoService:
         if not resultado:
             logger.warning(
                 'Códigos de barras diferentes detectados. '
-                'Requisição: %s, Amostras: %s',
+                'Requisição: %s, RequisicaoAmostras: %s',
                 cod_barras_req,
                 cod_barras_amostras
             )
@@ -185,10 +185,10 @@ class RequisicaoService:
                 updated_by=user,
             )
             
-            # 2. Criar Amostras
+            # 2. Criar RequisicaoAmostras
             data_atual = timezone.now()
             for idx, cod_amostra in enumerate(cod_barras_amostras, start=1):
-                Amostra.objects.create(
+                RequisicaoAmostra.objects.create(
                     requisicao=requisicao,
                     cod_barras_amostra=cod_amostra,
                     data_hora_bipagem=data_atual,
@@ -208,7 +208,7 @@ class RequisicaoService:
             
             logger.info(
                 'Requisição criada com sucesso. '
-                'Código: %s, Usuário: %s, Unidade: %s, Amostras: %d',
+                'Código: %s, Usuário: %s, Unidade: %s, RequisicaoAmostras: %d',
                 cod_req,
                 user.username,
                 fks['unidade'].nome,

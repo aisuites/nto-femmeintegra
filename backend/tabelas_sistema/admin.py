@@ -7,7 +7,7 @@ from .models import (
     DbHistorico,
     DbUnidade,
     DbPortador,
-    DbAmostra,
+    DbRequisicaoAmostra,
     DbTipoArquivo,
     DbRequisicaoArquivo,
 )
@@ -68,8 +68,8 @@ class DbRequisicaoAdmin(ReadOnlyAdmin):
     search_fields = ['cod_req', 'cod_barras_req', 'nome_paciente']
     list_filter = ['status', 'unidade', 'created_at']
 
-@admin.register(DbAmostra)
-class DbAmostraAdmin(ReadOnlyAdmin):
+@admin.register(DbRequisicaoAmostra)
+class DbRequisicaoAmostraAdmin(ReadOnlyAdmin):
     search_fields = ['cod_barras_amostra', 'requisicao__cod_barras_req']
     list_filter = ['requisicao__unidade', 'data_hora_bipagem']
 

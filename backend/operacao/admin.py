@@ -2,7 +2,7 @@ from django.contrib import admin, messages
 from django.core.cache import cache
 
 from .models import (
-    Amostra,
+    RequisicaoAmostra,
     LogRecebimento,
     MotivoPreenchimento,
     MotivoStatusManual,
@@ -92,7 +92,7 @@ class MotivoStatusManualAdmin(admin.ModelAdmin):
 
 
 class AmostraInline(admin.TabularInline):
-    model = Amostra
+    model = RequisicaoAmostra
     extra = 0
 
 
@@ -152,8 +152,8 @@ class DadosRequisicaoAdmin(admin.ModelAdmin):
     created_at_formatted.admin_order_field = 'created_at'
 
 
-@admin.register(Amostra)
-class AmostraAdmin(admin.ModelAdmin):
+@admin.register(RequisicaoAmostra)
+class RequisicaoAmostraAdmin(admin.ModelAdmin):
     list_display = ('requisicao', 'cod_barras_amostra', 'ordem', 'data_hora_bipagem_formatted')
     list_filter = ('requisicao__unidade',)
     search_fields = ('cod_barras_amostra', 'requisicao__cod_barras_req')

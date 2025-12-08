@@ -7,7 +7,7 @@ from operacao.models import (
     Unidade,
     PortadorRepresentante,
     Origem,
-    Amostra,
+    RequisicaoAmostra,
     TipoArquivo,
     RequisicaoArquivo,
 )
@@ -20,7 +20,7 @@ class DbRequisicao(DadosRequisicao):
         verbose_name = 'dados_requisicao'
         verbose_name_plural = 'dados_requisicao'
 
-class DbAmostra(Amostra):
+class DbRequisicaoAmostra(RequisicaoAmostra):
     class Meta:
         proxy = True
         verbose_name = 'amostra'

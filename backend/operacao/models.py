@@ -271,24 +271,102 @@ class RequisicaoStatusHistorico(models.Model):
         return f'{self.cod_req} - {self.status.codigo} em {self.data_registro:%d/%m/%Y %H:%M}'
 
 
-class Amostra(AuditModel):
+class RequisicaoAmostra(AuditModel):
+    """
+    Amostras vinculadas a uma requisição.
+    Armazena dados de triagem e validação de cada amostra.
+    """
     requisicao = models.ForeignKey(
         DadosRequisicao,
         on_delete=models.CASCADE,
         related_name='amostras',
+        verbose_name='Requisição',
     )
-    cod_barras_amostra = models.CharField(max_length=64)
-    data_hora_bipagem = models.DateTimeField()
-    ordem = models.PositiveSmallIntegerField(default=1)
+    # Campos de identificação (já existentes)
+    cod_barras_amostra = models.CharField(
+        'Código de barras da amostra',
+        max_length=64,
+    )
+    data_hora_bipagem = models.DateTimeField(
+        'Data/hora da bipagem',
+    )
+    ordem = models.PositiveSmallIntegerField(
+        'Ordem',
+        default=1,
+        help_text='Ordem da amostra na requisição (1, 2, 3...)',
+    )
+    
+    # Campos de triagem (novos)
+    tipos_amostra_id = models.IntegerField(
+        'ID do tipo de amostra',
+        null=True,
+        blank=True,
+        help_text='Referência ao tipo de amostra (ex: sangue, urina, etc)',
+    )
+    data_coleta = models.DateField(
+        'Data da coleta',
+        null=True,
+        blank=True,
+    )
+    data_validade = models.DateField(
+        'Data de validade',
+        null=True,
+        blank=True,
+    )
+    flag_data_coleta_rasurada = models.BooleanField(
+        'Data de coleta rasurada',
+        default=False,
+    )
+    flag_sem_data_validade = models.BooleanField(
+        'Sem data de validade',
+        default=False,
+    )
+    descricao = models.CharField(
+        'Descrição/Observações',
+        max_length=50,
+        blank=True,
+        default='',
+    )
+    status = models.IntegerField(
+        'Status da amostra',
+        null=True,
+        blank=True,
+        help_text='Status de processamento da amostra',
+    )
+    
+    # Flags de validação
+    flag_amostra_sem_identificacao = models.BooleanField(
+        'Amostra sem identificação (biópsia/swab)',
+        default=False,
+    )
+    flag_armazenamento_inadequado = models.BooleanField(
+        'Armazenamento inadequado',
+        default=False,
+    )
+    flag_frasco_trocado_tipo_coleta = models.BooleanField(
+        'Frasco trocado - tipo de coletor',
+        default=False,
+    )
+    flag_material_nao_analisado = models.BooleanField(
+        'Tipo de material não analisado pelo FEMME',
+        default=False,
+    )
+    motivo_inadequado_id = models.IntegerField(
+        'ID do motivo de armazenamento inadequado',
+        null=True,
+        blank=True,
+        help_text='Referência ao motivo quando flag_armazenamento_inadequado=True',
+    )
 
     class Meta:
         ordering = ('requisicao', 'ordem')
-        unique_together = ('requisicao', 'ordem')  # Unicidade por requisição + ordem
-        verbose_name = 'Amostra'
-        verbose_name_plural = 'Amostras'
+        unique_together = ('requisicao', 'ordem')
+        verbose_name = 'Amostra da Requisição'
+        verbose_name_plural = 'Amostras das Requisições'
+        db_table = 'operacao_requisicao_amostra'
 
     def __str__(self) -> str:
-        return f'{self.requisicao.cod_barras_req} - Amostra {self.ordem}'
+        return f'{self.requisicao.cod_req} - Amostra {self.ordem}'
 
 
 class Notificacao(TimeStampedModel):

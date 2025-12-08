@@ -274,7 +274,7 @@ input[readonly] {
   border-radius: 8px;
   padding: 4px 8px;
   font-size: 11px;
-  flex-shrink: 0;
+  /*flex-shrink: 0;*/
 }
 
 /* AÇÕES */

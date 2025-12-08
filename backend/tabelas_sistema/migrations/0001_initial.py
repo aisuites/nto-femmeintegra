@@ -8,12 +8,12 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('operacao', '0001_initial'),
+        ('operacao', '0007_renomear_e_expandir_amostra'),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DbAmostra',
+            name='DbRequisicaoAmostra',
             fields=[
             ],
             options={
@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 'indexes': [],
                 'constraints': [],
             },
-            bases=('operacao.amostra',),
+            bases=('operacao.requisicaoamostra',),
         ),
         migrations.CreateModel(
             name='DbHistorico',
@@ -102,5 +102,31 @@ class Migration(migrations.Migration):
                 'constraints': [],
             },
             bases=('operacao.unidade',),
+        ),
+        migrations.CreateModel(
+            name='DbTipoArquivo',
+            fields=[
+            ],
+            options={
+                'verbose_name': 'tipo_arquivo',
+                'verbose_name_plural': 'tipo_arquivo',
+                'proxy': True,
+                'indexes': [],
+                'constraints': [],
+            },
+            bases=('operacao.tipoarquivo',),
+        ),
+        migrations.CreateModel(
+            name='DbRequisicaoArquivo',
+            fields=[
+            ],
+            options={
+                'verbose_name': 'requisicao_arquivo',
+                'verbose_name_plural': 'requisicao_arquivo',
+                'proxy': True,
+                'indexes': [],
+                'constraints': [],
+            },
+            bases=('operacao.requisicaoarquivo',),
         ),
     ]
