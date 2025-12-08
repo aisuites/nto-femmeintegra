@@ -328,7 +328,12 @@ const RecebimentoModule = (() => {
         elements.modalValidar.dataset.requisicaoId = '';
         elements.modalValidar.dataset.isTransit = 'false';
         elements.modalValidar.dataset.unidadeId = elements.hiddenField?.value || '';
-        elements.modalValidar.dataset.origemId = elements.origemInput?.value || '';
+        
+        // Pegar origem_id do portador selecionado
+        const portadorOption = elements.portadorSelect?.options[elements.portadorSelect.selectedIndex];
+        const origemId = portadorOption?.dataset?.origemId || '';
+        
+        elements.modalValidar.dataset.origemId = origemId;
         elements.modalValidar.dataset.portadorRepresentanteId = elements.portadorSelect?.value || '';
       }
       
