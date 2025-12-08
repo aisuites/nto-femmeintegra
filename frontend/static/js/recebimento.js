@@ -496,6 +496,146 @@ const RecebimentoModule = (() => {
           btnConfirmar.textContent = 'Assumir Requisição';
         }
       });
+    },
+    
+    /**
+     * Mostra modal de divergência de códigos de barras
+     * Transforma o modal atual para mostrar as divergências visualmente
+     */
+    mostrarDivergenciasCodigos(codBarrasReq, codBarrasAmostras) {
+      // Buscar elementos do modal
+      const modalBadge = document.querySelector('.modal-badge-icon');
+      const modalTitle = document.querySelector('.modal-title-text h2');
+      const modalMainText = document.querySelector('.modal-main-text');
+      const modalBody = document.querySelector('.modal-body');
+      const modalFooter = document.querySelector('.modal-footer');
+      
+      // 1. ATUALIZAR VISUAL DO MODAL
+      if (modalBadge) modalBadge.textContent = '⚠️';
+      if (modalTitle) modalTitle.textContent = 'Divergência de Códigos Detectada';
+      if (modalMainText) {
+        modalMainText.innerHTML = `
+          <strong style="color: var(--femme-red);">
+            ATENÇÃO: Os códigos de barras não são iguais!
+          </strong><br/>
+          Verifique se todos os códigos foram bipados corretamente.
+        `;
+      }
+      
+      // 2. CRIAR LISTA VISUAL DE CÓDIGOS
+      const listaDiv = document.createElement('div');
+      listaDiv.style.marginTop = '16px';
+      listaDiv.style.padding = '12px';
+      listaDiv.style.background = 'var(--femme-light-gray)';
+      listaDiv.style.borderRadius = '4px';
+      listaDiv.style.fontSize = '13px';
+      
+      let html = '<div style="margin-bottom: 8px;"><strong>Códigos bipados:</strong></div>';
+      html += `<div style="margin-left: 12px;">
+        📦 Requisição: 
+        <code style="background: white; padding: 2px 6px; border-radius: 3px;">${codBarrasReq}</code>
+      </div>`;
+      
+      codBarrasAmostras.forEach((cod, idx) => {
+        const isDiferente = cod !== codBarrasReq;
+        const cor = isDiferente ? 'var(--femme-red)' : 'var(--femme-green)';
+        const icone = isDiferente ? '❌' : '✅';
+        html += `<div style="margin-left: 12px; color: ${cor}; margin-top: 4px;">
+          ${icone} Amostra ${idx + 1}: 
+          <code style="background: white; padding: 2px 6px; border-radius: 3px;">${cod}</code>
+        </div>`;
+      });
+      
+      listaDiv.innerHTML = html;
+      if (modalMainText) {
+        modalMainText.appendChild(listaDiv);
+      }
+      
+      // 3. ESCONDER CAMPOS DE INPUT
+      const modalMeta = modalBody?.querySelector('.modal-meta');
+      const modalField = modalBody?.querySelector('.field');
+      if (modalMeta) modalMeta.style.display = 'none';
+      if (modalField) modalField.style.display = 'none';
+      
+      // 4. ATUALIZAR BOTÕES DO FOOTER
+      if (modalFooter) {
+        modalFooter.innerHTML = `
+          <button class="btn btn-ghost" type="button" id="modal_btn_cancelar_div">
+            Cancelar
+          </button>
+          <button class="btn btn-outline" type="button" id="modal_btn_bipar_novamente">
+            🔄 Bipar Novamente
+          </button>
+          <button class="btn btn-warning" type="button" id="modal_btn_registrar_problema">
+            ⚠️ Registrar Problema
+          </button>
+        `;
+        
+        // 5. EVENT LISTENERS DOS BOTÕES
+        
+        // Botão 1: Cancelar
+        document.getElementById('modal_btn_cancelar_div')?.addEventListener('click', () => {
+          Modal.fechar();
+          Modal.restaurarModalOriginal();
+        });
+        
+        // Botão 2: Bipar Novamente
+        document.getElementById('modal_btn_bipar_novamente')?.addEventListener('click', () => {
+          // Limpar todos os campos de código
+          const inputs = elements.modalSamplesList?.querySelectorAll('input[type="text"]') || [];
+          inputs.forEach(input => input.value = '');
+          
+          // Focar no primeiro campo
+          if (inputs.length > 0) inputs[0].focus();
+          
+          // Restaurar modal ao estado original
+          Modal.restaurarModalOriginal();
+        });
+        
+        // Botão 3: Registrar Problema
+        document.getElementById('modal_btn_registrar_problema')?.addEventListener('click', () => {
+          // TODO: Implementar fluxo de registro de problema
+          mostrarAlerta('Funcionalidade "Registrar Problema" será implementada em breve.');
+          Modal.fechar();
+          Modal.restaurarModalOriginal();
+        });
+      }
+    },
+    
+    /**
+     * Restaura modal ao estado original após divergência
+     */
+    restaurarModalOriginal() {
+      const modalBadge = document.querySelector('.modal-badge-icon');
+      const modalTitle = document.querySelector('.modal-title-text h2');
+      const modalMainText = document.querySelector('.modal-main-text');
+      const modalFooter = document.querySelector('.modal-footer');
+      const modalBody = document.querySelector('.modal-body');
+      
+      // Restaurar ícone e título
+      if (modalBadge) modalBadge.textContent = '⚠';
+      if (modalTitle) modalTitle.textContent = 'Bipagem das amostras do kit';
+      if (modalMainText) {
+        modalMainText.innerHTML = 'PARA DAR ANDAMENTO BIPE O(S) CÓDIGO(S) DE BARRA(S) DA(S) AMOSTRA(S).';
+      }
+      
+      // Restaurar visibilidade dos campos
+      const modalMeta = modalBody?.querySelector('.modal-meta');
+      const modalField = modalBody?.querySelector('.field');
+      if (modalMeta) modalMeta.style.display = '';
+      if (modalField) modalField.style.display = '';
+      
+      // Restaurar botões originais
+      if (modalFooter) {
+        modalFooter.innerHTML = `
+          <button class="btn btn-ghost" type="button" id="modal_btn_cancelar">Cancelar</button>
+          <button class="btn btn-primary" type="button" id="modal_btn_validar">Validar</button>
+        `;
+        
+        // Re-anexar event listeners
+        document.getElementById('modal_btn_cancelar')?.addEventListener('click', Modal.fechar);
+        document.getElementById('modal_btn_validar')?.addEventListener('click', EventHandlers.onValidarClick);
+      }
     }
   };
   
@@ -646,7 +786,7 @@ const RecebimentoModule = (() => {
       
       // Validar se todos os códigos são iguais
       if (!Validator.validarCodigosIguais(codBarrasReq, codBarrasAmostras)) {
-        mostrarAlerta('Todos os códigos de barras devem ser iguais ao código da requisição.');
+        Modal.mostrarDivergenciasCodigos(codBarrasReq, codBarrasAmostras);
         return;
       }
       
