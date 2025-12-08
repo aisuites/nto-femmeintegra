@@ -1,3 +1,40 @@
+  // Funções utilitárias globais
+  function getCookie(name) {
+    const cookieValue = document.cookie
+      .split(';')
+      .map(cookie => cookie.trim())
+      .find(cookie => cookie.startsWith(`${name}=`));
+    if (cookieValue) {
+      return decodeURIComponent(cookieValue.split('=')[1]);
+    }
+    return null;
+  }
+
+  function mostrarAlerta(mensagem) {
+    const alertaBox = document.getElementById('recebimento_alert');
+    const alertaMsg = document.getElementById('alert_message');
+    if (alertaBox && alertaMsg) {
+      alertaMsg.textContent = mensagem;
+      alertaBox.style.display = 'block';
+      setTimeout(() => {
+        alertaBox.style.display = 'none';
+      }, 5000);
+    } else {
+      alert(mensagem);
+    }
+  }
+
+  function mostrarToastSucesso(mensagem) {
+    // Implementação simples de toast
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #00bca4; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000; animation: slideIn 0.3s ease;';
+    toast.textContent = mensagem;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const hiddenField = document.getElementById('unidadeSelecionada');
     const radioInputs = document.querySelectorAll('.unit-card input[type="radio"]');
@@ -17,17 +54,6 @@
     const modalCodReq = document.getElementById('modal_cod_req');
     const modalSamplesList = document.getElementById('modal_samples_list');
     const portadoresData = window.FEMME_DATA?.portadores || [];
-
-    function getCookie(name) {
-      const cookieValue = document.cookie
-        .split(';')
-        .map(cookie => cookie.trim())
-        .find(cookie => cookie.startsWith(`${name}=`));
-      if (cookieValue) {
-        return decodeURIComponent(cookieValue.split('=')[1]);
-      }
-      return null;
-    }
 
     const csrfToken = getCookie('csrftoken');
     const btnQtyMenos = document.getElementById('btn_qty_menos');
@@ -108,12 +134,6 @@
     }
 
     portadorSelect?.addEventListener('change', atualizarOrigemFromSelect);
-
-    function mostrarAlerta(mensagem) {
-      if (!alertaBox || !alertaMsg) return;
-      alertaMsg.textContent = mensagem;
-      alertaBox.classList.add('alert--visible');
-    }
 
     function esconderAlerta() {
       if (!alertaBox) return;
@@ -381,30 +401,6 @@
         btnFinalizarRecebimento.removeAttribute('disabled');
       }
     });
-
-    // Função para mostrar toast de sucesso empilhável
-    function mostrarToastSucesso(mensagem) {
-      let container = document.getElementById('toast_container');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast_container';
-        container.className = 'toast-container';
-        document.body.appendChild(container);
-      }
-
-      const toast = document.createElement('div');
-      toast.className = 'toast-success';
-      toast.textContent = mensagem;
-      
-      container.appendChild(toast);
-
-      // Remove o elemento do DOM após a animação de fadeOut (3s total: 0.3s slideIn + 2.2s wait + 0.5s fadeOut)
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 3000);
-    }
 
     function adicionarRequisicaoNaTabela(requisicao) {
       const tableWrapper = document.querySelector('.kit-table-wrapper');
