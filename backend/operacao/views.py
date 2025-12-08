@@ -155,8 +155,8 @@ class RecebimentoValidarView(LoginRequiredMixin, View):
         try:
             # DEBUG: Log dos dados recebidos
             logger.info(
-                'Validação recebida - is_transit: %s, requisicao_id: %s, cod_barras_req: %s, amostras: %s',
-                is_transit, requisicao_id, cod_barras_req, cod_barras_amostras
+                'Validação recebida - is_transit: %s, requisicao_id: %s, cod_barras_req: %s, amostras: %s, unidade_id: %s, portador_id: %s',
+                is_transit, requisicao_id, cod_barras_req, cod_barras_amostras, unidade_id, portador_representante_id
             )
             
             # Fluxo para requisição em trânsito
