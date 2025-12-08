@@ -14,6 +14,11 @@
 4. [Fluxo de Requisições em Trânsito](#4-fluxo-de-requisições-em-trânsito)
 5. [Cadastros Mestres](#5-cadastros-mestres)
 6. [Auditoria e Logs](#6-auditoria-e-logs)
+7. [Validações de Frontend](#7-validações-de-frontend)
+8. [Cache e Performance](#8-cache-e-performance)
+9. [Segurança](#9-segurança)
+10. [Sistema de Notificações](#10-sistema-de-notificações)
+11. [Transferência de Requisições](#11-transferência-de-requisições)
 
 ---
 
@@ -717,6 +722,227 @@ const csrfToken = getCookie('csrftoken');
 
 ---
 
+## 10. SISTEMA DE NOTIFICAÇÕES
+
+### 10.1. Model Notificacao
+
+#### Regra: Tipos de Notificação
+- **Descrição**: O sistema suporta 3 tipos de notificações.
+- **Tipos**:
+  - `TRANSFERENCIA` - Notificação de transferência de requisição
+  - `ALERTA` - Alertas importantes
+  - `INFO` - Informações gerais
+- **Código**: `backend/operacao/models.py:298-301`
+
+```python
+class Tipo(models.TextChoices):
+    TRANSFERENCIA = 'TRANSFERENCIA', 'Transferência de Requisição'
+    ALERTA = 'ALERTA', 'Alerta'
+    INFO = 'INFO', 'Informação'
+```
+
+#### Regra: Notificações Não Lidas
+- **Descrição**: Notificações possuem flag `lida` para controlar visualização.
+- **Comportamento**: 
+  - Ao criar: `lida=False`
+  - Ao marcar como lida: `lida=True` + `data_leitura=now()`
+- **Código**: `backend/operacao/models.py:349-354`
+
+---
+
+### 10.2. Sininho no Header
+
+#### Regra: Badge de Contador
+- **Descrição**: Badge vermelho exibe quantidade de notificações não lidas.
+- **Comportamento**:
+  - Se `contador > 0` → Badge visível com número
+  - Se `contador > 99` → Badge exibe "99+"
+  - Se `contador = 0` → Badge oculto
+- **Código**: `frontend/static/js/notificacoes.js:32-42`
+
+```javascript
+if (contador > 0) {
+  badgeNotificacoes.textContent = contador > 99 ? '99+' : contador;
+  badgeNotificacoes.style.display = 'flex';
+} else {
+  badgeNotificacoes.style.display = 'none';
+}
+```
+
+#### Regra: Atualização ao Login
+- **Descrição**: Contador é atualizado automaticamente ao carregar qualquer página.
+- **Frequência**: Uma vez ao carregar página
+- **Código**: `frontend/static/js/notificacoes.js:227`
+
+---
+
+### 10.3. Modal de Notificações
+
+#### Regra: Listagem de Notificações
+- **Descrição**: Modal exibe até 50 notificações mais recentes.
+- **Ordenação**: Mais recentes primeiro (`-created_at`)
+- **Filtro Padrão**: Apenas não lidas
+- **Código**: `backend/operacao/views.py:262-294`
+
+#### Regra: Marcar Como Lida
+- **Descrição**: Usuário pode marcar notificações individualmente ou todas de uma vez.
+- **Endpoints**:
+  - `POST /operacao/notificacoes/marcar-lida/` (uma ou mais)
+  - `POST /operacao/notificacoes/marcar-todas-lidas/` (todas)
+- **Código**: `backend/operacao/views.py:297-368`
+
+#### Regra: Estado Vazio
+- **Descrição**: Se não houver notificações, exibe mensagem amigável.
+- **Mensagem**: "Nenhuma notificação"
+- **Código**: `frontend/static/js/notificacoes.js:70-80`
+
+---
+
+## 11. TRANSFERÊNCIA DE REQUISIÇÕES
+
+### 11.1. Detecção de Requisição Iniciada
+
+#### Regra: Verificação ao Localizar
+- **Descrição**: Ao bipar código de barras, sistema verifica se requisição já foi iniciada por outro usuário.
+- **Fluxos Possíveis**:
+  1. **Mesmo usuário** → Mensagem: "Você já iniciou esta requisição"
+  2. **Outro usuário** → Modal de confirmação de transferência
+- **Código**: `backend/operacao/services.py:479-513`
+
+```python
+# Verificar se existe com status ABERTO NTO (status 1)
+requisicao = DadosRequisicao.objects.get(
+    cod_barras_req=cod_barras,
+    status__codigo='1'  # ABERTO NTO
+)
+
+# Verificar se é do mesmo usuário
+if user and requisicao.recebido_por == user:
+    return {'status': 'already_yours'}
+
+# É de outro usuário - permitir transferência
+return {
+    'status': 'already_started',
+    'requisicao_id': requisicao.id,
+    'usuario_anterior': requisicao.recebido_por.username,
+    # ...
+}
+```
+
+---
+
+### 11.2. Modal de Confirmação
+
+#### Regra: Confirmação Obrigatória
+- **Descrição**: Usuário DEVE confirmar antes de assumir requisição de outro usuário.
+- **Informações Exibidas**:
+  - Nome do usuário anterior
+  - Data/hora de início
+  - Aviso de notificação
+- **Código**: `frontend/static/js/recebimento.js:784-860`
+
+#### Regra: Ações Disponíveis
+- **Cancelar**: Fecha modal sem fazer nada
+- **Assumir Requisição**: Transfere requisição para usuário atual
+
+---
+
+### 11.3. Processo de Transferência
+
+#### Regra: Transferência Atômica
+- **Descrição**: Transferência é uma transação atômica que:
+  1. Atualiza `recebido_por` para novo usuário
+  2. Registra no histórico de status
+  3. Cria notificação para usuário anterior
+- **Código**: `backend/operacao/services.py:515-564`
+
+```python
+@transaction.atomic
+def transferir_requisicao(cls, requisicao_id, novo_usuario, user_solicitante):
+    # 1. Transferir
+    requisicao.recebido_por = novo_usuario
+    requisicao.save()
+    
+    # 2. Histórico
+    RequisicaoStatusHistorico.objects.create(...)
+    
+    # 3. Notificação
+    Notificacao.objects.create(
+        usuario=usuario_anterior,
+        tipo='TRANSFERENCIA',
+        titulo='Requisição Transferida',
+        mensagem=f'A requisição {cod_req} foi assumida por {novo_usuario}.',
+    )
+```
+
+#### Regra: Status Permitidos
+- **Descrição**: Apenas requisições com status `1` (ABERTO NTO) ou `10` (EM TRÂNSITO) podem ser transferidas.
+- **Validação**: Backend valida antes de transferir.
+- **Mensagem**: "Requisição com status X não pode ser transferida."
+- **Código**: `backend/operacao/services.py:504-509`
+
+---
+
+### 11.4. Notificação de Transferência
+
+#### Regra: Criação Automática
+- **Descrição**: Ao transferir requisição, sistema cria notificação automaticamente para usuário anterior.
+- **Conteúdo**:
+  - **Tipo**: TRANSFERENCIA
+  - **Título**: "Requisição Transferida"
+  - **Mensagem**: "A requisição {cod_req} foi assumida por {novo_usuario}."
+  - **Dados**: JSON com informações da requisição
+- **Código**: `backend/operacao/services.py:525-538`
+
+#### Regra: Visualização da Notificação
+- **Descrição**: Usuário anterior verá notificação:
+  - No badge do sininho (contador atualizado)
+  - No modal de notificações (ao abrir)
+- **Timing**: Imediatamente após transferência (verificação sob demanda)
+
+---
+
+### 11.5. Impacto no Grid
+
+#### Regra: Requisição Removida do Grid Original
+- **Descrição**: Após transferência, requisição NÃO aparece mais no grid do usuário anterior.
+- **Motivo**: `recebido_por` foi alterado para novo usuário.
+- **Comportamento**: Ao recarregar página, grid estará atualizado.
+
+#### Regra: Requisição Adicionada ao Grid Novo
+- **Descrição**: Requisição aparece no grid do novo usuário após transferência.
+- **Código**: Query filtra por `recebido_por=request.user`
+
+---
+
+### 11.6. Histórico de Transferências
+
+#### Regra: Rastreamento Completo
+- **Descrição**: Toda transferência é registrada no `RequisicaoStatusHistorico`.
+- **Observação**: "Requisição transferida de {usuario_anterior} para {novo_usuario}"
+- **Auditoria**: Permite rastrear todas as transferências de uma requisição.
+- **Código**: `backend/operacao/services.py:516-523`
+
+---
+
+## 📝 NOTAS FINAIS
+
+### Como Usar Este Documento
+
+1. **Busca Rápida**: Use Ctrl+F para buscar por palavra-chave (ex: "código de barras", "validação")
+2. **Referência de Código**: Cada regra indica o arquivo e linhas onde está implementada
+3. **Atualização**: Sempre que implementar nova funcionalidade, adicione aqui
+4. **Estrutura**: Mantenha a organização por módulo/página
+
+### Convenções
+
+- 📍 **Código**: Indica localização do código-fonte
+- ✅ **Validação**: Indica regra de validação
+- ⚠️ **Atenção**: Indica ponto importante
+- 🔄 **Fluxo**: Indica fluxo de processo
+
+---
+
 **Última Atualização**: 07/12/2024  
-**Versão**: 1.0  
+**Versão**: 1.1  
 **Responsável**: Equipe de Desenvolvimento FEMME INTEGRA
