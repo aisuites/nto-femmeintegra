@@ -384,18 +384,29 @@
     }
     
     /**
-     * Mostra modal com aviso de divergências
+     * Mostra modal com aviso de divergências em formato de tabela comparativa
      */
     function mostrarModalDivergencias(divergencias, data, validacao) {
-      const divergenciasHtml = divergencias.map(div => `
-        <div style="background: rgba(255, 193, 7, 0.1); border-left: 3px solid #ffc107; padding: 12px; margin-bottom: 8px; border-radius: 4px;">
-          <strong style="color: #7a3d8a;">${div.campo}:</strong><br>
-          <span style="color: #77767c; font-size: 13px;">
-            Selecionado: <strong>${div.selecionado}</strong><br>
-            Cadastrado: <strong style="color: #00bca4;">${div.cadastrado}</strong>
-          </span>
-        </div>
-      `).join('');
+      const divergenciasHtml = `
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; background: rgba(255, 193, 7, 0.05); border-radius: 8px; overflow: hidden;">
+          <thead>
+            <tr style="background: rgba(255, 193, 7, 0.15);">
+              <th style="padding: 12px; text-align: left; color: #7a3d8a; font-weight: 600; border-bottom: 2px solid #ffc107;">Campo</th>
+              <th style="padding: 12px; text-align: left; color: #7a3d8a; font-weight: 600; border-bottom: 2px solid #ffc107;">Selecionado</th>
+              <th style="padding: 12px; text-align: left; color: #00bca4; font-weight: 600; border-bottom: 2px solid #ffc107;">Cadastrado ✓</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${divergencias.map(div => `
+              <tr style="border-bottom: 1px solid rgba(255, 193, 7, 0.2);">
+                <td style="padding: 12px; color: #34343a; font-weight: 500;">${div.campo}</td>
+                <td style="padding: 12px; color: #77767c;">${div.selecionado}</td>
+                <td style="padding: 12px; color: #00bca4; font-weight: 600;">${div.cadastrado}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
       
       const modalHtml = `
         <div class="modal-divergencias" id="modal-divergencias" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
