@@ -39,6 +39,82 @@ class TriagemView(LoginRequiredMixin, TemplateView):
         return context
 
 
+@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='dispatch')
+class TriagemLocalizarView(LoginRequiredMixin, View):
+    """View para localizar requisição na triagem."""
+    login_url = 'admin:login'
+
+    def post(self, request, *args, **kwargs):
+        try:
+            import json
+            data = json.loads(request.body)
+            cod_barras = data.get('cod_barras', '').strip()
+            
+            if not cod_barras:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Código de barras não informado.'},
+                    status=400
+                )
+            
+            # Buscar requisição com status RECEBIDO (código 2)
+            try:
+                from .models import DadosRequisicao, RequisicaoAmostra
+                
+                requisicao = DadosRequisicao.objects.select_related(
+                    'status', 'unidade', 'origem'
+                ).get(
+                    cod_barras_req=cod_barras,
+                    status__codigo='2'  # RECEBIDO - Etapa 1 da triagem
+                )
+                
+                # Buscar amostras vinculadas
+                amostras = RequisicaoAmostra.objects.filter(
+                    requisicao=requisicao
+                ).order_by('ordem')
+                
+                # Montar resposta
+                return JsonResponse({
+                    'status': 'success',
+                    'requisicao': {
+                        'id': requisicao.id,
+                        'cod_req': requisicao.cod_req,
+                        'cod_barras_req': requisicao.cod_barras_req,
+                        'data_recebimento_nto': requisicao.data_recebimento_nto.strftime('%Y-%m-%d') if requisicao.data_recebimento_nto else None,
+                        'status_codigo': requisicao.status.codigo,
+                        'status_descricao': requisicao.status.descricao,
+                        'amostras': [
+                            {
+                                'id': amostra.id,
+                                'cod_barras_amostra': amostra.cod_barras_amostra,
+                                'ordem': amostra.ordem,
+                            }
+                            for amostra in amostras
+                        ]
+                    }
+                })
+                
+            except DadosRequisicao.DoesNotExist:
+                return JsonResponse(
+                    {
+                        'status': 'not_found',
+                        'message': 'Requisição não encontrada ou não está na etapa de triagem.'
+                    },
+                    status=404
+                )
+                
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Dados inválidos.'},
+                status=400
+            )
+        except Exception as e:
+            logger.exception('Erro ao localizar requisição na triagem')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao localizar requisição.'},
+                status=500
+            )
+
+
 @method_decorator(ensure_csrf_cookie, name='dispatch')
 class RecebimentoView(LoginRequiredMixin, TemplateView):
     template_name = 'operacao/recebimento.html'

@@ -109,13 +109,13 @@ function limparFormulario() {
 function carregarRequisicao(dados) {
   requisicaoAtual = dados;
   
-  // Preencher campos principais
-  reqId.value = dados.cod_req || '';
+  // Preencher campos principais (ID da requisição = id da tabela dados_requisicao)
+  reqId.value = dados.id || '';
   reqCodBarras.value = dados.cod_barras_req || '';
   reqCodigoDisplay.textContent = '#' + (dados.cod_req || '---');
   reqBarrasDisplay.textContent = dados.cod_barras_req || '---';
   
-  // Data de recebimento (se disponível)
+  // Data de recebimento (campo data_recebimento_nto da tabela dados_requisicao)
   if (dados.data_recebimento_nto) {
     reqDataRecebimento.value = dados.data_recebimento_nto;
   } else {
@@ -124,15 +124,15 @@ function carregarRequisicao(dados) {
     reqDataRecebimento.value = hoje;
   }
   
-  // Carregar amostras
+  // Carregar amostras vinculadas (da tabela requisicao_amostras)
   if (dados.amostras && dados.amostras.length > 0) {
     amostrasAtual = dados.amostras;
     selectAmostra.innerHTML = '<option value="">Selecione uma amostra...</option>';
     
     dados.amostras.forEach((amostra, index) => {
       const option = document.createElement('option');
-      option.value = amostra.id || index;
-      option.textContent = `Amostra ${index + 1} - ${amostra.cod_barras_amostra}`;
+      option.value = amostra.id;
+      option.textContent = `Amostra ${amostra.ordem} - ${amostra.cod_barras_amostra}`;
       selectAmostra.appendChild(option);
     });
   }
@@ -147,6 +147,24 @@ function carregarRequisicao(dados) {
 // ============================================
 // EVENTOS
 // ============================================
+
+/**
+ * Obtém CSRF token
+ */
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
 
 /**
  * Localizar requisição
@@ -164,33 +182,32 @@ btnLocalizar.addEventListener('click', async () => {
   btnLocalizar.textContent = '🔄 Localizando...';
   
   try {
-    // TODO: Implementar chamada à API para buscar requisição
-    // Por enquanto, simular dados
+    const csrftoken = getCookie('csrftoken');
     
-    // Simulação temporária
-    setTimeout(() => {
-      // Dados mockados para teste
-      const dadosMock = {
-        id: 1,
-        cod_req: '2025A01021',
-        cod_barras_req: codBarras,
-        data_recebimento_nto: '2025-12-07',
-        amostras: [
-          { id: 1, cod_barras_amostra: codBarras },
-          { id: 2, cod_barras_amostra: codBarras }
-        ]
-      };
-      
-      carregarRequisicao(dadosMock);
-      
-      btnLocalizar.disabled = false;
-      btnLocalizar.textContent = '🔍 Localizar';
-    }, 500);
+    const response = await fetch('/operacao/triagem/localizar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrftoken,
+      },
+      body: JSON.stringify({ cod_barras: codBarras })
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      carregarRequisicao(data.requisicao);
+    } else if (data.status === 'not_found') {
+      mostrarErro('Requisição não encontrada ou não está na etapa de triagem.');
+      limparFormulario();
+    } else {
+      mostrarErro(data.message || 'Erro ao localizar requisição.');
+    }
     
   } catch (error) {
     console.error('Erro ao localizar requisição:', error);
     mostrarErro('Erro ao localizar requisição. Tente novamente.');
-    
+  } finally {
     btnLocalizar.disabled = false;
     btnLocalizar.textContent = '🔍 Localizar';
   }
