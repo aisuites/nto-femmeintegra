@@ -659,6 +659,8 @@ const RecebimentoModule = (() => {
           is_transit: elements.modalValidar.dataset.isTransit === 'true',
         };
         
+        console.log('Payload sendo enviado:', payload);
+        
         const data = await API.validar(payload);
         
         if (data.status === 'success') {
@@ -666,10 +668,13 @@ const RecebimentoModule = (() => {
           mostrarToastSucesso(data.message || 'Requisição validada com sucesso!');
           
           // Adicionar na tabela
+          const unidadeRadioChecked = document.querySelector('.unit-card input[type="radio"]:checked');
+          const unidadeNome = unidadeRadioChecked?.dataset?.unidadeNome || '';
+          
           Tabela.adicionarRequisicao({
             cod_req: data.cod_req,
             cod_barras_req: codBarrasReq,
-            unidade_nome: elements.hiddenField?.selectedOptions?.[0]?.text || '',
+            unidade_nome: unidadeNome,
             origem_descricao: elements.origemInput?.value || ''
           });
           
