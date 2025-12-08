@@ -781,33 +781,39 @@
   function validarDivergenciasTransito(data, validacao) {
     const divergencias = [];
     
-    // Validar portador/representante
-    const portadorSelecionado = portadorSelect?.value;
-    if (portadorSelecionado && data.portador_representante_id && 
-        parseInt(portadorSelecionado) !== data.portador_representante_id) {
-      const portadorNome = portadorSelect.options[portadorSelect.selectedIndex]?.text || 'Desconhecido';
-      divergencias.push({
-        campo: 'Portador/Representante',
-        selecionado: portadorNome,
-        cadastrado: data.portador_representante_nome || 'Não informado'
-      });
-    }
-    
-    // Validar quantidade de amostras
-    const qtdSelecionada = parseInt(quantidadeInput?.value || 0);
-    if (qtdSelecionada && data.qtd_amostras && qtdSelecionada !== data.qtd_amostras) {
-      divergencias.push({
-        campo: 'Quantidade de Amostras',
-        selecionado: qtdSelecionada.toString(),
-        cadastrado: data.qtd_amostras.toString()
-      });
-    }
-    
-    // Se houver divergências, mostrar aviso
-    if (divergencias.length > 0) {
-      mostrarModalDivergencias(divergencias, data, validacao);
-    } else {
-      // Sem divergências, abrir modal normalmente
+    try {
+      // Validar portador/representante
+      const portadorSelecionado = portadorSelect?.value;
+      if (portadorSelecionado && data.portador_representante_id && 
+          parseInt(portadorSelecionado) !== data.portador_representante_id) {
+        const portadorNome = portadorSelect.options[portadorSelect.selectedIndex]?.text || 'Desconhecido';
+        divergencias.push({
+          campo: 'Portador/Representante',
+          selecionado: portadorNome,
+          cadastrado: data.portador_representante_nome || 'Não informado'
+        });
+      }
+      
+      // Validar quantidade de amostras
+      const qtdSelecionada = parseInt(quantidadeInput?.value || 0);
+      if (qtdSelecionada && data.qtd_amostras && qtdSelecionada !== data.qtd_amostras) {
+        divergencias.push({
+          campo: 'Quantidade de Amostras',
+          selecionado: qtdSelecionada.toString(),
+          cadastrado: data.qtd_amostras.toString()
+        });
+      }
+      
+      // Se houver divergências, mostrar aviso
+      if (divergencias.length > 0) {
+        mostrarModalDivergencias(divergencias, data, validacao);
+      } else {
+        // Sem divergências, abrir modal normalmente
+        abrirModal(data.qtd_amostras, validacao.codigo, data);
+      }
+    } catch (error) {
+      console.error('Erro ao validar divergências:', error);
+      // Em caso de erro, abrir modal normalmente
       abrirModal(data.qtd_amostras, validacao.codigo, data);
     }
   }
