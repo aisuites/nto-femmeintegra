@@ -290,6 +290,18 @@
           return;
         }
 
+        if (data.status === 'already_started') {
+          // Requisição já iniciada por outro usuário - perguntar se quer assumir
+          mostrarModalTransferencia(data);
+          return;
+        }
+
+        if (data.status === 'already_yours') {
+          // Requisição já iniciada pelo mesmo usuário
+          mostrarAlerta('Você já iniciou esta requisição. Finalize o recebimento para continuar.');
+          return;
+        }
+
         mostrarAlerta('Retorno inesperado do servidor.');
       } catch (error) {
         console.error(error);
@@ -765,3 +777,84 @@
       }
     }
   });
+
+  /**
+   * Mostra modal de confirmação de transferência de requisição
+   */
+  function mostrarModalTransferencia(data) {
+    const modalHtml = `
+      <div class="modal-transferencia" id="modal-transferencia" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000;">
+        <div style="background: white; border-radius: 18px; padding: 32px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+          <h3 style="margin: 0 0 16px; color: #7a3d8a; font-size: 20px;">⚠️ Requisição Já Iniciada</h3>
+          <p style="margin: 0 0 20px; color: #34343a; line-height: 1.6;">
+            Esta requisição foi iniciada por <strong>${data.usuario_anterior_nome}</strong> em ${data.created_at}.
+          </p>
+          <p style="margin: 0 0  24px; color: #77767c; font-size: 14px;">
+            Deseja assumir esta requisição? O usuário anterior será notificado.
+          </p>
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button id="btn-cancelar-transferencia" style="padding: 10px 20px; background: #f5f5f7; color: #34343a; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              Cancelar
+            </button>
+            <button id="btn-confirmar-transferencia" style="padding: 10px 20px; background: #7a3d8a; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+              Assumir Requisição
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = document.getElementById('modal-transferencia');
+    const btnCancelar = document.getElementById('btn-cancelar-transferencia');
+    const btnConfirmar = document.getElementById('btn-confirmar-transferencia');
+    
+    function fecharModalTransferencia() {
+      modal.remove();
+    }
+    
+    btnCancelar.addEventListener('click', fecharModalTransferencia);
+    
+    btnConfirmar.addEventListener('click', async () => {
+      btnConfirmar.disabled = true;
+      btnConfirmar.textContent = 'Transferindo...';
+      
+      try {
+        const response = await fetch('/operacao/requisicao/transferir/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({
+            requisicao_id: data.requisicao_id,
+          }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+          fecharModalTransferencia();
+          mostrarToastSucesso('Requisição transferida com sucesso!');
+          
+          // Atualizar contador de notificações (se disponível)
+          if (window.Notificacoes) {
+            window.Notificacoes.atualizarContador();
+          }
+          
+          // Recarregar página após 1.5s
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          mostrarAlerta(result.message || 'Erro ao transferir requisição.');
+          btnConfirmar.disabled = false;
+          btnConfirmar.textContent = 'Assumir Requisição';
+        }
+      } catch (error) {
+        console.error('Erro ao transferir requisição:', error);
+        mostrarAlerta('Erro ao transferir requisição. Tente novamente.');
+        btnConfirmar.disabled = false;
+        btnConfirmar.textContent = 'Assumir Requisição';
+      }
+    });
+  }
