@@ -821,6 +821,8 @@
       btnConfirmar.textContent = 'Transferindo...';
       
       try {
+        console.log('Transferindo requisição ID:', data.requisicao_id);
+        
         const response = await fetch('/operacao/requisicao/transferir/', {
           method: 'POST',
           headers: {
@@ -832,7 +834,11 @@
           }),
         });
         
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
         const result = await response.json();
+        console.log('Result:', result);
         
         if (result.status === 'success') {
           fecharModalTransferencia();
@@ -846,13 +852,14 @@
           // Recarregar página após 1.5s
           setTimeout(() => location.reload(), 1500);
         } else {
+          console.error('Erro na transferência:', result);
           mostrarAlerta(result.message || 'Erro ao transferir requisição.');
           btnConfirmar.disabled = false;
           btnConfirmar.textContent = 'Assumir Requisição';
         }
       } catch (error) {
         console.error('Erro ao transferir requisição:', error);
-        mostrarAlerta('Erro ao transferir requisição. Tente novamente.');
+        mostrarAlerta(`Erro ao transferir: ${error.message}`);
         btnConfirmar.disabled = false;
         btnConfirmar.textContent = 'Assumir Requisição';
       }

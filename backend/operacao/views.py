@@ -378,6 +378,8 @@ class TransferirRequisicaoView(LoginRequiredMixin, View):
             payload = json.loads(request.body)
             requisicao_id = payload.get('requisicao_id')
             
+            logger.info(f'Tentando transferir requisição ID={requisicao_id} para usuário {request.user.username}')
+            
             if not requisicao_id:
                 return JsonResponse(
                     {'status': 'error', 'message': 'ID da requisição não informado.'},
@@ -390,6 +392,8 @@ class TransferirRequisicaoView(LoginRequiredMixin, View):
                 novo_usuario=request.user,
                 user_solicitante=request.user,
             )
+            
+            logger.info(f'Resultado da transferência: {resultado}')
             
             status_code = 200 if resultado['status'] == 'success' else 400
             return JsonResponse(resultado, status=status_code)
