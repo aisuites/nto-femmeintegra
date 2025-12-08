@@ -456,7 +456,7 @@ class BuscaService:
         # Verificar se está em trânsito (status 10)
         try:
             requisicao = DadosRequisicao.objects.select_related(
-                'unidade', 'origem', 'status', 'recebido_por'
+                'unidade', 'origem', 'status', 'recebido_por', 'portador_representante'
             ).get(
                 cod_barras_req=cod_barras,
                 status__codigo='10'  # EM TRÂNSITO
@@ -475,7 +475,11 @@ class BuscaService:
                 'requisicao_id': requisicao.id,
                 'cod_req': requisicao.cod_req,
                 'unidade_nome': requisicao.unidade.nome,
+                'unidade_id': requisicao.unidade_id,
                 'origem_descricao': requisicao.origem.descricao if requisicao.origem else None,
+                'origem_id': requisicao.origem_id,
+                'portador_representante_nome': requisicao.portador_representante.nome if requisicao.portador_representante else None,
+                'portador_representante_id': requisicao.portador_representante_id,
                 'qtd_amostras': len(amostras),
                 'cod_barras_amostras': amostras,
             }
