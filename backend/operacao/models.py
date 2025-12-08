@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from core.models import AuditModel, TimeStampedModel
 
@@ -288,3 +289,67 @@ class Amostra(AuditModel):
 
     def __str__(self) -> str:
         return f'{self.requisicao.cod_barras_req} - Amostra {self.ordem}'
+
+
+class Notificacao(TimeStampedModel):
+    """
+    Modelo para armazenar notificações do sistema.
+    Usado para alertar usuários sobre eventos importantes (ex: transferências).
+    """
+    class Tipo(models.TextChoices):
+        TRANSFERENCIA = 'TRANSFERENCIA', 'Transferência de Requisição'
+        ALERTA = 'ALERTA', 'Alerta'
+        INFO = 'INFO', 'Informação'
+    
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notificacoes',
+        verbose_name='Usuário',
+    )
+    tipo = models.CharField(
+        max_length=20,
+        choices=Tipo.choices,
+        default=Tipo.INFO,
+        verbose_name='Tipo',
+    )
+    titulo = models.CharField(
+        max_length=200,
+        verbose_name='Título',
+    )
+    mensagem = models.TextField(
+        verbose_name='Mensagem',
+    )
+    lida = models.BooleanField(
+        default=False,
+        verbose_name='Lida',
+    )
+    data_leitura = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Data de Leitura',
+    )
+    dados = models.JSONField(
+        default=dict,
+        blank=True,
+        verbose_name='Dados Adicionais',
+        help_text='Dados extras em formato JSON',
+    )
+    
+    class Meta:
+        ordering = ('-created_at',)
+        verbose_name = 'Notificação'
+        verbose_name_plural = 'Notificações'
+        indexes = [
+            models.Index(fields=['usuario', 'lida', '-created_at']),
+        ]
+    
+    def __str__(self) -> str:
+        return f'{self.usuario.username} - {self.titulo}'
+    
+    def marcar_como_lida(self):
+        """Marca notificação como lida."""
+        if not self.lida:
+            self.lida = True
+            self.data_leitura = timezone.now()
+            self.save(update_fields=['lida', 'data_leitura'])

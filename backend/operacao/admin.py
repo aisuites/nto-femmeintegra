@@ -6,6 +6,7 @@ from .models import (
     LogRecebimento,
     MotivoPreenchimento,
     MotivoStatusManual,
+    Notificacao,
     Origem,
     PortadorRepresentante,
     DadosRequisicao,
@@ -190,3 +191,25 @@ class RequisicaoStatusHistoricoAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         """Permite deletar histórico apenas para superusuários (via cascade ao deletar requisição)."""
         return request.user.is_superuser
+
+
+@admin.register(Notificacao)
+class NotificacaoAdmin(admin.ModelAdmin):
+    """Admin para visualização de notificações."""
+    list_display = ('usuario', 'tipo', 'titulo', 'lida', 'created_at_formatted')
+    list_filter = ('tipo', 'lida', 'created_at')
+    search_fields = ('usuario__username', 'titulo', 'mensagem')
+    readonly_fields = ('usuario', 'tipo', 'titulo', 'mensagem', 'dados', 'created_at', 'data_leitura')
+    date_hierarchy = 'created_at'
+    
+    def created_at_formatted(self, obj):
+        """Exibe created_at no formato DD/MM/YYYY HH:MM:SS"""
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Data Criação'
+    created_at_formatted.admin_order_field = 'created_at'
+    
+    def has_add_permission(self, request):
+        """Não permite adicionar notificações manualmente."""
+        return False

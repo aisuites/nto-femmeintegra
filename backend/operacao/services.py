@@ -450,7 +450,7 @@ class BuscaService:
         # Verificar se está em trânsito (status 10)
         try:
             requisicao = DadosRequisicao.objects.select_related(
-                'unidade', 'origem', 'status'
+                'unidade', 'origem', 'status', 'recebido_por'
             ).get(
                 cod_barras_req=cod_barras,
                 status__codigo='10'  # EM TRÂNSITO
@@ -474,5 +474,126 @@ class BuscaService:
                 'cod_barras_amostras': amostras,
             }
         except DadosRequisicao.DoesNotExist:
-            logger.debug('Código de barras não encontrado: %s', cod_barras)
-            return {'status': 'not_found'}
+            pass
+        
+        # Verificar se existe com status ABERTO NTO (status 1)
+        try:
+            requisicao = DadosRequisicao.objects.select_related(
+                'recebido_por', 'status'
+            ).get(
+                cod_barras_req=cod_barras,
+                status__codigo='1'  # ABERTO NTO
+            )
+            
+            # Verificar se é do mesmo usuário
+            if user and requisicao.recebido_por == user:
+                logger.info('Requisição já iniciada pelo mesmo usuário: %s', cod_barras)
+                return {'status': 'already_yours'}
+            
+            # É de outro usuário - permitir transferência
+            logger.info(
+                'Requisição já iniciada por outro usuário: %s (usuário: %s)',
+                cod_barras,
+                requisicao.recebido_por.username
+            )
+            
+            return {
+                'status': 'already_started',
+                'requisicao_id': requisicao.id,
+                'cod_req': requisicao.cod_req,
+                'usuario_anterior': requisicao.recebido_por.username,
+                'usuario_anterior_nome': requisicao.recebido_por.get_full_name() or requisicao.recebido_por.username,
+                'created_at': requisicao.created_at.strftime('%d/%m/%Y %H:%M'),
+            }
+        except DadosRequisicao.DoesNotExist:
+            pass
+        
+        # Não encontrado em nenhum status
+        logger.debug('Código de barras não encontrado: %s', cod_barras)
+        return {'status': 'not_found'}
+    
+    @classmethod
+    @transaction.atomic
+    def transferir_requisicao(cls, requisicao_id: int, novo_usuario, user_solicitante) -> Dict[str, any]:
+        """
+        Transfere uma requisição de um usuário para outro.
+        Cria notificação para o usuário anterior.
+        
+        Args:
+            requisicao_id: ID da requisição a ser transferida
+            novo_usuario: Usuário que vai receber a requisição
+            user_solicitante: Usuário que está solicitando a transferência
+        
+        Returns:
+            Dict com status e mensagem
+        """
+        from .models import Notificacao
+        
+        try:
+            requisicao = DadosRequisicao.objects.select_related(
+                'recebido_por', 'status'
+            ).get(id=requisicao_id)
+            
+            usuario_anterior = requisicao.recebido_por
+            
+            # Validar se requisição está em status que permite transferência
+            if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
+                return {
+                    'status': 'error',
+                    'message': f'Requisição com status {requisicao.status.descricao} não pode ser transferida.',
+                }
+            
+            # Transferir requisição
+            requisicao.recebido_por = novo_usuario
+            requisicao.updated_by = user_solicitante
+            requisicao.save()
+            
+            # Registrar no histórico
+            RequisicaoStatusHistorico.objects.create(
+                requisicao=requisicao,
+                cod_req=requisicao.cod_req,
+                status=requisicao.status,
+                usuario=novo_usuario,
+                observacao=f'Requisição transferida de {usuario_anterior.username} para {novo_usuario.username}',
+            )
+            
+            # Criar notificação para usuário anterior
+            Notificacao.objects.create(
+                usuario=usuario_anterior,
+                tipo='TRANSFERENCIA',
+                titulo='Requisição Transferida',
+                mensagem=f'A requisição {requisicao.cod_req} foi assumida por {novo_usuario.get_full_name() or novo_usuario.username}.',
+                dados={
+                    'cod_req': requisicao.cod_req,
+                    'cod_barras': requisicao.cod_barras_req,
+                    'requisicao_id': requisicao.id,
+                    'novo_usuario': novo_usuario.username,
+                    'novo_usuario_nome': novo_usuario.get_full_name() or novo_usuario.username,
+                },
+            )
+            
+            logger.info(
+                'Requisição %s transferida de %s para %s',
+                requisicao.cod_req,
+                usuario_anterior.username,
+                novo_usuario.username
+            )
+            
+            return {
+                'status': 'success',
+                'message': 'Requisição transferida com sucesso.',
+                'cod_req': requisicao.cod_req,
+            }
+            
+        except DadosRequisicao.DoesNotExist:
+            logger.error('Requisição não encontrada: ID=%s', requisicao_id)
+            return {
+                'status': 'error',
+                'message': 'Requisição não encontrada.',
+            }
+        except Exception as e:
+            logger.exception('Erro ao transferir requisição: %s', str(e))
+            return {
+                'status': 'error',
+                'message': 'Erro ao transferir requisição. Contate o suporte.',
+            }

@@ -21,4 +21,31 @@ urlpatterns = [
         views.RecebimentoFinalizarView.as_view(),
         name='recebimento-finalizar',
     ),
+    # Notificações
+    path(
+        'notificacoes/contador/',
+        views.NotificacoesContadorView.as_view(),
+        name='notificacoes-contador',
+    ),
+    path(
+        'notificacoes/listar/',
+        views.NotificacoesListarView.as_view(),
+        name='notificacoes-listar',
+    ),
+    path(
+        'notificacoes/marcar-lida/',
+        views.NotificacoesMarcarLidaView.as_view(),
+        name='notificacoes-marcar-lida',
+    ),
+    path(
+        'notificacoes/marcar-todas-lidas/',
+        views.NotificacoesMarcarTodasLidasView.as_view(),
+        name='notificacoes-marcar-todas-lidas',
+    ),
+    # Transferência de requisição
+    path(
+        'requisicao/transferir/',
+        views.TransferirRequisicaoView.as_view(),
+        name='requisicao-transferir',
+    ),
 ]

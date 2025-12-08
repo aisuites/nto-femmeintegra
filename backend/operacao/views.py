@@ -16,6 +16,7 @@ from django_ratelimit.decorators import ratelimit
 
 from .models import (
     DadosRequisicao,
+    Notificacao,
     Origem,
     PortadorRepresentante,
     StatusRequisicao,
@@ -109,8 +110,8 @@ class RecebimentoLocalizarView(LoginRequiredMixin, View):
                 status=400,
             )
 
-        # Delegar para service
-        resultado = BuscaService.buscar_codigo_barras(cod_barras)
+        # Delegar para service (passar usuário para verificar transferências)
+        resultado = BuscaService.buscar_codigo_barras(cod_barras, user=request.user)
         return JsonResponse(resultado)
 
 
@@ -225,5 +226,182 @@ class RecebimentoFinalizarView(LoginRequiredMixin, View):
             logger.exception('Erro inesperado ao finalizar recebimento')
             return JsonResponse(
                 {'status': 'error', 'message': 'Erro ao finalizar recebimento. Contate o suporte.'},
+                status=500,
+            )
+
+
+class NotificacoesContadorView(LoginRequiredMixin, View):
+    """
+    Retorna contador de notificações não lidas.
+    Usado para atualizar badge do sininho no header.
+    """
+    def get(self, request):
+        try:
+            contador = Notificacao.objects.filter(
+                usuario=request.user,
+                lida=False
+            ).count()
+            
+            return JsonResponse({
+                'status': 'success',
+                'contador': contador,
+            })
+        except Exception as e:
+            logger.exception('Erro ao buscar contador de notificações')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao buscar notificações.'},
+                status=500,
+            )
+
+
+class NotificacoesListarView(LoginRequiredMixin, View):
+    """
+    Lista notificações do usuário logado.
+    Retorna apenas não lidas por padrão, ou todas se especificado.
+    """
+    def get(self, request):
+        try:
+            # Parâmetro opcional: mostrar todas ou só não lidas
+            mostrar_todas = request.GET.get('todas', 'false').lower() == 'true'
+            
+            notificacoes_query = Notificacao.objects.filter(usuario=request.user)
+            
+            if not mostrar_todas:
+                notificacoes_query = notificacoes_query.filter(lida=False)
+            
+            notificacoes = notificacoes_query.order_by('-created_at')[:50]  # Limitar a 50
+            
+            notificacoes_list = [{
+                'id': n.id,
+                'tipo': n.tipo,
+                'titulo': n.titulo,
+                'mensagem': n.mensagem,
+                'lida': n.lida,
+                'created_at': n.created_at.strftime('%d/%m/%Y %H:%M'),
+                'dados': n.dados,
+            } for n in notificacoes]
+            
+            return JsonResponse({
+                'status': 'success',
+                'notificacoes': notificacoes_list,
+                'total': len(notificacoes_list),
+            })
+        except Exception as e:
+            logger.exception('Erro ao listar notificações')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao listar notificações.'},
+                status=500,
+            )
+
+
+class NotificacoesMarcarLidaView(LoginRequiredMixin, View):
+    """
+    Marca uma ou mais notificações como lidas.
+    """
+    def post(self, request):
+        try:
+            payload = json.loads(request.body)
+            notificacao_ids = payload.get('notificacao_ids', [])
+            
+            if not notificacao_ids:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'IDs de notificações não informados.'},
+                    status=400,
+                )
+            
+            # Marcar como lidas (apenas do usuário logado)
+            notificacoes = Notificacao.objects.filter(
+                id__in=notificacao_ids,
+                usuario=request.user,
+                lida=False
+            )
+            
+            count = 0
+            for notif in notificacoes:
+                notif.marcar_como_lida()
+                count += 1
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{count} notificação(ões) marcada(s) como lida(s).',
+                'count': count,
+            })
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Formato de dados inválido.'},
+                status=400,
+            )
+        except Exception as e:
+            logger.exception('Erro ao marcar notificações como lidas')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao marcar notificações.'},
+                status=500,
+            )
+
+
+class NotificacoesMarcarTodasLidasView(LoginRequiredMixin, View):
+    """
+    Marca todas as notificações do usuário como lidas.
+    """
+    def post(self, request):
+        try:
+            notificacoes = Notificacao.objects.filter(
+                usuario=request.user,
+                lida=False
+            )
+            
+            count = 0
+            for notif in notificacoes:
+                notif.marcar_como_lida()
+                count += 1
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{count} notificação(ões) marcada(s) como lida(s).',
+                'count': count,
+            })
+        except Exception as e:
+            logger.exception('Erro ao marcar todas notificações como lidas')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao marcar notificações.'},
+                status=500,
+            )
+
+
+class TransferirRequisicaoView(LoginRequiredMixin, View):
+    """
+    Transfere uma requisição de um usuário para outro.
+    Usado quando um usuário quer assumir uma requisição iniciada por outro.
+    """
+    def post(self, request):
+        try:
+            payload = json.loads(request.body)
+            requisicao_id = payload.get('requisicao_id')
+            
+            if not requisicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da requisição não informado.'},
+                    status=400,
+                )
+            
+            # Transferir requisição (usuário logado assume a requisição)
+            resultado = BuscaService.transferir_requisicao(
+                requisicao_id=requisicao_id,
+                novo_usuario=request.user,
+                user_solicitante=request.user,
+            )
+            
+            status_code = 200 if resultado['status'] == 'success' else 400
+            return JsonResponse(resultado, status=status_code)
+            
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Formato de dados inválido.'},
+                status=400,
+            )
+        except Exception as e:
+            logger.exception('Erro ao transferir requisição')
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao transferir requisição.'},
                 status=500,
             )
