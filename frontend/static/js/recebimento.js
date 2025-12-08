@@ -850,10 +850,6 @@ const RecebimentoModule = (() => {
         return;
       }
       
-      if (!confirm('Deseja finalizar o recebimento de todas as requisições bipadas?')) {
-        return;
-      }
-      
       elements.btnFinalizarRecebimento?.setAttribute('aria-busy', 'true');
       elements.btnFinalizarRecebimento?.setAttribute('disabled', 'disabled');
       
