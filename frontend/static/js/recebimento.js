@@ -1061,6 +1061,13 @@ const RecebimentoModule = (() => {
     console.log('🚀 RecebimentoModule v2.0 - Inicializando...');
     
     cacheElements();
+    
+    // Debug: verificar se elementos foram encontrados
+    console.log('Elementos cacheados:', {
+      btnFinalizarRecebimento: !!elements.btnFinalizarRecebimento,
+      localizarBtn: !!elements.localizarBtn
+    });
+    
     setupEventListeners();
     UnidadeSelector.restaurarEstado();
     
