@@ -277,6 +277,8 @@
       localizarBtn?.setAttribute('disabled', 'disabled');
 
       try {
+        console.log('Localizando código:', validacao.codigo);
+        
         const response = await fetch(url, {
           method: 'POST',
           headers: {
@@ -288,7 +290,12 @@
           }),
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+        
         const data = await response.json();
+        console.log('Data recebida:', data);
+        
         if (!response.ok || data.status === 'error') {
           mostrarAlerta(data.message || 'Falha ao localizar o código.');
           return;
