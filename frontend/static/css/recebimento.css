@@ -165,12 +165,14 @@
 
 
 
+    .unit-card.selected,
     .unit-card--selected {
       border-color: var(--femme-purple);
       background: linear-gradient(135deg, rgba(244, 233, 248, 0.95), rgba(255, 255, 255, 1));
       box-shadow: 0 12px 26px rgba(20, 5, 36, 0.12);
     }
 
+    .unit-card.selected .unit-pill,
     .unit-card--selected .unit-pill {
       border-color: var(--femme-purple);
       background: radial-gradient(circle at center, var(--femme-purple) 0, var(--femme-purple) 40%, #fff 41%);

@@ -12,7 +12,7 @@ from datetime import datetime
 
 from operacao.models import (
     DadosRequisicao,
-    Amostra,
+    RequisicaoAmostra,
     RequisicaoStatusHistorico,
     StatusRequisicao,
     PortadorRepresentante,
@@ -113,7 +113,7 @@ class Command(BaseCommand):
         ]
         
         for amostra_data in amostras_dados:
-            amostra = Amostra.objects.create(
+            amostra = RequisicaoAmostra.objects.create(
                 requisicao=requisicao,
                 cod_barras_amostra=amostra_data['cod_barras'],
                 data_hora_bipagem=data_cadastro,

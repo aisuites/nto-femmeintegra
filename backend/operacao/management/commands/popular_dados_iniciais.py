@@ -44,6 +44,7 @@ class Command(BaseCommand):
             {'codigo': '6', 'descricao': 'PENDÊNCIA', 'ordem': 6, 'permite_edicao': True},
             {'codigo': '7', 'descricao': 'TRIAGEM1-OK', 'ordem': 7, 'permite_edicao': False},
             {'codigo': '8', 'descricao': 'TRIAGEM2-OK', 'ordem': 8, 'permite_edicao': False},
+            {'codigo': '10', 'descricao': 'EM TRÂNSITO', 'ordem': 10, 'permite_edicao': True},
         ]
         
         status_criados = 0
