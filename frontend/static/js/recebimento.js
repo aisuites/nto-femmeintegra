@@ -842,11 +842,12 @@ const RecebimentoModule = (() => {
      * Handler para finalizar recebimento
      */
     async onFinalizarClick() {
-      // Verifica se há itens na tabela através do contador (lógica original)
+      // Verifica se há itens na tabela através do contador
       const counterSpan = document.getElementById('kit_counter');
       const count = counterSpan ? parseInt(counterSpan.textContent) : 0;
       
-      if (count === 0 && !confirm('Não há requisições bipadas visíveis neste kit. Deseja finalizar mesmo assim?')) {
+      if (count === 0) {
+        mostrarAlerta('É necessário ter ao menos 1 requisição bipada para finalizar o recebimento.');
         return;
       }
       
