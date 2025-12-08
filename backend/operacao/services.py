@@ -429,14 +429,20 @@ class RequisicaoService:
 
 class BuscaService:
     @staticmethod
-    def buscar_codigo_barras(cod_barras: str) -> Dict[str, any]:
+    def buscar_codigo_barras(cod_barras: str, user=None) -> Dict[str, any]:
         """
         Busca código de barras e retorna status apropriado.
+        
+        Args:
+            cod_barras: Código de barras a ser buscado
+            user: Usuário fazendo a busca (opcional, para verificar transferências)
         
         Retornos possíveis:
         - not_found: Código não existe (criar nova requisição)
         - found: Código já foi recebido (duplicado)
         - in_transit: Código existe com status 10 (atualizar requisição)
+        - already_started: Código existe com status 1 de outro usuário (transferência)
+        - already_yours: Código existe com status 1 do mesmo usuário
         """
         # Verificar se já foi recebido (existe no log)
         existe_log = LogRecebimento.objects.filter(
