@@ -148,7 +148,7 @@ class RequisicaoService:
             logger.warning('Código de barras já recebido: %s', cod_barras_req)
             return {
                 'status': 'error',
-                'message': 'Já existe um registro com este código de barras.',
+                'message': 'Ops! Essa requisição já foi recebida ou já está em processamento. Entre em contato com sua supervisora.',
             }
         
         try:

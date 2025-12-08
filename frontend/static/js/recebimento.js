@@ -726,7 +726,7 @@ const RecebimentoModule = (() => {
         const data = await API.localizar(validacao.codigo);
         
         if (data.status === 'found') {
-          mostrarAlerta('Já existe registro para este código de barras.');
+          mostrarAlerta('Ops! Essa requisição já foi recebida ou já está em processamento. Entre em contato com sua supervisora.');
           return;
         }
         
