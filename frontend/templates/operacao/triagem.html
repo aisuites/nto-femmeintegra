@@ -361,7 +361,7 @@
         
         if (DWTObject) {
           DWTObject.Viewer.width = '100%';
-          DWTObject.Viewer.height = '500px';
+          DWTObject.Viewer.height = '450px';
           DWTObject.Viewer.show();
           
           // IMPORTANTE: Ativar single page mode para zoom funcionar
@@ -411,6 +411,18 @@
       modal.style.display = 'none';
     }
   }
+  
+  // === SUPORTE À TECLA ESC ===
+  function handleEscKey(event) {
+    const modal = document.getElementById('modal-scanner-teste');
+    // Verificar se modal está aberto e ESC foi pressionado
+    if (modal && modal.style.display === 'flex' && event.key === 'Escape') {
+      fecharModal();
+    }
+  }
+  
+  // Adicionar listener global para ESC (apenas uma vez)
+  document.addEventListener('keydown', handleEscKey);
   
   // === CONFIGURAR EVENT LISTENERS DOS BOTÕES ===
   function configurarEventListeners() {
