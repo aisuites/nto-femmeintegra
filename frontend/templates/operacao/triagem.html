@@ -174,7 +174,7 @@
         <h2>📄 Digitalizar requisição</h2>
         <span>Use o scanner conectado para capturar o papel da requisição.</span>
       </div>
-      <button class="scanner-modal-close" type="button" id="btn-fechar-modal">✕</button>
+      <button class="scanner-modal-close" type="button" id="btn-fechar-modal" aria-label="Fechar modal">✕</button>
     </div>
     
     <!-- Body -->
@@ -184,31 +184,31 @@
         <!-- Toolbar Elegante -->
         <div class="scanner-toolbar">
           <div class="scanner-toolbar-group">
-            <button type="button" class="scanner-tool-btn" title="Remover página atual" id="btn-remove-current">🗑️</button>
-            <button type="button" class="scanner-tool-btn" title="Remover todas" id="btn-remove-all">🗑️🗑️</button>
+            <button type="button" class="scanner-tool-btn" title="Remover página atual" id="btn-remove-current" aria-label="Remover página atual">🗑️</button>
+            <button type="button" class="scanner-tool-btn" title="Remover todas as páginas" id="btn-remove-all" aria-label="Remover todas as páginas">🗑️🗑️</button>
           </div>
           
           <span class="scanner-toolbar-separator"></span>
           
           <div class="scanner-toolbar-group">
-            <button type="button" class="scanner-tool-btn" title="Zoom out" id="btn-zoom-out">➖</button>
+            <button type="button" class="scanner-tool-btn" title="Diminuir zoom" id="btn-zoom-out" aria-label="Diminuir zoom">➖</button>
             <span class="scanner-page-info">
               <input type="text" id="DW_spanZoom" readonly style="width:40px;border:none;background:transparent;text-align:center;font-size:11px;color:#34343a;">
             </span>
-            <button type="button" class="scanner-tool-btn" title="Zoom in" id="btn-zoom-in">➕</button>
+            <button type="button" class="scanner-tool-btn" title="Aumentar zoom" id="btn-zoom-in" aria-label="Aumentar zoom">➕</button>
           </div>
           
           <span class="scanner-toolbar-separator"></span>
           
           <div class="scanner-toolbar-group">
-            <button type="button" class="scanner-tool-btn" title="Girar à esquerda" id="btn-rotate">↻</button>
-            <button type="button" class="scanner-tool-btn" title="Tamanho original" id="btn-original-size">⊟</button>
+            <button type="button" class="scanner-tool-btn" title="Girar à esquerda" id="btn-rotate" aria-label="Girar imagem à esquerda">↻</button>
+            <button type="button" class="scanner-tool-btn" title="Tamanho original" id="btn-original-size" aria-label="Restaurar tamanho original">⊟</button>
           </div>
           
           <span class="scanner-toolbar-separator"></span>
           
           <div class="scanner-toolbar-group">
-            <button type="button" class="scanner-tool-btn" title="Mover (Hand)" id="btn-hand">🖐️</button>
+            <button type="button" class="scanner-tool-btn" title="Ferramenta de mão para mover imagem" id="btn-hand" aria-label="Ativar ferramenta de mão">🖐️</button>
           </div>
           
           <span class="scanner-toolbar-separator"></span>
@@ -265,6 +265,18 @@
 (function() {
   'use strict';
   
+  // ============================================
+  // CONSTANTES
+  // ============================================
+  const SCANNER_TIMEOUT = 60000; // 60 segundos
+  const PIXEL_TYPE_COLOR = 2; // 0=P&B, 1=Cinza, 2=Color
+  const PIXEL_TYPE_GRAYSCALE = 1;
+  const PIXEL_TYPE_BW = 0;
+  const DEFAULT_RESOLUTION = 200; // DPI
+  const ERROR_CODE_TIMEOUT = -2415;
+  const ZOOM_STEP = 5; // Incremento de zoom em %
+  const ZOOM_MAX = 6500; // Zoom máximo em %
+  
   // Variáveis privadas (não acessíveis externamente)
   let DWTObject = null;
   let dynamosoftScriptsCarregados = false;
@@ -276,7 +288,7 @@
     if (typeof requisicaoAtual !== 'undefined' && requisicaoAtual) {
       
       // Abrir modal de scanner
-      abrirModalTeste();
+      abrirModal();
       
     } else {
       alert('⚠️ Por favor, localize uma requisição primeiro.');
@@ -287,7 +299,7 @@
   window.abrirModalScanner = abrirModalScanner;
   
   // === FUNÇÕES DO MODAL DE SCANNER ===
-  function abrirModalTeste() {
+  function abrirModal() {
     const modal = document.getElementById('modal-scanner-teste');
     if (modal) {
       modal.style.display = 'flex';
@@ -393,7 +405,7 @@
     }
   }
   
-  function fecharModalTeste() {
+  function fecharModal() {
     const modal = document.getElementById('modal-scanner-teste');
     if (modal) {
       modal.style.display = 'none';
@@ -405,8 +417,8 @@
     // Botões de fechar
     const btnFecharHeader = document.getElementById('btn-fechar-modal');
     const btnFecharFooter = document.getElementById('btn-fechar-modal-footer');
-    if (btnFecharHeader) btnFecharHeader.addEventListener('click', fecharModalTeste);
-    if (btnFecharFooter) btnFecharFooter.addEventListener('click', fecharModalTeste);
+    if (btnFecharHeader) btnFecharHeader.addEventListener('click', fecharModal);
+    if (btnFecharFooter) btnFecharFooter.addEventListener('click', fecharModal);
     
     // Botões da toolbar
     const btnRemoveCurrent = document.getElementById('btn-remove-current');
@@ -430,8 +442,8 @@
     const btnDigitalizar = document.getElementById('btn-digitalizar');
     const btnEnviar = document.getElementById('btn-enviar-aws');
     
-    if (btnCarregar) btnCarregar.addEventListener('click', testarCarregarImagem);
-    if (btnDigitalizar) btnDigitalizar.addEventListener('click', testarDigitalizar);
+    if (btnCarregar) btnCarregar.addEventListener('click', carregarImagem);
+    if (btnDigitalizar) btnDigitalizar.addEventListener('click', digitalizar);
     if (btnEnviar) btnEnviar.addEventListener('click', enviarParaAWS);
   }
   
@@ -483,7 +495,7 @@
     });
   }
   
-  function testarCarregarImagem() {
+  function carregarImagem() {
     if (!DWTObject) {
       alert('⚠️ Dynamsoft ainda não está pronto! Aguarde alguns segundos...');
       return;
@@ -509,7 +521,7 @@
     alert('🚧 Função de envio para AWS será implementada em breve!\n\nImagens prontas: ' + DWTObject.HowManyImagesInBuffer);
   }
   
-  function testarDigitalizar() {
+  function digitalizar() {
     if (!DWTObject) {
       alert('⚠️ Dynamsoft ainda não está pronto! Aguarde alguns segundos...');
       return;
@@ -538,16 +550,16 @@
       
     }).then(function() {
       
-      // Aumentar timeout para evitar erro -2415
-      DWTObject.Timeout = 60000; // 60 segundos (padrão é 30)
+      // Configurar timeout
+      DWTObject.Timeout = SCANNER_TIMEOUT;
       
       // Capturar imagem com o scanner já selecionado
       return DWTObject.AcquireImageAsync({ 
         IfCloseSourceAfterAcquire: true,
-        IfShowUI: false, // NÃO mostrar UI do scanner
-        IfFeederEnabled: false, // Desabilitar ADF por padrão
-        PixelType: 2, // 2 = Colorido (0=P&B, 1=Cinza, 2=Color)
-        Resolution: 200 // DPI padrão
+        IfShowUI: false,
+        IfFeederEnabled: false,
+        PixelType: PIXEL_TYPE_COLOR,
+        Resolution: DEFAULT_RESOLUTION
       });
       
     }).then(function() {
@@ -555,7 +567,7 @@
       
     }).catch(function(error) {
       // Verificar se é timeout mas a imagem foi capturada
-      if (error.code === -2415 && DWTObject.HowManyImagesInBuffer > 0) {
+      if (error.code === ERROR_CODE_TIMEOUT && DWTObject.HowManyImagesInBuffer > 0) {
         // Timeout mas imagem capturada - ignorar erro silenciosamente
         return;
       }
