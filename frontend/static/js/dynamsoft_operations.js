@@ -608,7 +608,7 @@ function __printUploadedFiles(strResponse) {
 
       showUploadedFiles(true);
     } catch (exp) {
-      console.log(exp.message);
+      console.error('❌ Erro no upload:', exp.message);
     }
   }
 }

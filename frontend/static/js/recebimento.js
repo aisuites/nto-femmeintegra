@@ -202,7 +202,6 @@ const RecebimentoModule = (() => {
         throw new Error('Endpoint de localização não configurado.');
       }
       
-      console.log('Localizando código:', codigo);
       
       const response = await fetch(url, {
         method: 'POST',
@@ -213,11 +212,8 @@ const RecebimentoModule = (() => {
         body: JSON.stringify({ cod_barras: codigo }),
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
       
       const data = await response.json();
-      console.log('Data recebida:', data);
       
       if (!response.ok || data.status === 'error') {
         throw new Error(data.message || 'Falha ao localizar o código.');
@@ -476,7 +472,6 @@ const RecebimentoModule = (() => {
         btnConfirmar.textContent = 'Transferindo...';
         
         try {
-          console.log('Transferindo requisição ID:', data.requisicao_id);
           
           const result = await API.transferir(data.requisicao_id);
           
@@ -804,7 +799,6 @@ const RecebimentoModule = (() => {
           is_transit: elements.modalValidar.dataset.isTransit === 'true',
         };
         
-        console.log('Payload sendo enviado:', payload);
         
         const data = await API.validar(payload);
         
@@ -953,25 +947,15 @@ const RecebimentoModule = (() => {
       // Converter para número para garantir comparação correta
       const unidadeIdNum = parseInt(unidadeId);
       
-      console.log('🔍 Filtrando portadores para unidade:', unidadeIdNum);
-      console.log('📊 Total de portadores disponíveis:', portadoresData.length);
       
       const portadoresFiltrados = portadoresData.filter(p => {
         const match = p.unidade_id === unidadeIdNum;
-        if (match) {
-          console.log('✅ Portador encontrado:', p.nome, '(unidade_id:', p.unidade_id, ')');
-        }
         return match;
       });
       
-      console.log('📋 Portadores filtrados:', portadoresFiltrados.length);
       
       if (portadoresFiltrados.length === 0) {
         console.warn('⚠️ Nenhum portador encontrado para unidade_id:', unidadeIdNum);
-        console.log('🔍 Portadores disponíveis:', portadoresData.map(p => ({
-          nome: p.nome,
-          unidade_id: p.unidade_id
-        })));
       }
       
       portadoresFiltrados.forEach(item => {
@@ -1078,13 +1062,11 @@ const RecebimentoModule = (() => {
   // ============================================
   
   function init() {
-    console.log('🚀 RecebimentoModule v2.0 - Inicializando...');
     
     cacheElements();
     setupEventListeners();
     UnidadeSelector.restaurarEstado();
     
-    console.log('✅ RecebimentoModule inicializado com sucesso!');
   }
   
   // ============================================

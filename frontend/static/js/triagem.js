@@ -262,22 +262,6 @@ btnSeguir.addEventListener('click', async () => {
   
   // Por enquanto, apenas mostrar mensagem
   mostrarSucesso('Funcionalidade em desenvolvimento. Dados validados com sucesso!');
-  console.log('Dados da triagem:', {
-    requisicao_id: requisicaoAtual.id,
-    data_recebimento: reqDataRecebimento.value,
-    amostra_selecionada: selectAmostra.value,
-    data_coleta: amostraDataColeta.value,
-    data_validade: amostraDataValidade.value,
-    flags: {
-      data_rasurada: checkDataRasurada.checked,
-      sem_validade: checkSemValidade.checked,
-      sem_identificacao: checkSemIdentificacao.checked,
-      armazenamento_inadequado: checkArmazenamentoInadequado.checked,
-      motivo_armazenamento: selectMotivoArmazenamento.value,
-      frasco_trocado: checkFrascoTrocado.checked,
-      material_nao_analisado: checkMaterialNaoAnalisado.checked
-    }
-  });
 });
 
 /**
@@ -304,5 +288,3 @@ btnScanner.addEventListener('click', () => {
 
 // Focar no input ao carregar a página
 inputCodBarras.focus();
-
-console.log('✅ Triagem.js carregado com sucesso!');
