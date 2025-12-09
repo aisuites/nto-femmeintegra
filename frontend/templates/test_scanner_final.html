@@ -1,0 +1,332 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Digitalização</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}" />
+  
+  <!-- CSS do Dynamsoft - ORIGINAL -->
+  <link href="{% static 'css/dynamsoft_style.css' %}" type="text/css" rel="stylesheet" />
+  
+  <style>
+    #divProductDetail { display:none }
+    #btnLoad { display:none }
+    #tabUploadedFiles { display:none }
+    .ds-dwt-header {
+      display: inline-block;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="ds-dwt-content ds-dwt-center">
+    <div class="ds-dwt-header">
+      <h1>Digitalização</h1>
+    </div>
+  </div>
+
+  <div class="ds-dwt-content ds-dwt-center">
+    <div id="DWTcontainerTop">
+      <div id="divEdit">
+        <ul class="operateGrp">
+          <li>
+            <div class="menuIcon RemoveSelectedImages" style="margin-left: 5px;"
+                 title="Remove current page" alt="Remove current page"
+                 id="DW_btnRemoveCurrentImage"
+                 onclick="btnRemoveCurrentImage_onclick();"></div>
+          </li>
+          <li>
+            <div class="menuIcon RemoveAllImages"
+                 title="Remove all pages" alt="Remove all pages"
+                 id="DW_btnRemoveAllImages"
+                 onclick="btnRemoveAllImages_onclick();"></div>
+          </li>
+          <li style="width:90px;"></li>
+          <li class="lblShowCurrentImage">
+            <input type="text" size="2" id="DW_CurrentImage" readonly="readonly"> /
+            <input type="text" size="2" id="DW_TotalImage" readonly="readonly">
+          </li>
+          <li class="lblZoom">
+            <ul>
+              <li style="width:25%">
+                <div class="menuIcon ZoomOut" title="Zoom out" alt="Zoom out"
+                     id="btnZoomOut" onclick="btnZoomOut_onclick();"></div>
+              </li>
+              <li style="width:50%">
+                <input type="text" id="DW_spanZoom" readonly="readonly">
+              </li>
+              <li style="width:25%">
+                <div class="menuIcon ZoomIn" title="Zoom in" alt="Zoom in"
+                     id="btnZoomIn" onclick="btnZoomIn_onclick();"></div>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <div style="margin-left: 10px;" class="menuIcon OrigSize"
+                 title="1:1" alt="1:1" id="btnOrigSize"
+                 onclick="btnOrigSize_onclick();"></div>
+            <div class="menuIcon FitWindow" title="Fit To Window" alt="Fit To Window"
+                 id="btnFitWindow" style="display:none"
+                 onclick="btnFitWindow_onclick()"></div>
+          </li>
+          <li style="width:50px;"></li>
+          <li>
+            <div class="menuIcon RotateLeft" title="Rotate left" alt="Rotate left"
+                 id="btnRotateL" onclick="btnRotateLeft_onclick()"></div>
+          </li>
+          <li>
+            <div class="menuIcon grayimg Crop"
+                 title="Please select an area to crop."
+                 alt="Please select an area to crop."
+                 id="btnCropGray"></div>
+            <div class="menuIcon Crop" title="Crop" alt="Crop"
+                 id="btnCrop" style="display:none"
+                 onclick="btnCrop_onclick();"></div>
+          </li>
+          <li>
+            <div class="menuIcon ShowEditor" title="Show image editor"
+                 alt="Show image editor" id="btnShowImageEditor"
+                 onclick="btnShowImageEditor_onclick();"></div>
+          </li>
+          <li style="margin-top:0">
+            <div class="menuIcon SelectSelected" title="Select"
+                 alt="Select" id="btnSelect_selected"></div>
+            <div class="menuIcon Select" style="display:none;"
+                 title="Select" alt="Select" id="btnSelect"
+                 onclick="btnSelect_onclick();"></div>
+          </li>
+          <li>
+            <div class="menuIcon HandSelected" style="display:none;"
+                 title="Hand" alt="Hand" id="btnHand_selected"></div>
+            <div class="menuIcon Hand" title="Hand" alt="Hand"
+                 id="btnHand" onclick="btnHand_onclick();"></div>
+          </li>
+        </ul>
+      </div>
+      <div id="dwtcontrolContainer"></div>
+    </div>
+
+    <div id="ScanWrapper">
+      <div id="divScanner" class="divinput">
+        <ul class="PCollapse">
+          <li>
+            <div class="divType">
+              CONFIGURAÇÕES
+            </div>
+            <div id="div_ScanImage" class="divTableStyle">
+              <ul id="ulScaneImageHIDE">
+                <li>
+                  <label for="source">
+                    <p>SELECIONE O SCANNER:</p>
+                  </label>
+                  <select size="1" id="source" style="position:relative;" onchange="source_onchange()">
+                    <option value=""></option>
+                  </select>
+                </li>
+                <li id="divProductDetail">
+                  <ul id="divTwainType">
+                    <li>
+                      <label style="width: 165px;" id="lblShowUI" for="ShowUI">
+                        <input type="checkbox" id="ShowUI" />Show Scanner UI&nbsp;
+                      </label>
+                      <label for="ADF"><input type="checkbox" id="ADF" />Use ADF&nbsp;</label>
+                    </li>
+                    <li>
+                      <label style="width: 165px;" for="DiscardBlankPage">
+                        <input type="checkbox" id="DiscardBlankPage" />Auto Remove Blank Page
+                      </label>
+                      <label for="Duplex"><input type="checkbox" id="Duplex" />2-sided Scan</label>
+                    </li>
+                    <li>
+                      Pixel Type:
+                      <label for="BW" style="margin-left:5px;" class="lblPixelType">
+                        <input type="radio" id="BW" name="PixelType" />B&amp;W
+                      </label>
+                      <label for="Gray" class="lblPixelType">
+                        <input type="radio" id="Gray" name="PixelType" />Gray
+                      </label>
+                      <label for="RGB" class="lblPixelType">
+                        <input type="radio" id="RGB" name="PixelType" />Color
+                      </label>
+                    </li>
+                    <li>
+                      <span>Resolution:</span>
+                      <select size="1" id="Resolution">
+                        <option value="100">100</option>
+                        <option value="150">150</option>
+                        <option value="200" selected>200</option>
+                        <option value="300">300</option>
+                      </select>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <input type="button" class="btnOrg" value="Digitalizar"
+                         onclick="AcquireImage123();" style="font-size:24px"/>
+
+                  <input type="button" class="btnOrg" value="Enviar"
+                         onclick="upload123();" style="font-size:24px"/>
+                </li>
+              </ul>
+
+              <div id="divNoScanners" style="visibility:hidden;">
+                <a href="javascript: void(0)" class="ClosetblLoadImage">
+                  <img class="imgClose" src="{% static 'Images/Close.png' %}" alt="Close" />
+                </a>
+                <img src="{% static 'Images/Warning.png' %}" />
+                <span class="spanContent">
+                  <p class="contentTitle">No TWAIN compatible drivers detected</p>
+                  <p class="contentDetail">You can Install a Virtual Scanner:</p>
+                  <p class="contentDetail">
+                    <a id="samplesource32bit"
+                       href="https://download.dynamsoft.com/tool/twainds.win32.installer.2.1.3.msi">
+                      32-bit Sample Source
+                    </a>
+                    <a id="samplesource64bit" style="display:none;"
+                       href="https://download.dynamsoft.com/tool/twainds.win64.installer.2.1.3.msi">
+                      64-bit Sample Source
+                    </a> from
+                    <a target="_blank" href="http://www.twain.org">TWG</a>
+                  </p>
+                </span>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div id="divUpload" class="divinput mt30" style="display:none;position:relative">
+        <ul>
+          <li id="tabSave" class="tabList selectTab">Save Documents</li>
+          <li id="tabUploadedFiles" class="tabList unselectTab">
+            <span>Uploaded Files</span>
+          </li>
+        </ul>
+      </div>
+
+      <div id="tabCon" class="divinput mt30" style="display:none;">
+        <div id="divSaveDetail">
+          <ul>
+            <li>
+              <p>File Name:</p>
+              <input type="text" size="20" id="txt_fileName" />
+              <span> . </span>
+              <select size="1" id="fileType"
+                      style="position:relative;width: 25%;">
+                <option value="pdf" selected>pdf</option>
+              </select>
+            </li>
+            <li>
+              Pages:
+              <label for="CurrentPage" style="margin-left:5px;">
+                <input type="radio" id="CurrentPage" name="Pages" />Current Page
+              </label>
+              <label for="AllPages">
+                <input type="radio" id="AllPages" name="Pages" checked />All Pages
+              </label>
+            </li>
+          </ul>
+        </div>
+        <div id="divUploadedFiles" style="display:none;">
+          <div id="resultWrap"></div>
+        </div>
+        <div id="DWTdivMsg" class="clearfix">
+          <span class="lblMessage">Mensagem:</span><br />
+          <div id="DWTemessage"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIGURAÇÃO DO DYNAMSOFT (ANTES DE CARREGAR OS SCRIPTS) ===== -->
+  <script type="text/javascript">
+    // IMPORTANTE: Definir ResourcesPath ANTES de carregar dynamsoft.webtwain.initiate.js
+    window.Dynamsoft = window.Dynamsoft || {};
+    Dynamsoft.DWT = Dynamsoft.DWT || {};
+    Dynamsoft.DWT.ResourcesPath = '/static/dynamsoft';
+    console.log('🔧 Dynamsoft.DWT.ResourcesPath configurado para:', Dynamsoft.DWT.ResourcesPath);
+  </script>
+
+  <!-- ===== SCRIPTS DO DYNAMSOFT ===== -->
+  <script src="{% static 'dynamsoft/dynamsoft.webtwain.initiate.js' %}"></script>
+  <script src="{% static 'dynamsoft/dynamsoft.webtwain.config.js' %}"></script>
+
+  <script type="text/javascript">
+    var DWTObject = null;
+    var requisicaoId = null;
+    var codReq = null;
+
+    // Lê parâmetros da URL (?requisicao_id=21&cod_req=691e128819)
+    (function initParamsFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      requisicaoId = urlParams.get('requisicao_id');
+      codReq       = urlParams.get('cod_req');
+
+      console.log('requisicao_id:', requisicaoId);
+      console.log('cod_req:', codReq);
+
+      if (!requisicaoId || !codReq) {
+        console.warn('Parâmetros obrigatórios ausentes na URL (requisicao_id e cod_req).');
+      }
+    })();
+
+    // Inicializa o controle Dynamsoft
+    Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function () {
+      DWTObject = Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
+      console.log('✅ Dynamsoft inicializado!');
+    });
+
+    function AcquireImage123() {
+      if (DWTObject) {
+        DWTObject.SelectSourceAsync().then(function () {
+          return DWTObject.AcquireImageAsync({ IfCloseSourceAfterAcquire: true });
+        }).catch(function (exp) {
+          alert(exp.message);
+        });
+      } else {
+        alert('DWTObject vazio. Verifique a inicialização do componente.');
+      }
+    }
+
+    // Função auxiliar pra limpar o buffer de imagens após o upload
+    function limparBufferImagens() {
+      if (DWTObject) {
+        try {
+          DWTObject.RemoveAllImages();
+        } catch (e) {
+          console.error('Erro ao limpar buffer de imagens:', e);
+        }
+      }
+    }
+
+    // Envia o PDF para o backend Django (implementar depois)
+    function upload123() {
+      if (!requisicaoId || !codReq) {
+        alert('Não foi possível identificar requisicao_id ou cod_req na URL.');
+        return;
+      }
+
+      if (!(DWTObject && DWTObject.HowManyImagesInBuffer > 0)) {
+        alert("Não foi encontrada nenhuma imagem para upload.");
+        return;
+      }
+
+      // TODO: Implementar upload para o backend Django
+      alert('Função de upload será implementada em breve!');
+      console.log('Upload de', DWTObject.HowManyImagesInBuffer, 'imagens para requisicao_id:', requisicaoId);
+    }
+  </script>
+
+  <script src="{% static 'dynamsoft/addon/dynamsoft.webtwain.addon.pdf.js' %}"></script>
+  <script src="{% static 'js/dynamsoft_operations.js' %}"></script>
+  <script src="{% static 'js/dynamsoft_initpage.js' %}"></script>
+  <script>
+    if (typeof pageonload === 'function') {
+      window.onload = pageonload;
+    }
+  </script>
+</body>
+</html>

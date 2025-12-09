@@ -281,11 +281,21 @@ btnSeguir.addEventListener('click', async () => {
 });
 
 /**
- * Scanner (placeholder)
+ * Scanner - Abrir modal com iframe
  */
 btnScanner.addEventListener('click', () => {
-  mostrarSucesso('Funcionalidade de scanner em desenvolvimento.');
-  // TODO: Integrar com scanner
+  if (!requisicaoAtual) {
+    mostrarErro('Localize uma requisição primeiro.');
+    return;
+  }
+  
+  // Chamar função global definida no template
+  if (typeof abrirModalScanner === 'function') {
+    abrirModalScanner();
+  } else {
+    console.error('Função abrirModalScanner não encontrada.');
+    mostrarErro('Erro ao abrir o scanner. Recarregue a página.');
+  }
 });
 
 // ============================================

@@ -1,0 +1,139 @@
+/* ========================================
+   DYNAMSOFT TOOLBAR - CSS SUPER MINIMALISTA
+   Apenas estilos da toolbar, SEM reset de fontes
+   ======================================== */
+
+/* === CONTAINER PRINCIPAL === */
+#DWTcontainerTop {
+  width: 100%;
+  position: relative;
+}
+
+/* === TOOLBAR === */
+#divEdit { 
+  width: 100%;
+  margin: 0; 
+  padding: 0; 
+  background: #323234;
+  color: white;
+  border: 1px solid #ccc;
+  cursor: default;
+  overflow: hidden; /* clearfix para os floats internos */
+}
+
+/* === VIEWER === */
+#dwtcontrolContainer {
+  width: 100%;
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+  border-top: none; /* já tem borda da toolbar */
+}
+
+#divEdit .operateGrp { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0;
+}
+
+#divEdit .operateGrp:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+#divEdit .operateGrp li { 
+  float: left;  
+  margin: 0; 
+  width: 43px; 
+  text-align: center;
+  height: 40px; 
+  line-height: 36px;
+  cursor: pointer;
+}
+
+#divEdit .grayimg { 
+  opacity: 0.3; 
+}
+
+/* === INPUTS DA TOOLBAR === */
+.operateGrp input { 
+  padding: 0; 
+  margin-right: 6px; 
+  background: transparent; 
+  border: solid 1px #bbbcc0; 
+  outline: none; 
+  cursor: pointer; 
+  color: white;
+  width: 25px; 
+  height: 20px;
+}
+
+.operateGrp input[type="text"] { 
+  border: none; 
+  cursor: default; 
+  line-height: 19px; 
+  letter-spacing: 0px;
+  color: #FFFFFF;
+  height: 20px;
+}
+
+.operateGrp #DW_CurrentImage { 
+  margin: 0 0 0 -13px; 
+  text-align: right; 
+}
+
+.operateGrp #DW_TotalImage { 
+  margin: 0 -7px 0 0; 
+  text-align: left; 
+}
+
+.operateGrp #DW_spanZoom { 
+  width: 50px; 
+  text-align: center; 
+  line-height: 19px; 
+  letter-spacing: 0px; 
+  color: #FFFFFF; 
+}
+
+.lblShowCurrentImage, .lblZoom { 
+  margin-top: 0 !important; 
+}
+
+.lblZoom { 
+  width: 110px !important;  
+  border-left: 1px solid #4A4A4A;  
+  border-right: solid 1px #4A4A4A; 
+}
+
+#divEdit .lblZoom li { 
+  margin-top: 0 !important; 
+}
+
+/* === ÍCONES DA TOOLBAR (Base64) === */
+.menuIcon { 
+  display: inline-block; 
+}
+
+.RemoveSelectedImages:before { 
+  content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAAbBJREFUOBGtlLtKxFAQhhNZsLAwYGuRRgQFd1u7PEJaK4OVjeAbiLUIiqClYi242mnjeQFxrbTcNzDiA8TvP56zm+xFs7sOfJl/JjN/LnsJgimjKIoEbsHHCyKd0u5nDYMMcpcjskihC5eaaiAMuVBRI06ZyeEEWiIMQ9WBTEkJGHQacpDpJ3Tgr8gYkGkbNG9g32n1UohhX1dSGIpawWwHWhpWhhy6pV6ELuZquQ0PRaVWjlZtL+Z00CgN1JUdBhPdJbkNKSiM68XoOz2OwlDUCmb94yvHfkka9Bo+IJnYWEYsZpDDAegCYhtkmtmLIRTGFhMc2JHZFXQc0knPgkJheo0pBR4x+PdtH2siY4Z3R12bvhH+3NivG0MLfshnejvoC/KW743LI41ZXGfhmbzoF9Eb6HNXn1FH/tyoPGTMQsjgNazCjWpnck89D4olOLJq3IElhfHn0Xu20z8cIh/6ZUVtlvYq7zhwY9YYvQxfldXfi3dO218vuWI8+JNe4w6O/V3UzCvMvQ3OVoz5b31kQMwcQx/ezI7OwN9xk3f0NKNpk/1X7+GN9Z1MfPM/8jcOyrCnQaIOcAAAAABJRU5ErkJggg==');
+}
+
+.RemoveAllImages:before { 
+  content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAAbNJREFUOBGllM1RwzAQhW2GOz5xdgnuIKYDZyggpgNTQUIDTDogJ64JNBB3gG8MJ8yVC+nAfE9jBVnE+XF25mXfrnafVlLGQTDQmqZJwRJYe4NkVi60RJ6FBHfl5jz+FYZhTV1Ofg4KsAKyFCi3puYO/2c0lGCf5SymYANikNlueNLmauUv7YLnb7zYhExS0qQJCxCBBbF4BVYgA4qLgIUZuCUQL0Ej3mcsVyDRujzQ9LWTi+DNBetTYIRVfKRFTt0Grths1vKg7yqcvn+0IpNqSvwKZECm09b4GLzoOLJnAnEtHroKe3x5iRgTB7qGH5DqKk4yHlATF6AEE0RGIIGPwCe41yMPuYqAxgVidoMxYjLFY4kqGCSsRqxGJDes/WGzXNOTr466CoojT0BHX3q5lPgJmNqDwpqAYn0H5IN2Ewmk8Fy5XbZX2BGJaV4TS3wOzCb4aVsD7dpeYUpdkYh4DSaORAwvnHhLex+vnaSm8mFbfQLpFeZlN+jMTtDqlO4UZtqmUzUg8IWrARp+i05q/j4a0Hwr/Ipz4rA99jci72cIvfImj26/vYprksJQ+/AbfwFzAixFlJW93wAAAABJRU5ErkJggg==');
+}
+
+.ZoomOut:before { 
+  content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAACCAYAAABsfz2XAAAAAXNSR0IArs4c6QAAABRJREFUCB1j/A8EDCQAJhLUgpUCAH23BADZ1VH1AAAAAElFTkSuQmCC');
+}
+
+.ZoomIn:before { 
+  content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAAXNSR0IArs4c6QAAACtJREFUKBVjYMAC/kMBFikGJmyC+MQGoQZGkP/wuRldjmQ/oBsA5g/3YAUAzjAUALthcCUAAAAASUVORK5CYII=');
+}
+
+.OrigSize:before { 
+  content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAAbRJREFUOBGtk91twkAQhO0oBdBBXII7yKWCpANIBXEJ7gAe8hpBCXSAqQA6MB3EHZBvnFtzts+AlKw02p+ZnTufIEkicT6fF2ANamCxo1iCLLJyfcRSDmpgUVEYTjYk64DZdTfPItQtFQ0owWiRmQ7WQYoDGGl6hyHQgkKmeY+MNGgKiYlDhL6MEOgz7zK1LfQroChs1ssQ9gSlEcyc1cMMlwmak3Wh76Gm7SG2QDHzmKuJiRnnYAdK8eQCKJz6MB5o9Kb7NE0bX2/IXbBUAnv3FYTryCQ5+jqctSMZP3kywbyifrE+yJlqeEfaq/ZhxtZ3+bGrJgrMyglK49kUpxvrBt2th0KeYRE8xZDO/aAZEjLW52TBskTh52bigYX0J9+8+bz1+ZIwlKlid5nertDbXjWpRrSSM1FMigICnX6a+ksrXED1S0gJj1IRyz7b7+B1UzP96rORDnFoXtN/gGdJyTJ7BWtg8emLdcRuPEJcgMa2I7li5rRJ3nh+ZJ6OrX8nftkFfEO95Xd9CmatOf0cbODeQ+7P9bWb/7v5zb/0vSfyDAtuLnmbJ9/4XsOhTs/CrPoBTVPfZHFEiyYAAAAASUVORK5CYII=');
+}
+
+.RotateLeft:before { 
+  content: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAAWCAYAAADEtGw7AAAAAXNSR0IArs4c6QAAATdJREFUOBFjYCAR/P//XxWI55CoDbdyoGGsQFwFxN+B+AJulSTIAA0yAeJLQAwDlBsMNKkJiP/CTITSf6D0eyA9H4gdSHAnRClQkwQQrwRiZPACyHEA4gYg3gCV2A+kBcixwAmo8SrUEJSgAIqBLLkAxOeBmCzDWYAa84H4ELrLQAYCMcjw9ehyRPOBmnmwKQaKGwAxCDgwAokWoKKPQPwMm2ICYoJAeTUgXsrIyHgSpBZo3gIg9QHEoAboAxkKAkDDEoD4PAuEy3AASPdA2aRQFkDFNUB8HUnTAyDbAGbwM6BXtiJJEsUEuowVqvADugYmdAFq8Wlh8AOg4xphQUEthzIAgxRkcAMtXAx25KjB8LiiWVDAUoU1MLGvgFtHPEMaqlQFXQvMYHmghBy6JBF8RqgaYXS1AChBI1rD0wdaAAAAAElFTkSuQmCC');
+}

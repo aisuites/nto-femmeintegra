@@ -497,3 +497,18 @@ class TransferirRequisicaoView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro ao transferir requisição.'},
                 status=500,
             )
+
+
+class ScannerIframeView(LoginRequiredMixin, TemplateView):
+    """View para servir o scanner isolado dentro de um iframe."""
+    template_name = 'test_scanner_final.html'
+    login_url = 'admin:login'
+
+
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+
+@method_decorator(xframe_options_sameorigin, name='dispatch')
+class TestScannerView(LoginRequiredMixin, TemplateView):
+    """View para teste isolado do scanner."""
+    template_name = 'test_scanner_final.html'
+    login_url = 'admin:login'

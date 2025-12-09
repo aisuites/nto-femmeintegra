@@ -54,4 +54,10 @@ urlpatterns = [
         views.TransferirRequisicaoView.as_view(),
         name='requisicao-transferir',
     ),
+    # Rota de teste isolado do scanner
+    path(
+        'scanner/teste/',
+        views.TestScannerView.as_view(),
+        name='test-scanner',
+    ),
 ]

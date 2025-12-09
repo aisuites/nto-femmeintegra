@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Scanner - Dynamsoft</title>
+  <meta charset="utf-8" />
+  
+  <!-- CSS do Dynamsoft -->
+  <link rel="stylesheet" href="dynamsoft/src/dynamsoft.webtwain.css" />
+  
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f7;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      color: #7a3d8a;
+      margin-bottom: 20px;
+    }
+    
+    #dwtcontrolContainer {
+      width: 100%;
+      height: 500px;
+      background: white;
+      border: 1px solid #ddd;
+      margin-top: 10px;
+    }
+    
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .btn-primary {
+      background: #7a3d8a;
+      color: white;
+    }
+    
+    select {
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🔬 Test Scanner - Dynamsoft</h1>
+    
+    <div id="DWTcontainerTop">
+      <div id="divEdit">
+        <ul class="operateGrp">
+          <li>
+            <div class="menuIcon RemoveSelectedImages" style="margin-left: 5px;"
+                 title="Remove current page"
+                 onclick="removeCurrentImage();"></div>
+          </li>
+          <li>
+            <div class="menuIcon RemoveAllImages"
+                 title="Remove all pages"
+                 onclick="removeAllImages();"></div>
+          </li>
+          <li style="width:90px;"></li>
+          <li class="lblShowCurrentImage">
+            <input type="text" size="2" id="DW_CurrentImage" readonly> /
+            <input type="text" size="2" id="DW_TotalImage" readonly>
+          </li>
+          <li class="lblZoom">
+            <ul>
+              <li style="width:25%">
+                <div class="menuIcon ZoomOut" title="Zoom out" onclick="zoomOut();"></div>
+              </li>
+              <li style="width:50%">
+                <input type="text" id="DW_spanZoom" readonly>
+              </li>
+              <li style="width:25%">
+                <div class="menuIcon ZoomIn" title="Zoom in" onclick="zoomIn();"></div>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <div class="menuIcon OrigSize" title="1:1" onclick="origSize();"></div>
+          </li>
+          <li style="width:50px;"></li>
+          <li>
+            <div class="menuIcon RotateLeft" title="Rotate left" onclick="rotateLeft();"></div>
+          </li>
+        </ul>
+      </div>
+      <div id="dwtcontrolContainer"></div>
+    </div>
+    
+    <div class="controls">
+      <select id="source">
+        <option value="">Selecione scanner...</option>
+      </select>
+      <button class="btn-primary" onclick="scan()">📷 Digitalizar</button>
+    </div>
+  </div>
+
+  <script src="dynamsoft/dynamsoft.webtwain.initiate.js"></script>
+  <script>
+    var DWTObject;
+    
+    Dynamsoft.DWT.ResourcesPath = "dynamsoft";
+    Dynamsoft.DWT.ProductKey = "COLOQUE_SUA_LICENCA_AQUI";
+    Dynamsoft.DWT.Containers = [{
+      ContainerId: 'dwtcontrolContainer',
+      Width: '100%',
+      Height: '500px'
+    }];
+    
+    Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function() {
+      DWTObject = Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
+      if (DWTObject) {
+        console.log('✅ Dynamsoft carregado!');
+        loadScanners();
+      }
+    });
+    
+    function loadScanners() {
+      var count = DWTObject.SourceCount;
+      var select = document.getElementById('source');
+      for (var i = 0; i < count; i++) {
+        var option = document.createElement('option');
+        option.value = i;
+        option.text = DWTObject.GetSourceNameItems(i);
+        select.appendChild(option);
+      }
+    }
+    
+    function scan() {
+      if (!DWTObject) return;
+      var index = document.getElementById('source').value;
+      if (!index) {
+        alert('Selecione um scanner');
+        return;
+      }
+      DWTObject.SelectSourceByIndex(index);
+      DWTObject.OpenSource();
+      DWTObject.AcquireImage();
+    }
+    
+    function removeCurrentImage() {
+      if (DWTObject && DWTObject.HowManyImagesInBuffer > 0) {
+        DWTObject.RemoveImage(DWTObject.CurrentImageIndexInBuffer);
+      }
+    }
+    
+    function removeAllImages() {
+      if (DWTObject) {
+        DWTObject.RemoveAllImages();
+      }
+    }
+    
+    function zoomIn() {
+      if (DWTObject) DWTObject.Zoom(0.2);
+    }
+    
+    function zoomOut() {
+      if (DWTObject) DWTObject.Zoom(-0.2);
+    }
+    
+    function origSize() {
+      if (DWTObject) DWTObject.SetViewMode(1, 1);
+    }
+    
+    function rotateLeft() {
+      if (DWTObject && DWTObject.HowManyImagesInBuffer > 0) {
+        DWTObject.Rotate(DWTObject.CurrentImageIndexInBuffer, -90, true);
+      }
+    }
+  </script>
+</body>
+</html>

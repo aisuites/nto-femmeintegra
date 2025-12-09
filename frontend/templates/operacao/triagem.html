@@ -3,6 +3,36 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/triagem.css' %}" />
+<style>
+/* CSS do Modal Elegante (modal-scanner2) */
+.scanner-overlay { position:fixed; inset:0; background:rgba(15,3,30,0.45); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:9999; }
+.scanner-modal { width:min(1100px,96vw); height:min(640px,92vh); background:#fff; border-radius:22px; box-shadow:0 12px 30px rgba(20,5,36,0.22); display:flex; flex-direction:column; overflow:hidden; }
+.scanner-modal-header { padding:14px 20px; border-bottom:1px solid rgba(230,224,238,0.9); display:flex; justify-content:space-between; align-items:center; gap:12px; background:linear-gradient(90deg,rgba(244,233,248,0.9),#fff); }
+.scanner-modal-title h2 { font-size:16px; font-weight:600; color:#7a3d8a; margin:0; }
+.scanner-modal-title span { font-size:12px; color:#77767c; }
+.scanner-modal-close { border:none; border-radius:999px; padding:6px 10px; background:transparent; cursor:pointer; font-size:18px; color:#34343a; }
+.scanner-modal-close:hover { background:rgba(122,61,138,0.08); color:#7a3d8a; }
+.scanner-modal-body { flex:1; padding:14px 18px 16px; display:grid; grid-template-columns:minmax(0,2.2fr) minmax(0,1fr); gap:16px; background:radial-gradient(circle at top left,rgba(122,61,138,0.06),transparent 55%),radial-gradient(circle at bottom right,rgba(0,188,164,0.05),transparent 55%); }
+.scanner-viewer { border-radius:14px; background:#f5f5f7; padding:10px; display:flex; flex-direction:column; gap:8px; }
+.scanner-toolbar { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:10px; background:#fff; box-shadow:0 2px 6px rgba(20,5,36,0.06); font-size:12px; color:#34343a; }
+.scanner-toolbar-group { display:inline-flex; align-items:center; gap:4px; }
+.scanner-toolbar-separator { width:1px; height:22px; background:rgba(210,204,222,0.9); margin-inline:4px; }
+.scanner-tool-btn { width:26px; height:26px; border-radius:999px; border:none; background:rgba(122,61,138,0.05); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; padding:0; font-size:14px; }
+.scanner-tool-btn:hover { background:rgba(122,61,138,0.12); }
+.scanner-page-info { font-size:11px; color:#77767c; margin-left:4px; }
+.scanner-config { border-radius:14px; background:#fff; padding:12px 14px; box-shadow:0 6px 16px rgba(20,5,36,0.08); font-size:12px; }
+.scanner-config-title { font-size:12px; text-transform:uppercase; letter-spacing:0.1em; color:#77767c; margin-bottom:8px; }
+.scanner-config label { font-size:12px; color:#34343a; }
+.scanner-config select { width:100%; margin-top:4px; padding:6px 8px; border-radius:999px; border:1px solid rgba(207,199,222,0.9); font-size:12px; }
+.scanner-actions { margin-top:14px; display:flex; flex-direction:column; gap:8px; }
+.btn-pill-primary { display:inline-flex; align-items:center; justify-content:center; gap:6px; width:100%; border-radius:999px; border:none; padding:8px 14px; cursor:pointer; background:linear-gradient(90deg,#7a3d8a,#c66ad3); color:#fff; font-size:13px; font-weight:600; box-shadow:0 8px 18px rgba(122,61,138,0.35); }
+.btn-pill-primary:hover { background:linear-gradient(90deg,#693277,#b054c4); }
+.btn-pill-ghost { display:inline-flex; align-items:center; justify-content:center; width:100%; border-radius:999px; padding:8px 14px; border:1px solid rgba(122,61,138,0.25); background:#fff; color:#7a3d8a; font-size:13px; font-weight:500; cursor:pointer; }
+.btn-pill-ghost:hover { background:#f4e9f8; }
+/* Cursor de mãozinha para o viewer quando Hand ativo */
+#dwtcontrolContainer[style*="cursor: grab"], #dwtcontrolContainer[style*="cursor: grabbing"] { cursor: grab !important; }
+#dwtcontrolContainer[style*="cursor: grab"]:active { cursor: grabbing !important; }
+</style>
 {% endblock %}
 
 {% block main_content %}
@@ -162,8 +192,450 @@
 
   </div>
 </section>
+
+<!-- MODAL DE SCANNER - LAYOUT ELEGANTE FEMME -->
+<div class="scanner-overlay" id="modal-scanner-teste" style="display: none;">
+  <div class="scanner-modal">
+    <!-- Header -->
+    <div class="scanner-modal-header">
+      <div class="scanner-modal-title">
+        <h2>📄 Digitalizar requisição</h2>
+        <span>Use o scanner conectado para capturar o papel da requisição.</span>
+      </div>
+      <button class="scanner-modal-close" type="button" onclick="fecharModalTeste()">✕</button>
+    </div>
+    
+    <!-- Body -->
+    <div class="scanner-modal-body">
+      <!-- Viewer + toolbar -->
+      <div class="scanner-viewer">
+        
+        <!-- CSS SUPER MINIMALISTA (só toolbar, sem conflitos) -->
+        <link rel="stylesheet" href="{% static 'css/dynamsoft_toolbar_only.css' %}" />
+        
+        <!-- Toolbar Elegante -->
+        <div class="scanner-toolbar">
+          <div class="scanner-toolbar-group">
+            <button type="button" class="scanner-tool-btn" title="Remover página atual" onclick="btnRemoveCurrentImage_onclick()">🗑️</button>
+            <button type="button" class="scanner-tool-btn" title="Remover todas" onclick="btnRemoveAllImages_onclick()">🗑️🗑️</button>
+          </div>
+          
+          <span class="scanner-toolbar-separator"></span>
+          
+          <div class="scanner-toolbar-group">
+            <button type="button" class="scanner-tool-btn" title="Zoom out" onclick="btnZoomOut_onclick()">➖</button>
+            <span class="scanner-page-info">
+              <input type="text" id="DW_spanZoom" readonly style="width:40px;border:none;background:transparent;text-align:center;font-size:11px;color:#34343a;">
+            </span>
+            <button type="button" class="scanner-tool-btn" title="Zoom in" onclick="btnZoomIn_onclick()">➕</button>
+          </div>
+          
+          <span class="scanner-toolbar-separator"></span>
+          
+          <div class="scanner-toolbar-group">
+            <button type="button" class="scanner-tool-btn" title="Girar à esquerda" onclick="btnRotateLeft_onclick()">↻</button>
+            <button type="button" class="scanner-tool-btn" title="Tamanho original" onclick="btnOrigSize_onclick()">⊡</button>
+          </div>
+          
+          <span class="scanner-toolbar-separator"></span>
+          
+          <div class="scanner-toolbar-group">
+            <button type="button" class="scanner-tool-btn" title="Mover (Hand)" onclick="btnHand_onclick()">🖐️</button>
+          </div>
+          
+          <span class="scanner-toolbar-separator"></span>
+          
+          <span class="scanner-page-info">
+            Pág. <input type="text" id="DW_CurrentImage" readonly style="width:24px;border:none;background:transparent;text-align:center;"> / 
+            <input type="text" id="DW_TotalImage" readonly style="width:24px;border:none;background:transparent;text-align:center;">
+          </span>
+        </div>
+        
+        <!-- Viewer do Dynamsoft -->
+        <div id="dwtcontrolContainer" style="width:100%;min-height:360px;border-radius:10px;background:#fff;"></div>
+      </div>
+      
+      <!-- Config / ações -->
+      <div class="scanner-config">
+        <div class="scanner-config-title">Configurações do scanner</div>
+        
+        <div>
+          <label for="scanner-select">Scanner conectado</label>
+          <select id="scanner-select">
+            <option>Carregando scanners...</option>
+          </select>
+        </div>
+        
+        <div style="margin-top:10px;">
+          <label for="resolution-select">Resolução (DPI)</label>
+          <select id="resolution-select">
+            <option value="100">100</option>
+            <option value="150">150</option>
+            <option value="200" selected>200</option>
+            <option value="300">300</option>
+          </select>
+        </div>
+        
+        <div class="scanner-actions">
+          <button type="button" class="btn-pill-primary" onclick="testarCarregarImagem()">📁 Carregar Imagem</button>
+          <button type="button" class="btn-pill-primary" onclick="testarDigitalizar()">📷 Digitalizar</button>
+          <button type="button" class="btn-pill-primary" onclick="enviarParaAWS()">📤 Enviar</button>
+          <button type="button" class="btn-pill-ghost" onclick="fecharModalTeste()">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+  var DWTObjectTeste = null;
+  var dynamosoftScriptsCarregados = false;
+  
+  function abrirModalScanner() {
+    // Verificar se há requisição selecionada
+    if (typeof requisicaoAtual !== 'undefined' && requisicaoAtual) {
+      
+      // Abrir modal de scanner
+      abrirModalTeste();
+      
+    } else {
+      alert('⚠️ Por favor, localize uma requisição primeiro.');
+    }
+  }
+  
+  // === FUNÇÕES DO MODAL DE SCANNER ===
+  function abrirModalTeste() {
+    const modal = document.getElementById('modal-scanner-teste');
+    if (modal) {
+      modal.style.display = 'flex';
+      
+      // Carregar scripts do Dynamsoft se ainda não foram carregados
+      if (!dynamosoftScriptsCarregados) {
+        carregarScriptsDynamsoft();
+      }
+    }
+  }
+  
+  function carregarScriptsDynamsoft() {
+    // Configurar ResourcesPath ANTES de carregar scripts
+    window.Dynamsoft = window.Dynamsoft || {};
+    Dynamsoft.DWT = Dynamsoft.DWT || {};
+    Dynamsoft.DWT.ResourcesPath = '/static/dynamsoft';
+    console.log('🔧 ResourcesPath configurado:', Dynamsoft.DWT.ResourcesPath);
+    
+    // Lista de scripts para carregar
+    const scripts = [
+      '{% static "dynamsoft/dynamsoft.webtwain.initiate.js" %}',
+      '{% static "dynamsoft/dynamsoft.webtwain.config.js" %}'
+      // dynamsoft_operations.js removido - funções antigas conflitam
+      // dynamsoft_initpage.js removido - causa erro de RegisterEvent
+    ];
+    
+    let scriptsCarregadosCount = 0;
+    
+    scripts.forEach((src, index) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => {
+        scriptsCarregadosCount++;
+        
+        // Quando todos os scripts estiverem carregados
+        if (scriptsCarregadosCount === scripts.length) {
+          inicializarDynamsoft();
+        }
+      };
+      script.onerror = () => {
+        console.error('❌ Erro ao carregar script:', src);
+      };
+      document.head.appendChild(script);
+    });
+    
+    dynamosoftScriptsCarregados = true;
+  }
+  
+  function inicializarDynamsoft() {
+    // Registrar callback quando Dynamsoft estiver pronto
+    if (typeof Dynamsoft !== 'undefined' && Dynamsoft.DWT) {
+      Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function() {
+        DWTObjectTeste = Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
+        
+        if (DWTObjectTeste) {
+          DWTObjectTeste.Viewer.width = '100%';
+          DWTObjectTeste.Viewer.height = '500px';
+          DWTObjectTeste.Viewer.show();
+          
+          // IMPORTANTE: Ativar single page mode para zoom funcionar
+          DWTObjectTeste.Viewer.singlePageMode = true;
+          
+          // Expor globalmente para as funções da toolbar
+          window.DWTObject = DWTObjectTeste;
+          
+          // Inicializar display de zoom
+          if (document.getElementById("DW_spanZoom")) {
+            var zoomInicial = DWTObject.Viewer?.zoom ? Math.round(DWTObject.Viewer.zoom * 100) : 100;
+            document.getElementById("DW_spanZoom").value = zoomInicial + "%";
+          }
+          
+          // Inicializar contador de páginas
+          if (document.getElementById("DW_CurrentImage") && document.getElementById("DW_TotalImage")) {
+            document.getElementById("DW_CurrentImage").value = "0";
+            document.getElementById("DW_TotalImage").value = "0";
+          }
+          
+          
+          // Listener para atualizar contador quando buffer mudar
+          DWTObject.RegisterEvent('OnBufferChanged', function(changedIndex, changeType) {
+            var total = DWTObject.HowManyImagesInBuffer;
+            var current = total > 0 ? DWTObject.CurrentImageIndexInBuffer + 1 : 0;
+            
+            if (document.getElementById("DW_CurrentImage")) {
+              document.getElementById("DW_CurrentImage").value = current;
+            }
+            if (document.getElementById("DW_TotalImage")) {
+              document.getElementById("DW_TotalImage").value = total;
+            }
+          });
+          
+          // CARREGAR LISTA DE SCANNERS
+          carregarListaScanners();
+          
+        } else {
+          console.error('❌ Falha ao inicializar Dynamsoft');
+        }
+      });
+    } else {
+      console.error('❌ Dynamsoft não está disponível');
+    }
+  }
+  
+  function fecharModalTeste() {
+    const modal = document.getElementById('modal-scanner-teste');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+  
+  // === FUNÇÃO PARA CARREGAR LISTA DE SCANNERS ===
+  function carregarListaScanners() {
+    if (!DWTObject) {
+      console.error('❌ DWTObject não disponível para carregar scanners');
+      return;
+    }
+    
+    
+    DWTObject.GetDevicesAsync().then(function(devices) {
+      
+      var select = document.getElementById('scanner-select');
+      if (!select) {
+        console.error('❌ Select scanner-select não encontrado');
+        return;
+      }
+      
+      // Limpar opções antigas
+      select.innerHTML = '';
+      
+      if (devices.length === 0) {
+        select.innerHTML = '<option>Nenhum scanner encontrado</option>';
+        return;
+      }
+      
+      // Adicionar cada scanner como opção
+      devices.forEach(function(device, index) {
+        var option = document.createElement('option');
+        option.value = index;
+        option.text = device.displayName || device.name;
+        select.appendChild(option);
+      });
+      
+      
+    }).catch(function(error) {
+      console.error('❌ Erro ao carregar scanners:', error);
+      var select = document.getElementById('scanner-select');
+      if (select) {
+        select.innerHTML = '<option>Erro ao carregar scanners</option>';
+      }
+    });
+  }
+  
+  function testarCarregarImagem() {
+    if (!DWTObjectTeste) {
+      alert('⚠️ Dynamsoft ainda não está pronto! Aguarde alguns segundos...');
+      return;
+    }
+    
+    DWTObjectTeste.IfShowFileDialog = true;
+    DWTObjectTeste.LoadImageEx('', 5);
+  }
+  
+  // === FUNÇÃO PARA ENVIAR PARA AWS (A IMPLEMENTAR) ===
+  function enviarParaAWS() {
+    if (!DWTObjectTeste) {
+      alert('⚠️ Dynamsoft ainda não está pronto!');
+      return;
+    }
+    
+    if (DWTObjectTeste.HowManyImagesInBuffer === 0) {
+      alert('⚠️ Nenhuma imagem para enviar! Por favor, digitalize primeiro.');
+      return;
+    }
+    
+    // TODO: Implementar envio para AWS
+    console.log('📤 Função enviarParaAWS() chamada');
+    console.log('📊 Imagens no buffer:', DWTObjectTeste.HowManyImagesInBuffer);
+    console.log('📄 Requisição atual:', requisicaoAtual);
+    
+    alert('🚧 Função de envio para AWS será implementada em breve!\n\nImagens prontas: ' + DWTObjectTeste.HowManyImagesInBuffer);
+  }
+  
+  function testarDigitalizar() {
+    if (!DWTObjectTeste) {
+      alert('⚠️ Dynamsoft ainda não está pronto! Aguarde alguns segundos...');
+      return;
+    }
+    
+    
+    // Pegar o scanner selecionado no select
+    var select = document.getElementById('scanner-select');
+    if (!select || select.selectedIndex < 0) {
+      alert('⚠️ Por favor, selecione um scanner primeiro!');
+      return;
+    }
+    
+    var scannerIndex = parseInt(select.value);
+    
+    // Usar SelectDeviceAsync para selecionar o scanner específico SEM popup
+    DWTObjectTeste.GetDevicesAsync().then(function(devices) {
+      if (scannerIndex >= devices.length) {
+        throw new Error('Scanner selecionado não encontrado');
+      }
+      
+      var selectedDevice = devices[scannerIndex];
+      
+      // Selecionar o scanner específico (SEM popup)
+      return DWTObjectTeste.SelectDeviceAsync(selectedDevice);
+      
+    }).then(function() {
+      
+      // Aumentar timeout para evitar erro -2415
+      DWTObjectTeste.Timeout = 60000; // 60 segundos (padrão é 30)
+      
+      // Capturar imagem com o scanner já selecionado
+      return DWTObjectTeste.AcquireImageAsync({ 
+        IfCloseSourceAfterAcquire: true,
+        IfShowUI: false, // NÃO mostrar UI do scanner
+        IfFeederEnabled: false, // Desabilitar ADF por padrão
+        PixelType: 2, // 2 = Colorido (0=P&B, 1=Cinza, 2=Color)
+        Resolution: 200 // DPI padrão
+      });
+      
+    }).then(function() {
+      // Alert removido - imagem já aparece no viewer
+      
+    }).catch(function(error) {
+      console.error('❌ Erro na digitalização:', error);
+      
+      // Verificar se é timeout mas a imagem foi capturada
+      if (error.code === -2415 && DWTObjectTeste.HowManyImagesInBuffer > 0) {
+        // Não mostrar erro se a imagem foi capturada
+      } else {
+        alert('❌ Erro: ' + error.message);
+      }
+    });
+  }
+
+  /*----------------------Zoom Methods (Legacy API)---------------------*/
+  function btnZoomIn_onclick() {
+    if (!DWTObject) {
+      console.error('❌ DWTObject não disponível');
+      return;
+    }
+    
+    if (DWTObject.HowManyImagesInBuffer === 0) {
+      return;
+    }
+    
+    // Garantir que está em single page mode
+    DWTObject.Viewer.singlePageMode = true;
+    
+    var zoomAtual = DWTObject.Viewer.zoom;
+    DWTObject.Viewer.zoom = zoomAtual * 1.1; // Aumentar 10%
+    
+    // Forçar refresh do viewer
+    DWTObject.Viewer.render();
+    
+    // Atualizar display
+    if (document.getElementById("DW_spanZoom")) {
+      var displayZoom = Math.round(DWTObject.Viewer.zoom * 100);
+      document.getElementById("DW_spanZoom").value = displayZoom + "%";
+    }
+  }
+  
+  function btnZoomOut_onclick() {
+    if (!DWTObject || DWTObject.HowManyImagesInBuffer === 0) return;
+    
+    DWTObject.Viewer.singlePageMode = true;
+    var zoomAtual = DWTObject.Viewer.zoom;
+    DWTObject.Viewer.zoom = zoomAtual * 0.9; // Diminuir 10%
+    DWTObject.Viewer.render();
+    
+    if (document.getElementById("DW_spanZoom")) {
+      var displayZoom = Math.round(DWTObject.Viewer.zoom * 100);
+      document.getElementById("DW_spanZoom").value = displayZoom + "%";
+    }
+  }
+  
+  function btnOrigSize_onclick() {
+    if (!DWTObject || DWTObject.HowManyImagesInBuffer === 0) return;
+    
+    DWTObject.Viewer.singlePageMode = true;
+    DWTObject.Viewer.zoom = 1; // 100%
+    DWTObject.Viewer.render();
+    
+    if (document.getElementById("DW_spanZoom")) {
+      document.getElementById("DW_spanZoom").value = "100%";
+    }
+  }
+  
+  /*----------------------Remove Methods---------------------*/
+  function btnRemoveCurrentImage_onclick() {
+    if (!DWTObject || DWTObject.HowManyImagesInBuffer === 0) return;
+    
+    var currentIndex = DWTObject.CurrentImageIndexInBuffer;
+    DWTObject.RemoveImage(currentIndex);
+  }
+  
+  function btnRemoveAllImages_onclick() {
+    if (!DWTObject || DWTObject.HowManyImagesInBuffer === 0) return;
+    
+    DWTObject.RemoveAllImages();
+  }
+  
+  /*----------------------Rotate Method---------------------*/
+  function btnRotateLeft_onclick() {
+    if (!DWTObject || DWTObject.HowManyImagesInBuffer === 0) return;
+    
+    var currentIndex = DWTObject.CurrentImageIndexInBuffer;
+    DWTObject.RotateLeft(currentIndex);
+  }
+  
+  /*----------------------Hand Method (Pan/Drag)---------------------*/
+  function btnHand_onclick() {
+    if (!DWTObject || DWTObject.HowManyImagesInBuffer === 0) return;
+    
+    var cursorAtual = DWTObject.Viewer.cursor;
+    
+    // Alternar entre grab e crosshair
+    if (cursorAtual === 'grab' || cursorAtual === 'grabbing') {
+      DWTObject.Viewer.cursor = 'crosshair'; // Desativar
+    } else {
+      DWTObject.Viewer.cursor = 'grab'; // Ativar
+    }
+  }
+</script>
 <script src="{% static 'js/triagem.js' %}"></script>
 {% endblock %}
+
+

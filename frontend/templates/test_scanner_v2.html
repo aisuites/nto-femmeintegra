@@ -1,0 +1,318 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Dynamsoft - Versão Simples</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #7a3d8a 0%, #5a2d6a 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        select, button {
+            padding: 12px 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        select {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        button {
+            background: #7a3d8a;
+            color: white;
+            border: none;
+        }
+        
+        button:hover {
+            background: #5a2d6a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(122, 61, 138, 0.3);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #00bca4;
+        }
+        
+        .btn-success:hover {
+            background: #009c84;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        #dwtcontrolContainer {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #7a3d8a;
+        }
+        
+        .info h3 {
+            color: #7a3d8a;
+            margin-bottom: 10px;
+        }
+        
+        .info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info li {
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .info li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00bca4;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Scanner Dynamsoft Web TWAIN</h1>
+            <p>Versão Simplificada com Viewer Nativo</p>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <select id="source">
+                    <option value="">Selecione um scanner...</option>
+                </select>
+                
+                <button onclick="scan()">📷 Digitalizar</button>
+                <button class="btn-success" onclick="uploadPDF()" id="btnUpload" disabled>📤 Enviar PDF</button>
+                <a href="{% url 'operacao:triagem' %}" style="text-decoration: none;">
+                    <button class="btn-secondary">← Voltar</button>
+                </a>
+            </div>
+            
+            <div id="dwtcontrolContainer"></div>
+            
+            <div class="info">
+                <h3>ℹ️ Como Usar:</h3>
+                <ul>
+                    <li>Selecione um scanner na lista acima</li>
+                    <li>Clique em "Digitalizar" para capturar a imagem</li>
+                    <li>Use os controles do viewer para zoom, rotação, etc.</li>
+                    <li>Clique em "Enviar PDF" quando estiver pronto</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="{% static 'dynamsoft/dynamsoft.webtwain.initiate.js' %}"></script>
+    <script>
+        let DWObject;
+        
+        // Configuração do Dynamsoft
+        Dynamsoft.DWT.ResourcesPath = "{% static 'dynamsoft' %}";
+        Dynamsoft.DWT.ProductKey = "{{ dynamsoft_license_key }}";
+        
+        // Configurar container
+        Dynamsoft.DWT.Containers = [{
+            ContainerId: 'dwtcontrolContainer',
+            Width: '100%',
+            Height: '600px'
+        }];
+        
+        // Quando o Dynamsoft estiver pronto
+        Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function() {
+            DWObject = Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
+            
+            if (DWObject) {
+                console.log('✅ Dynamsoft Web TWAIN carregado com sucesso!');
+                
+                // Configurar viewer
+                DWObject.Viewer.width = '100%';
+                DWObject.Viewer.height = '600px';
+                DWObject.Viewer.show();
+                
+                // Carregar lista de scanners
+                loadScanners();
+                
+                // Registrar eventos
+                DWObject.RegisterEvent('OnPostTransfer', function() {
+                    console.log('📄 Imagem transferida');
+                    updateUI();
+                });
+                
+                DWObject.RegisterEvent('OnPostAllTransfers', function() {
+                    console.log('✅ Digitalização concluída');
+                    updateUI();
+                });
+            } else {
+                console.error('❌ Falha ao carregar Dynamsoft Web TWAIN');
+                alert('Erro ao inicializar o scanner. Recarregue a página.');
+            }
+        });
+        
+        // Carregar lista de scanners
+        function loadScanners() {
+            const select = document.getElementById('source');
+            const count = DWObject.SourceCount;
+            
+            for (let i = 0; i < count; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.text = DWObject.GetSourceNameItems(i);
+                select.appendChild(option);
+            }
+            
+            console.log(`📡 ${count} scanner(s) encontrado(s)`);
+        }
+        
+        // Digitalizar
+        function scan() {
+            if (!DWObject) {
+                alert('Scanner não está pronto. Aguarde...');
+                return;
+            }
+            
+            const sourceIndex = document.getElementById('source').value;
+            
+            if (!sourceIndex) {
+                alert('❌ Selecione um scanner primeiro!');
+                return;
+            }
+            
+            // Selecionar scanner
+            DWObject.SelectSourceByIndex(parseInt(sourceIndex));
+            
+            // Abrir interface de digitalização
+            DWObject.OpenSource();
+            DWObject.AcquireImage({
+                IfShowUI: false,
+                PixelType: Dynamsoft.DWT.EnumDWT_PixelType.TWPT_RGB,
+                Resolution: 200,
+                IfFeederEnabled: false,
+                IfDuplexEnabled: false,
+                IfDisableSourceAfterAcquire: true
+            });
+        }
+        
+        // Atualizar UI
+        function updateUI() {
+            const btnUpload = document.getElementById('btnUpload');
+            if (DWObject && DWObject.HowManyImagesInBuffer > 0) {
+                btnUpload.disabled = false;
+            } else {
+                btnUpload.disabled = true;
+            }
+        }
+        
+        // Upload PDF
+        function uploadPDF() {
+            if (!DWObject || DWObject.HowManyImagesInBuffer === 0) {
+                alert('❌ Nenhuma imagem para enviar!');
+                return;
+            }
+            
+            // Converter para PDF e fazer download (por enquanto)
+            const filename = `scan_${Date.now()}.pdf`;
+            
+            DWObject.ConvertToBlob(
+                [0], // Índices das imagens
+                Dynamsoft.DWT.EnumDWT_ImageType.IT_PDF,
+                function(result, indices, type) {
+                    // Criar link para download
+                    const url = URL.createObjectURL(result);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    console.log('✅ PDF gerado:', filename);
+                    alert('✅ PDF gerado com sucesso!');
+                },
+                function(errorCode, errorString) {
+                    console.error('❌ Erro ao gerar PDF:', errorString);
+                    alert('❌ Erro ao gerar PDF: ' + errorString);
+                }
+            );
+        }
+    </script>
+</body>
+</html>
