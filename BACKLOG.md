@@ -1,7 +1,7 @@
 # 📋 Backlog de Funcionalidades - FEMME Integra
 
-> **Última atualização**: 07/12/2024  
-> **Versão**: 1.0
+> **Última atualização**: 09/12/2025  
+> **Versão**: 2.0
 
 ---
 
@@ -15,7 +15,99 @@
 
 ---
 
+## ✅ CONCLUÍDOS RECENTEMENTE (Dezembro 2025)
+
+### ✅ Página de Triagem com Scanner Dynamsoft
+**Status**: ✅ Concluído  
+**Data**: 09/12/2025  
+**Commits**: `ba820d5`, `4968318`, `c79c49e`, `1d55405`, `38854bf`, `def856d`  
+**Descrição**: Implementação completa da página de triagem com integração do scanner Dynamsoft Web TWAIN.
+
+**Funcionalidades implementadas:**
+- ✅ Modal de scanner elegante e responsivo
+- ✅ Integração com Dynamsoft Web TWAIN SDK
+- ✅ Seleção de scanner conectado
+- ✅ Digitalização direta sem popup intermediário
+- ✅ Toolbar com zoom, rotação, remoção de páginas
+- ✅ Visualização de múltiplas páginas
+- ✅ Tratamento de erro timeout (-2415)
+- ✅ Segurança: código encapsulado (IIFE), sem onclick inline
+- ✅ Performance: CSS externo cacheável
+- ✅ Acessibilidade: ARIA labels, suporte à tecla ESC
+- ✅ Constantes para magic numbers
+- ✅ Sanitização de inputs (proteção XSS)
+
+**Arquivos criados/modificados:**
+- `frontend/templates/operacao/triagem.html`
+- `frontend/static/css/scanner-modal.css`
+- `frontend/static/css/triagem.css`
+- `frontend/static/js/triagem.js`
+
+**Documentação:**
+- `SCANNER_CONFIG.md`
+- `REGRAS_NEGOCIO.md` (a atualizar)
+
+---
+
+### ✅ Refatoração e Limpeza do Projeto
+**Status**: ✅ Concluído  
+**Data**: 09/12/2025  
+**Commits**: `bb0ac96`, `c05b577`, `8457879`, `cce10d8`  
+**Descrição**: Reorganização completa da estrutura de arquivos e documentação.
+
+**Ações realizadas:**
+- ✅ Criada estrutura `/dev` para testes e desenvolvimento
+- ✅ Removidos 5 arquivos CSS desnecessários (112 KB)
+- ✅ Removidos 2 arquivos JS desnecessários (80 KB)
+- ✅ Movidos 11 arquivos .md técnicos para `/dev/docs`
+- ✅ Consolidado `GUIA_DESENVOLVIMENTO.md` (v3.0)
+- ✅ Documentação organizada e atualizada
+- ✅ Total economizado: 192 KB (54% de redução)
+
+**Estrutura criada:**
+```
+dev/
+├── README.md
+├── tests/
+│   ├── scanner/
+│   ├── database/
+│   └── fixtures/
+└── docs/
+    └── [documentos técnicos]
+```
+
+---
+
 ## 🔴 ALTA PRIORIDADE
+
+### 📌 Upload de Imagens do Scanner para AWS S3
+**Status**: Planejado  
+**Localização**: `frontend/templates/operacao/triagem.html` (botão "Enviar para AWS")  
+**Descrição**: Implementar upload das imagens digitalizadas pelo scanner Dynamsoft para AWS S3.
+
+**Requisitos:**
+- [ ] Converter imagens do buffer Dynamsoft para formato adequado (JPEG/PNG/PDF)
+- [ ] Implementar endpoint backend para receber imagens
+- [ ] Upload para bucket S3 configurado
+- [ ] Vincular imagens à requisição no banco de dados
+- [ ] Feedback visual de progresso do upload
+- [ ] Tratamento de erros (falha de rede, S3 indisponível)
+- [ ] Validação de tamanho máximo de arquivo
+- [ ] Compressão de imagens se necessário
+
+**Dependências:**
+- ✅ Scanner Dynamsoft implementado
+- Configuração de bucket S3 (credenciais, permissões)
+- Modelo de dados para armazenar referências das imagens
+
+**Estimativa**: 2-3 dias
+
+**Referências:**
+- Dynamsoft: `DWTObject.ConvertToBlob()` ou `DWTObject.HTTPUpload()`
+- AWS SDK: `boto3` para Python
+- Service existente: `core/services/s3.py`
+
+---
 
 ### 📌 Fluxo "Registrar Problema" - Modal de Divergência
 **Status**: Planejado  
