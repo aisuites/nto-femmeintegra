@@ -6,11 +6,82 @@ Esta pasta contém arquivos auxiliares para desenvolvimento, testes e validaçõ
 
 ```
 dev/
-├── tests/              # Arquivos de teste
-│   ├── scanner/        # Testes do scanner Dynamsoft
-│   ├── database/       # Scripts de banco de dados
-│   └── fixtures/       # Dados de teste (fixtures)
-└── docs/               # Documentação de desenvolvimento
+├── toggle_sidebar_fixo.sh  # Script para ativar/desativar sidebar fixo
+├── tests/                  # Arquivos de teste
+│   ├── scanner/            # Testes do scanner Dynamsoft
+│   ├── database/           # Scripts de banco de dados
+│   └── fixtures/           # Dados de teste (fixtures)
+└── docs/                   # Documentação de desenvolvimento
+```
+
+---
+
+## 🔧 Scripts Úteis
+
+### `toggle_sidebar_fixo.sh`
+Script bash para ativar/desativar o sidebar fixo (sticky) na interface.
+
+**Uso:**
+```bash
+# Ver status atual
+./dev/toggle_sidebar_fixo.sh status
+
+# Ativar sidebar fixo
+./dev/toggle_sidebar_fixo.sh ativar
+
+# Desativar sidebar fixo
+./dev/toggle_sidebar_fixo.sh desativar
+
+# Restaurar backup original
+./dev/toggle_sidebar_fixo.sh restaurar
+```
+
+**O que faz:**
+- Modifica `frontend/static/css/base_app.css`
+- Cria backup automático antes de modificar
+- Comenta/descomenta a linha CSS do sidebar sticky
+- Requer recarregar página com Ctrl+F5 após mudança
+
+---
+
+## 🐍 Comandos Django Úteis
+
+### Criar Requisição de Teste
+Cria requisição de teste com código de barras `999` para validação de fluxos.
+
+```bash
+# Criar requisição de teste
+python3 manage.py criar_requisicao_teste
+
+# Limpar requisições antigas e criar nova
+python3 manage.py criar_requisicao_teste --limpar
+```
+
+**Detalhes:**
+- Código de barras: `999`
+- Status: Em trânsito (ABERTO_NTO)
+- Útil para testar fluxo de recebimento
+- Arquivo: `backend/operacao/management/commands/criar_requisicao_teste.py`
+
+### Outros Comandos Úteis
+```bash
+# Criar superusuário
+python3 manage.py createsuperuser
+
+# Fazer migrations
+python3 manage.py makemigrations
+python3 manage.py migrate
+
+# Limpar cache
+python3 manage.py shell
+>>> from django.core.cache import cache
+>>> cache.clear()
+
+# Exportar dados para fixture
+python3 manage.py dumpdata operacao.Requisicao --indent 2 > dev/tests/fixtures/requisicoes.json
+
+# Importar fixture
+python3 manage.py loaddata dev/tests/fixtures/requisicoes.json
 ```
 
 ---
