@@ -4,6 +4,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/triagem.css' %}" />
 <link rel="stylesheet" href="{% static 'css/scanner-modal.css' %}" />
+<link rel="stylesheet" href="{% static 'css/dynamsoft_toolbar_only.css' %}" />
 {% endblock %}
 
 {% block main_content %}
@@ -180,10 +181,6 @@
     <div class="scanner-modal-body">
       <!-- Viewer + toolbar -->
       <div class="scanner-viewer">
-        
-        <!-- CSS SUPER MINIMALISTA (só toolbar, sem conflitos) -->
-        <link rel="stylesheet" href="{% static 'css/dynamsoft_toolbar_only.css' %}" />
-        
         <!-- Toolbar Elegante -->
         <div class="scanner-toolbar">
           <div class="scanner-toolbar-group">
