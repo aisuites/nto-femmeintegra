@@ -9,16 +9,18 @@
 ## 📑 ÍNDICE
 
 1. [Página de Recebimento](#1-página-de-recebimento)
-2. [Gestão de Requisições](#2-gestão-de-requisições)
-3. [Validações de Código de Barras](#3-validações-de-código-de-barras)
-4. [Fluxo de Requisições em Trânsito](#4-fluxo-de-requisições-em-trânsito)
-5. [Cadastros Mestres](#5-cadastros-mestres)
-6. [Auditoria e Logs](#6-auditoria-e-logs)
-7. [Validações de Frontend](#7-validações-de-frontend)
-8. [Cache e Performance](#8-cache-e-performance)
-9. [Segurança](#9-segurança)
-10. [Sistema de Notificações](#10-sistema-de-notificações)
-11. [Transferência de Requisições](#11-transferência-de-requisições)
+2. [Página de Triagem](#2-página-de-triagem)
+3. [Scanner Dynamsoft](#3-scanner-dynamsoft)
+4. [Gestão de Requisições](#4-gestão-de-requisições)
+5. [Validações de Código de Barras](#5-validações-de-código-de-barras)
+6. [Fluxo de Requisições em Trânsito](#6-fluxo-de-requisições-em-trânsito)
+7. [Cadastros Mestres](#7-cadastros-mestres)
+8. [Auditoria e Logs](#8-auditoria-e-logs)
+9. [Validações de Frontend](#9-validações-de-frontend)
+10. [Cache e Performance](#10-cache-e-performance)
+11. [Segurança](#11-segurança)
+12. [Sistema de Notificações](#12-sistema-de-notificações)
+13. [Transferência de Requisições](#13-transferência-de-requisições)
 
 ---
 
@@ -149,9 +151,224 @@ if existe_recebido:
 
 ---
 
-## 2. GESTÃO DE REQUISIÇÕES
+## 2. PÁGINA DE TRIAGEM
 
-### 2.1. Criação de Requisição
+### 2.1. Localização de Requisição
+
+#### Regra: Busca por Código de Barras
+- **Descrição**: O usuário bipa o código de barras da requisição para localizá-la no sistema.
+- **Validação**: Sistema busca requisição com status RECEBIDO (código '2').
+- **Comportamento**: Se encontrada, exibe dados da requisição e habilita botão de digitalização.
+- **Código**: `frontend/static/js/triagem.js`
+
+#### Regra: Requisição Deve Estar Recebida
+- **Descrição**: Apenas requisições com status RECEBIDO podem ser triadas.
+- **Validação**: Frontend verifica status antes de permitir digitalização.
+- **Mensagem**: "Requisição não encontrada ou não está no status correto para triagem."
+
+---
+
+### 2.2. Digitalização de Documentos
+
+#### Regra: Scanner Obrigatório
+- **Descrição**: Para digitalizar, o usuário DEVE ter um scanner conectado e configurado.
+- **Validação**: Sistema verifica disponibilidade de scanners ao abrir modal.
+- **Mensagem**: "Nenhum scanner encontrado. Verifique se o scanner está conectado."
+- **Código**: `frontend/templates/operacao/triagem.html` (função `carregarListaScanners`)
+
+---
+
+## 3. SCANNER DYNAMSOFT
+
+### 3.1. Inicialização do Scanner
+
+#### Regra: Carregamento Dinâmico de Scripts
+- **Descrição**: Scripts do Dynamsoft são carregados dinamicamente apenas quando o modal é aberto.
+- **Comportamento**: Evita carregar biblioteca pesada desnecessariamente.
+- **Scripts Carregados**:
+  1. `dynamsoft.webtwain.initiate.js`
+  2. `dynamsoft.webtwain.config.js`
+- **Código**: `frontend/templates/operacao/triagem.html:308-353` (função `carregarScriptsDynamsoft`)
+
+#### Regra: Configuração de ResourcesPath
+- **Descrição**: O caminho dos recursos do Dynamsoft DEVE ser configurado ANTES de carregar os scripts.
+- **Valor**: `/static/dynamsoft`
+- **Código**: `frontend/templates/operacao/triagem.html:310-312`
+
+```javascript
+window.Dynamsoft = window.Dynamsoft || {};
+Dynamsoft.DWT = Dynamsoft.DWT || {};
+Dynamsoft.DWT.ResourcesPath = '/static/dynamsoft';
+```
+
+---
+
+### 3.2. Seleção de Scanner
+
+#### Regra: Lista de Scanners Disponíveis
+- **Descrição**: Sistema lista automaticamente todos os scanners conectados ao computador.
+- **Comportamento**: Dropdown é populado com scanners detectados via TWAIN/WIA.
+- **Validação**: Se nenhum scanner encontrado, exibe mensagem "Nenhum scanner encontrado".
+- **Código**: `frontend/templates/operacao/triagem.html:450-495` (função `carregarListaScanners`)
+
+#### Regra: Sanitização de Nomes de Scanners
+- **Descrição**: Nomes de scanners são sanitizados para prevenir XSS.
+- **Método**: Uso de `textContent` ao invés de `innerHTML`.
+- **Fallback**: Se nome vier vazio, exibe "Scanner desconhecido".
+- **Código**: `frontend/templates/operacao/triagem.html:471`
+
+```javascript
+option.textContent = device.displayName || device.name || 'Scanner desconhecido';
+```
+
+---
+
+### 3.3. Configurações de Digitalização
+
+#### Regra: Timeout Estendido
+- **Descrição**: Timeout de digitalização configurado para 60 segundos (padrão é 30s).
+- **Motivo**: Alguns scanners demoram mais para processar imagens de alta qualidade.
+- **Constante**: `SCANNER_TIMEOUT = 60000` (milissegundos)
+- **Código**: `frontend/templates/operacao/triagem.html:271`
+
+#### Regra: Tipo de Pixel Padrão
+- **Descrição**: Digitalização em COLORIDO por padrão.
+- **Valores Possíveis**:
+  - `0` = Preto e Branco
+  - `1` = Escala de Cinza
+  - `2` = Colorido (padrão)
+- **Constante**: `PIXEL_TYPE_COLOR = 2`
+- **Código**: `frontend/templates/operacao/triagem.html:272`
+
+#### Regra: Resolução Padrão
+- **Descrição**: Resolução padrão de 200 DPI.
+- **Motivo**: Equilíbrio entre qualidade e tamanho de arquivo.
+- **Constante**: `DEFAULT_RESOLUTION = 200`
+- **Código**: `frontend/templates/operacao/triagem.html:275`
+
+---
+
+### 3.4. Processo de Digitalização
+
+#### Regra: Seleção Automática de Scanner
+- **Descrição**: Scanner selecionado no dropdown é automaticamente configurado, SEM popup intermediário.
+- **Comportamento**: Usa `SelectDeviceAsync()` para selecionar dispositivo programaticamente.
+- **Código**: `frontend/templates/operacao/triagem.html:549`
+
+#### Regra: Digitalização Sem UI
+- **Descrição**: Interface do scanner NÃO é exibida (digitalização silenciosa).
+- **Configuração**: `IfShowUI: false`
+- **Motivo**: Melhor UX, usuário controla tudo pelo modal do sistema.
+- **Código**: `frontend/templates/operacao/triagem.html:559`
+
+#### Regra: Tratamento de Erro Timeout
+- **Descrição**: Erro de timeout (código -2415) é IGNORADO se a imagem foi capturada com sucesso.
+- **Comportamento**: Verifica `DWTObject.HowManyImagesInBuffer > 0` antes de mostrar erro.
+- **Motivo**: Alguns scanners retornam timeout mesmo após capturar imagem corretamente.
+- **Constante**: `ERROR_CODE_TIMEOUT = -2415`
+- **Código**: `frontend/templates/operacao/triagem.html:570-573`
+
+```javascript
+if (error.code === ERROR_CODE_TIMEOUT && DWTObject.HowManyImagesInBuffer > 0) {
+  return; // Ignorar erro timeout se imagem capturada
+}
+```
+
+---
+
+### 3.5. Manipulação de Imagens
+
+#### Regra: Toolbar de Ferramentas
+- **Descrição**: Usuário pode manipular imagens digitalizadas antes de enviar.
+- **Ferramentas Disponíveis**:
+  - 🗑️ Remover página atual
+  - 🗑️🗑️ Remover todas as páginas
+  - ➖ Diminuir zoom
+  - ➕ Aumentar zoom
+  - ↻ Girar à esquerda
+  - ⊟ Tamanho original
+  - 🖐️ Ferramenta de mão (mover imagem)
+- **Código**: `frontend/templates/operacao/triagem.html:187-212`
+
+#### Regra: Visualização de Múltiplas Páginas
+- **Descrição**: Sistema suporta digitalização de múltiplas páginas em uma única sessão.
+- **Comportamento**: Cada página digitalizada é adicionada ao buffer.
+- **Indicador**: Mostra "Pág. X / Y" na toolbar.
+- **Código**: `frontend/templates/operacao/triagem.html:217-219`
+
+---
+
+### 3.6. Segurança do Scanner
+
+#### Regra: Encapsulamento de Código
+- **Descrição**: Todo código JavaScript do scanner está encapsulado em IIFE (Immediately Invoked Function Expression).
+- **Motivo**: Evita poluição do escopo global e conflitos de variáveis.
+- **Modo Strict**: `'use strict'` ativado.
+- **Código**: `frontend/templates/operacao/triagem.html:265-682`
+
+#### Regra: Event Listeners (Não Onclick Inline)
+- **Descrição**: Todos os botões usam `addEventListener` ao invés de atributos `onclick` inline.
+- **Motivo**: Melhor segurança, permite CSP (Content Security Policy) mais restritivo.
+- **Código**: `frontend/templates/operacao/triagem.html:416-447` (função `configurarEventListeners`)
+
+#### Regra: Sanitização de Inputs
+- **Descrição**: Todos os dados externos (nomes de scanners) são sanitizados antes de inserir no DOM.
+- **Método**: Uso de `textContent` e `replaceChildren()` ao invés de `innerHTML`.
+- **Proteção**: Previne ataques XSS (Cross-Site Scripting).
+- **Código**: `frontend/templates/operacao/triagem.html:471`
+
+---
+
+### 3.7. Acessibilidade
+
+#### Regra: ARIA Labels
+- **Descrição**: Todos os botões possuem atributos `aria-label` para leitores de tela.
+- **Exemplos**:
+  - `aria-label="Remover página atual"`
+  - `aria-label="Aumentar zoom"`
+  - `aria-label="Fechar modal"`
+- **Código**: `frontend/templates/operacao/triagem.html:187-211`
+
+#### Regra: Suporte à Tecla ESC
+- **Descrição**: Modal pode ser fechado pressionando a tecla ESC.
+- **Comportamento**: Listener global detecta tecla ESC e fecha modal se estiver aberto.
+- **Código**: `frontend/templates/operacao/triagem.html:416-425`
+
+---
+
+### 3.8. Performance
+
+#### Regra: CSS Externo Cacheável
+- **Descrição**: Estilos do modal estão em arquivo CSS separado, não inline.
+- **Arquivo**: `frontend/static/css/scanner-modal.css`
+- **Benefício**: Navegador pode cachear o CSS (HTTP 304 Not Modified).
+- **Código**: `frontend/templates/operacao/triagem.html:7`
+
+#### Regra: Altura Otimizada do Viewer
+- **Descrição**: Altura do viewer configurada para 450px.
+- **Motivo**: Melhor aproveitamento do espaço do modal.
+- **Código**: `frontend/templates/operacao/triagem.html:364`
+
+---
+
+### 3.9. Envio para AWS (Pendente)
+
+#### Regra: Upload de Imagens
+- **Status**: ⚠️ **NÃO IMPLEMENTADO**
+- **Descrição**: Botão "Enviar para AWS" ainda não funcional.
+- **Próximos Passos**:
+  1. Converter imagens do buffer para formato adequado (JPEG/PNG/PDF)
+  2. Implementar endpoint backend para receber imagens
+  3. Upload para bucket S3
+  4. Vincular imagens à requisição no banco
+- **Código**: `frontend/templates/operacao/triagem.html:509-522` (função `enviarParaAWS` - stub)
+- **Referência**: Ver `BACKLOG.md` - Item "Upload de Imagens do Scanner para AWS S3"
+
+---
+
+## 4. GESTÃO DE REQUISIÇÕES
+
+### 4.1. Criação de Requisição
 
 #### Regra: Geração de Código de Requisição
 - **Descrição**: O sistema gera automaticamente um código único alfanumérico aleatório.
@@ -1072,13 +1289,29 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 
 ---
 
-**Última Atualização**: 08/12/2024  
-**Versão**: 1.2  
+**Última Atualização**: 09/12/2025  
+**Versão**: 1.3  
 **Responsável**: Equipe de Desenvolvimento FEMME INTEGRA
 
 ---
 
 ## 🔄 HISTÓRICO DE ALTERAÇÕES
+
+### Versão 1.3 (09/12/2025)
+- **Nova seção**: 2. Página de Triagem - Regras de localização e digitalização de requisições
+- **Nova seção**: 3. Scanner Dynamsoft - Documentação completa de todas as regras do scanner
+  * 3.1. Inicialização do Scanner
+  * 3.2. Seleção de Scanner
+  * 3.3. Configurações de Digitalização
+  * 3.4. Processo de Digitalização
+  * 3.5. Manipulação de Imagens
+  * 3.6. Segurança do Scanner
+  * 3.7. Acessibilidade
+  * 3.8. Performance
+  * 3.9. Envio para AWS (Pendente)
+- **Renumeração**: Seções antigas 2-11 renumeradas para 4-13
+- **Documentação**: 9 subseções com 30+ regras de negócio do scanner
+- **Referências**: Todas as regras incluem localização exata no código
 
 ### Versão 1.2 (08/12/2024)
 - **Alteração**: Geração de código de requisição mudou de sequencial baseado em data (`REQ-YYYYMMDD-NNNN`) para código alfanumérico aleatório (10 caracteres)
