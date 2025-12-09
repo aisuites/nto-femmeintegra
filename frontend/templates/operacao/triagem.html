@@ -483,28 +483,34 @@
         return;
       }
       
-      // Limpar opções antigas
-      select.innerHTML = '';
+      // Limpar opções antigas (método seguro)
+      select.replaceChildren();
       
       if (devices.length === 0) {
-        select.innerHTML = '<option>Nenhum scanner encontrado</option>';
+        const option = document.createElement('option');
+        option.textContent = 'Nenhum scanner encontrado';
+        select.appendChild(option);
         return;
       }
       
-      // Adicionar cada scanner como opção
+      // Adicionar cada scanner como opção (sanitizado)
       devices.forEach(function(device, index) {
-        var option = document.createElement('option');
+        const option = document.createElement('option');
         option.value = index;
-        option.text = device.displayName || device.name;
+        // textContent sanitiza automaticamente (previne XSS)
+        option.textContent = device.displayName || device.name || 'Scanner desconhecido';
         select.appendChild(option);
       });
       
       
     }).catch(function(error) {
       console.error('❌ Erro ao carregar scanners:', error);
-      var select = document.getElementById('scanner-select');
+      const select = document.getElementById('scanner-select');
       if (select) {
-        select.innerHTML = '<option>Erro ao carregar scanners</option>';
+        select.replaceChildren();
+        const option = document.createElement('option');
+        option.textContent = 'Erro ao carregar scanners';
+        select.appendChild(option);
       }
     });
   }
