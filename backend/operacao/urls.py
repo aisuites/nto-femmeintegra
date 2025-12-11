@@ -20,6 +20,11 @@ urlpatterns = [
         name='triagem-motivos-inadequados',
     ),
     path(
+        'triagem/verificar-arquivo/',
+        triagem_views.VerificarArquivoRequisicaoView.as_view(),
+        name='triagem-verificar-arquivo',
+    ),
+    path(
         'triagem/amostras/',
         triagem_views.ListarAmostrasRequisicaoView.as_view(),
         name='triagem-amostras',

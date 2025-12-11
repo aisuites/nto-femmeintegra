@@ -633,16 +633,22 @@ function esconderAlerta() {
 /**
  * Valida formulário de amostra - ORDEM ESPECÍFICA DE VALIDAÇÕES
  */
-function validarFormularioAmostra() {
+async function validarFormularioAmostra() {
   // Limpar alerta anterior
   esconderAlerta();
   
-  // 1. CRÍTICO: Verificar se existe arquivo digitalizado da requisição
-  const containerArquivos = document.getElementById('scanner-files-container');
-  const temArquivo = containerArquivos && containerArquivos.children.length > 0;
-  
-  if (!temArquivo) {
-    mostrarAlerta('É obrigatório digitalizar a requisição antes de validar as amostras.');
+  // 1. CRÍTICO: Verificar se existe arquivo digitalizado NO BANCO (não no DOM)
+  try {
+    const response = await fetch(`/operacao/triagem/verificar-arquivo/?requisicao_id=${requisicaoAtual.id}`);
+    const data = await response.json();
+    
+    if (data.status === 'success' && !data.tem_arquivo) {
+      mostrarAlerta('É obrigatório digitalizar a requisição antes de validar as amostras.');
+      return false;
+    }
+  } catch (error) {
+    console.error('Erro ao verificar arquivo:', error);
+    mostrarAlerta('Erro ao verificar arquivo digitalizado. Tente novamente.');
     return false;
   }
   
@@ -709,7 +715,8 @@ function coletarDadosAmostra() {
  * Salva amostra com validação de impeditivos
  */
 async function salvarAmostraTriagem() {
-  if (!validarFormularioAmostra()) return;
+  const validacaoOk = await validarFormularioAmostra();
+  if (!validacaoOk) return;
   
   const dados = coletarDadosAmostra();
   

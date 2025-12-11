@@ -62,6 +62,56 @@ class ListarMotivosInadequadosView(LoginRequiredMixin, View):
 
 
 @method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
+class VerificarArquivoRequisicaoView(LoginRequiredMixin, View):
+    """
+    Verifica se requisição tem arquivo digitalizado registrado no banco.
+    
+    GET /operacao/triagem/verificar-arquivo/?requisicao_id=123
+    
+    Response:
+        {
+            "status": "success",
+            "tem_arquivo": true
+        }
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request):
+        try:
+            requisicao_id = request.GET.get('requisicao_id')
+            
+            if not requisicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da requisição não informado.'},
+                    status=400
+                )
+            
+            from .models import RequisicaoArquivo, TipoArquivo
+            
+            # Buscar tipo de arquivo REQUISICAO (código 1)
+            tipo_requisicao = TipoArquivo.objects.filter(codigo=1).first()
+            
+            tem_arquivo = False
+            if tipo_requisicao:
+                tem_arquivo = RequisicaoArquivo.objects.filter(
+                    requisicao_id=requisicao_id,
+                    tipo_arquivo=tipo_requisicao
+                ).exists()
+            
+            return JsonResponse({
+                'status': 'success',
+                'tem_arquivo': tem_arquivo
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao verificar arquivo: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao verificar arquivo.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
 class ListarAmostrasRequisicaoView(LoginRequiredMixin, View):
     """
     Lista amostras de uma requisição com status de validação.
