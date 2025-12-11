@@ -549,7 +549,7 @@ async function carregarAmostrasTriagem(requisicaoId) {
       // Popular select com amostras pendentes
       popularSelectAmostras(amostrasPendentes);
       
-      // Selecionar primeira amostra automaticamente
+      // SEMPRE selecionar primeira amostra automaticamente
       if (amostrasPendentes.length > 0) {
         selectAmostra.value = amostrasPendentes[0].id;
         aoSelecionarAmostra(amostrasPendentes[0].id);
@@ -637,38 +637,83 @@ function limparCamposAmostra() {
 }
 
 /**
- * Valida formulário de amostra
+ * Mostra alerta visual na página (sem modal)
+ */
+function mostrarAlerta(mensagem) {
+  const alert = document.getElementById('triagem_alert');
+  const alertMessage = document.getElementById('triagem_alert_message');
+  
+  if (alert && alertMessage) {
+    alertMessage.textContent = mensagem;
+    alert.classList.add('alert--visible');
+    
+    // Scroll suave até o alerta
+    alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+/**
+ * Esconde alerta visual
+ */
+function esconderAlerta() {
+  const alert = document.getElementById('triagem_alert');
+  if (alert) {
+    alert.classList.remove('alert--visible');
+  }
+}
+
+/**
+ * Valida formulário de amostra - ORDEM ESPECÍFICA DE VALIDAÇÕES
  */
 function validarFormularioAmostra() {
-  const erros = [];
+  // Limpar alerta anterior
+  esconderAlerta();
   
-  // CRÍTICO: Verificar se existe arquivo digitalizado da requisição
+  // 1. CRÍTICO: Verificar se existe arquivo digitalizado da requisição
   const containerArquivos = document.getElementById('scanner-files-container');
   const temArquivo = containerArquivos && containerArquivos.children.length > 0;
   
   if (!temArquivo) {
-    erros.push('É obrigatório digitalizar a requisição antes de validar as amostras.\nClique no botão "📠 SCANNER" para digitalizar.');
-  }
-  
-  // Amostra selecionada obrigatória
-  if (!selectAmostra.value) {
-    erros.push('Selecione uma amostra');
-  }
-  
-  // Data de validade obrigatória
-  if (!amostraDataValidade.value) {
-    erros.push('Informe a data de validade');
-  }
-  
-  // Se armazenamento inadequado, motivo é obrigatório
-  if (checkArmazenamentoInadequado.checked && !selectMotivoArmazenamento.value) {
-    erros.push('Selecione o motivo do armazenamento inadequado');
-  }
-  
-  if (erros.length > 0) {
-    mostrarErro(erros.join('\n'));
+    mostrarAlerta('É obrigatório digitalizar a requisição antes de validar as amostras.');
     return false;
   }
+  
+  // 2. Amostra selecionada obrigatória
+  if (!selectAmostra.value) {
+    mostrarErro('Selecione uma amostra');
+    return false;
+  }
+  
+  // 3. Verificar se flag data rasurada está selecionado (apenas verificação, não bloqueia)
+  // Este é um impeditivo que será tratado no backend
+  
+  // 4. Data de validade obrigatória e dentro da validade
+  if (!amostraDataValidade.value) {
+    mostrarErro('Informe a data de validade');
+    return false;
+  }
+  
+  // Validar se data de validade está dentro do prazo (não vencida)
+  const dataValidade = new Date(amostraDataValidade.value);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  
+  if (dataValidade < hoje) {
+    mostrarErro('A data de validade não pode ser anterior à data atual');
+    return false;
+  }
+  
+  // 5. Flag sem data de validade (impeditivo - será tratado no backend)
+  // 6. Flag amostra sem identificação (impeditivo - será tratado no backend)
+  
+  // 7. Se armazenamento inadequado está selecionado, motivo é obrigatório
+  if (checkArmazenamentoInadequado.checked && !selectMotivoArmazenamento.value) {
+    mostrarErro('Selecione o motivo do armazenamento inadequado');
+    return false;
+  }
+  
+  // 8. Flag frasco trocado (impeditivo - será tratado no backend)
+  // 9. Flag material não analisado (impeditivo - será tratado no backend)
   
   return true;
 }
@@ -718,17 +763,23 @@ async function salvarAmostraTriagem() {
       
     } else if (result.status === 'success') {
       // Validada com sucesso
-      mostrarMensagemSucesso('Amostra validada com sucesso!');
       
-      if (result.proxima_amostra.existe) {
-        // Há mais amostras pendentes
-        await carregarAmostrasTriagem(requisicaoAtual.id);
+      if (result.todas_validadas) {
+        // TODAS AMOSTRAS VALIDADAS - Requisição completa!
+        mostrarMensagemSucesso('✅ Requisição validada com sucesso! Status atualizado para TRIAGEM1-OK.');
+        
+        // Aguardar 2 segundos e limpar formulário
+        setTimeout(() => {
+          limparFormulario();
+          inputCodBarras.focus();
+        }, 2000);
         
       } else {
-        // Todas validadas - prosseguir para Etapa 2
-        mostrarMensagemSucesso('Todas as amostras foram validadas! Prosseguindo para Etapa 2...');
-        setTimeout(() => carregarEtapa2(), 1500);
+        // Ainda há amostras pendentes
+        mostrarMensagemSucesso('Amostra validada com sucesso!');
+        await carregarAmostrasTriagem(requisicaoAtual.id);
       }
+      
     } else if (result.status === 'error') {
       mostrarErro(result.message);
     }

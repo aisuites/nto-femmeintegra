@@ -330,9 +330,36 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
                 triagem1_validada=False
             ).exclude(id=amostra.id).order_by('ordem').first()
             
+            # Se não há mais amostras pendentes, atualizar status da requisição para TRIAGEM1-OK
+            todas_validadas = not proxima_amostra
+            if todas_validadas:
+                # Buscar status TRIAGEM1-OK (código 7)
+                status_triagem1_ok = StatusRequisicao.objects.filter(codigo=7).first()
+                
+                if status_triagem1_ok:
+                    status_anterior = amostra.requisicao.status
+                    amostra.requisicao.status = status_triagem1_ok
+                    amostra.requisicao.updated_by = request.user
+                    amostra.requisicao.save()
+                    
+                    # Registrar no histórico
+                    RequisicaoStatusHistorico.objects.create(
+                        requisicao=amostra.requisicao,
+                        cod_req=amostra.requisicao.cod_req,
+                        status=status_triagem1_ok,
+                        usuario=request.user,
+                        observacao=f'Triagem Etapa 1 concluída. Todas as amostras validadas. Status anterior: {status_anterior.descricao}'
+                    )
+                    
+                    logger.info(
+                        f"Requisição {amostra.requisicao.cod_req} - Todas amostras validadas. "
+                        f"Status alterado para TRIAGEM1-OK por {request.user.username}"
+                    )
+            
             return JsonResponse({
                 'status': 'success',
                 'message': 'Amostra validada com sucesso!',
+                'todas_validadas': todas_validadas,
                 'proxima_amostra': {
                     'existe': proxima_amostra is not None,
                     'id': proxima_amostra.id if proxima_amostra else None,
