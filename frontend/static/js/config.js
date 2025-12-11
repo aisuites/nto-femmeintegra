@@ -176,13 +176,3 @@ const AppConfig = (function() {
 
 // Expor globalmente
 window.AppConfig = AppConfig;
-
-// Log de inicialização
-if (AppConfig.DEBUG) {
-  console.log('🌍 AppConfig inicializado:', {
-    ambiente: AppConfig.ENVIRONMENT,
-    nome: AppConfig.ENV_NAME,
-    apiBaseUrl: AppConfig.API_BASE_URL,
-    debug: AppConfig.DEBUG
-  });
-}
