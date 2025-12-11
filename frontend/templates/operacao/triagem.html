@@ -339,11 +339,15 @@
     console.log('ResourcesPath:', Dynamsoft.DWT.ResourcesPath);
     console.log('ProductKey (antes dos scripts):', Dynamsoft.DWT.ProductKey || 'NÃO DEFINIDA');
     
-    // Lista de scripts para carregar
+    // Lista de scripts para carregar (com timestamp para evitar cache)
+    const timestamp = new Date().getTime();
     const scripts = [
-      '{% static "dynamsoft/dynamsoft.webtwain.initiate.js" %}',
-      '{% static "dynamsoft/dynamsoft.webtwain.config.js" %}'
+      '{% static "dynamsoft/dynamsoft.webtwain.initiate.js" %}' + '?v=' + timestamp,
+      '{% static "dynamsoft/dynamsoft.webtwain.config.js" %}' + '?v=' + timestamp
     ];
+    
+    console.log('📦 URLs dos scripts (com anti-cache):');
+    scripts.forEach((s, i) => console.log(`  ${i+1}. ${s}`));
     
     console.log('\n📦 Scripts a carregar:', scripts.length);
     scripts.forEach((s, i) => console.log(`  ${i+1}. ${s}`));
