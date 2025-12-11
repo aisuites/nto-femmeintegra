@@ -2,6 +2,7 @@ from django.urls import path
 
 from . import views
 from . import upload_views
+from . import triagem_views
 
 app_name = 'operacao'
 
@@ -11,6 +12,27 @@ urlpatterns = [
         'triagem/localizar/',
         views.TriagemLocalizarView.as_view(),
         name='triagem-localizar',
+    ),
+    # Triagem Etapa 1
+    path(
+        'triagem/motivos-inadequados/',
+        triagem_views.ListarMotivosInadequadosView.as_view(),
+        name='triagem-motivos-inadequados',
+    ),
+    path(
+        'triagem/amostras/',
+        triagem_views.ListarAmostrasRequisicaoView.as_view(),
+        name='triagem-amostras',
+    ),
+    path(
+        'triagem/salvar-amostra/',
+        triagem_views.SalvarAmostraTriagemView.as_view(),
+        name='triagem-salvar-amostra',
+    ),
+    path(
+        'triagem/rejeitar-requisicao/',
+        triagem_views.RejeitarRequisicaoView.as_view(),
+        name='triagem-rejeitar-requisicao',
     ),
     # Upload de arquivos
     path(
