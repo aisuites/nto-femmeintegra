@@ -353,9 +353,13 @@ const DynamosoftScanner = (function() {
   }
   
   /**
-   * Enviar para AWS (placeholder)
+   * Enviar imagens para AWS S3
+   * Processo em 2 etapas:
+   * 1. Obter signed URL do backend
+   * 2. Upload direto para S3
+   * 3. Confirmar upload no backend
    */
-  function enviarParaAWS() {
+  async function enviarParaAWS() {
     if (!DWTObject) {
       alert('⚠️ Scanner ainda não está pronto!');
       return;
@@ -366,9 +370,225 @@ const DynamosoftScanner = (function() {
       return;
     }
     
-    // TODO: Implementar envio para AWS
-    alert('🚧 Função de envio para AWS será implementada em breve!\n\nImagens prontas: ' + 
-          DWTObject.HowManyImagesInBuffer);
+    // Verificar se há requisição selecionada
+    if (typeof requisicaoAtual === 'undefined' || !requisicaoAtual || !requisicaoAtual.id) {
+      alert('⚠️ Nenhuma requisição selecionada!');
+      return;
+    }
+    
+    // Desabilitar botão durante envio
+    const btnEnviar = document.getElementById('btn-enviar-aws');
+    if (btnEnviar) {
+      btnEnviar.disabled = true;
+      btnEnviar.textContent = '📤 Enviando...';
+    }
+    
+    try {
+      const totalImagens = DWTObject.HowManyImagesInBuffer;
+      log(`Iniciando envio de ${totalImagens} imagem(ns)...`);
+      
+      const arquivosEnviados = [];
+      
+      // Processar cada imagem
+      for (let i = 0; i < totalImagens; i++) {
+        try {
+          log(`Processando imagem ${i + 1}/${totalImagens}...`);
+          
+          // Converter imagem para blob
+          const blob = await obterImagemComoBlob(i);
+          const filename = `scan_${Date.now()}_${i + 1}.jpg`;
+          
+          // Etapa 1: Obter signed URL
+          const signedUrlData = await obterSignedUrl(
+            requisicaoAtual.id,
+            filename,
+            blob.type
+          );
+          
+          // Etapa 2: Upload para S3
+          await uploadParaS3(signedUrlData.signed_url, blob, blob.type);
+          
+          // Etapa 3: Confirmar no backend
+          const arquivo = await confirmarUpload({
+            requisicao_id: requisicaoAtual.id,
+            file_key: signedUrlData.file_key,
+            filename: signedUrlData.original_filename,
+            file_size: blob.size
+          });
+          
+          arquivosEnviados.push(arquivo);
+          log(`✅ Imagem ${i + 1} enviada com sucesso!`);
+          
+        } catch (error) {
+          logError(`Erro ao enviar imagem ${i + 1}:`, error);
+          throw new Error(`Falha ao enviar imagem ${i + 1}: ${error.message}`);
+        }
+      }
+      
+      log(`✅ Todas as ${totalImagens} imagens enviadas com sucesso!`);
+      
+      // Fechar modal
+      fecharModal();
+      
+      // Exibir mensagem de sucesso (similar ao recebimento)
+      mostrarMensagemSucesso(
+        `${totalImagens} ${totalImagens === 1 ? 'imagem enviada' : 'imagens enviadas'} com sucesso!`
+      );
+      
+      // Atualizar lista de arquivos na página
+      if (typeof atualizarListaArquivos === 'function') {
+        atualizarListaArquivos(arquivosEnviados);
+      }
+      
+      // Limpar buffer após envio bem-sucedido
+      DWTObject.RemoveAllImages();
+      
+    } catch (error) {
+      logError('Erro no envio para AWS:', error);
+      alert(`❌ Erro ao enviar imagens:\n${error.message}`);
+      
+    } finally {
+      // Reabilitar botão
+      if (btnEnviar) {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = '📤 Enviar para AWS';
+      }
+    }
+  }
+  
+  /**
+   * Converte imagem do buffer do Dynamsoft para Blob
+   * @param {number} index - Índice da imagem no buffer
+   * @returns {Promise<Blob>}
+   */
+  function obterImagemComoBlob(index) {
+    return new Promise((resolve, reject) => {
+      DWTObject.ConvertToBlob(
+        [index],
+        Dynamsoft.DWT.EnumDWT_ImageType.IT_JPG,
+        (result, indices, type) => {
+          resolve(result);
+        },
+        (errorCode, errorString) => {
+          reject(new Error(`Erro ao converter imagem: ${errorString}`));
+        }
+      );
+    });
+  }
+  
+  /**
+   * Obtém signed URL do backend
+   * @param {number} requisicaoId - ID da requisição
+   * @param {string} filename - Nome do arquivo
+   * @param {string} contentType - Tipo MIME
+   * @returns {Promise<Object>}
+   */
+  async function obterSignedUrl(requisicaoId, filename, contentType) {
+    const url = AppConfig.buildApiUrl('/operacao/upload/signed-url/');
+    const params = new URLSearchParams({
+      requisicao_id: requisicaoId,
+      filename: filename,
+      content_type: contentType
+    });
+    
+    const response = await fetch(`${url}?${params}`, {
+      method: 'GET',
+      headers: AppConfig.getDefaultHeaders()
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Erro ao obter URL de upload');
+    }
+    
+    return await response.json();
+  }
+  
+  /**
+   * Faz upload do arquivo para S3 usando signed URL
+   * @param {string} signedUrl - URL pré-assinada
+   * @param {Blob} blob - Arquivo a enviar
+   * @param {string} contentType - Tipo MIME
+   * @returns {Promise<void>}
+   */
+  async function uploadParaS3(signedUrl, blob, contentType) {
+    const response = await fetch(signedUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': contentType
+      },
+      body: blob
+    });
+    
+    if (!response.ok) {
+      throw new Error('Erro ao fazer upload para S3');
+    }
+  }
+  
+  /**
+   * Confirma upload no backend e registra no banco
+   * @param {Object} data - Dados do arquivo
+   * @returns {Promise<Object>}
+   */
+  async function confirmarUpload(data) {
+    const url = AppConfig.buildApiUrl('/operacao/upload/confirmar/');
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: AppConfig.getDefaultHeaders(),
+      body: JSON.stringify(data)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Erro ao confirmar upload');
+    }
+    
+    const result = await response.json();
+    return result.arquivo;
+  }
+  
+  /**
+   * Exibe mensagem de sucesso (similar ao sistema de notificações)
+   * @param {string} mensagem - Mensagem a exibir
+   */
+  function mostrarMensagemSucesso(mensagem) {
+    // Criar elemento de notificação
+    const notificacao = document.createElement('div');
+    notificacao.className = 'notificacao-sucesso';
+    notificacao.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 10000;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: slideInRight 0.3s ease-out;
+    `;
+    
+    notificacao.innerHTML = `
+      <span style="font-size: 20px;">✅</span>
+      <span>${mensagem}</span>
+    `;
+    
+    // Adicionar ao body
+    document.body.appendChild(notificacao);
+    
+    // Remover após 4 segundos
+    setTimeout(() => {
+      notificacao.style.animation = 'slideOutRight 0.3s ease-out';
+      setTimeout(() => {
+        document.body.removeChild(notificacao);
+      }, 300);
+    }, 4000);
   }
   
   // ============================================

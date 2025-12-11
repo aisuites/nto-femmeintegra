@@ -156,6 +156,23 @@
 
     </div>
 
+    <!-- SEÇÃO DE ARQUIVOS DIGITALIZADOS -->
+    <div class="scanner-files-section" style="margin-top: 24px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: var(--femme-dark);">
+          📄 Documentos digitalizados
+        </h3>
+        <button class="btn btn-outline-sm" type="button" id="btn-scanner">
+          📷 Digitalizar
+        </button>
+      </div>
+      <div id="scanner-files-container" style="min-height: 40px;">
+        <p style="color: var(--femme-gray); font-size: 13px; margin: 0;">
+          Nenhum documento digitalizado ainda.
+        </p>
+      </div>
+    </div>
+
     <!-- AÇÕES -->
     <div class="step-actions">
       <button class="btn btn-outline" type="button" id="btn-cancelar-triagem">Cancelar</button>
@@ -201,7 +218,7 @@
           <span class="scanner-toolbar-separator"></span>
           
           <div class="scanner-toolbar-group">
-            <button type="button" class="scanner-tool-btn" title="Girar à esquerda" id="btn-rotate" aria-label="Girar imagem à esquerda">↻</button>
+            <button type="button" class="scanner-tool-btn" title="Girar à esquerda" id="btn-rotate" aria-label="Girar imagem à esquerda">↺</button>
             <button type="button" class="scanner-tool-btn" title="Tamanho original" id="btn-original-size" aria-label="Restaurar tamanho original">⊟</button>
           </div>
           
@@ -258,6 +275,9 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- Configurações e Ambiente -->
+<script src="{% static 'js/config.js' %}"></script>
+
 <!-- Módulo do Scanner Dynamsoft -->
 <script src="{% static 'js/scanner.js' %}"></script>
 

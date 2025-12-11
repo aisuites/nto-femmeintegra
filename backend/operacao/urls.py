@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from . import upload_views
 
 app_name = 'operacao'
 
@@ -10,6 +11,22 @@ urlpatterns = [
         'triagem/localizar/',
         views.TriagemLocalizarView.as_view(),
         name='triagem-localizar',
+    ),
+    # Upload de arquivos
+    path(
+        'upload/signed-url/',
+        upload_views.ObterSignedUrlView.as_view(),
+        name='upload-signed-url',
+    ),
+    path(
+        'upload/confirmar/',
+        upload_views.ConfirmarUploadView.as_view(),
+        name='upload-confirmar',
+    ),
+    path(
+        'upload/listar/',
+        upload_views.ListarArquivosRequisicaoView.as_view(),
+        name='upload-listar',
     ),
     path('recebimento/', views.RecebimentoView.as_view(), name='recebimento'),
     path(

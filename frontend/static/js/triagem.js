@@ -140,6 +140,9 @@ function carregarRequisicao(dados) {
   // Mostrar seção de triagem
   stepContainer.style.display = 'block';
   
+  // Carregar arquivos digitalizados
+  carregarArquivos();
+  
   // Scroll suave para a seção
   stepContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -281,6 +284,129 @@ btnScanner.addEventListener('click', () => {
     mostrarErro('Erro ao abrir o scanner. Recarregue a página.');
   }
 });
+
+// ============================================
+// ARQUIVOS DIGITALIZADOS
+// ============================================
+
+/**
+ * Carrega arquivos já digitalizados da requisição
+ */
+async function carregarArquivos() {
+  if (!requisicaoAtual || !requisicaoAtual.id) {
+    return;
+  }
+  
+  try {
+    const url = AppConfig.buildApiUrl('/operacao/upload/listar/');
+    const params = new URLSearchParams({ requisicao_id: requisicaoAtual.id });
+    
+    const response = await fetch(`${url}?${params}`, {
+      method: 'GET',
+      headers: AppConfig.getDefaultHeaders()
+    });
+    
+    if (!response.ok) {
+      console.error('Erro ao carregar arquivos');
+      return;
+    }
+    
+    const data = await response.json();
+    
+    if (data.status === 'success' && data.arquivos) {
+      atualizarListaArquivos(data.arquivos);
+    }
+    
+  } catch (error) {
+    console.error('Erro ao carregar arquivos:', error);
+  }
+}
+
+/**
+ * Atualiza a exibição da lista de arquivos
+ * @param {Array} arquivos - Lista de arquivos
+ */
+function atualizarListaArquivos(arquivos) {
+  const container = document.getElementById('scanner-files-container');
+  
+  if (!container) {
+    return;
+  }
+  
+  if (!arquivos || arquivos.length === 0) {
+    container.innerHTML = `
+      <p style="color: var(--femme-gray); font-size: 13px; margin: 0;">
+        Nenhum documento digitalizado ainda.
+      </p>
+    `;
+    return;
+  }
+  
+  // Construir lista de arquivos
+  const listaHtml = arquivos.map(arquivo => `
+    <div class="arquivo-item" style="
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    ">
+      <span style="font-size: 20px;">📄</span>
+      <div style="flex: 1; min-width: 0;">
+        <a 
+          href="${arquivo.url}" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          style="
+            color: var(--femme-purple);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          "
+          onmouseover="this.style.textDecoration='underline'"
+          onmouseout="this.style.textDecoration='none'"
+        >
+          ${arquivo.nome}
+        </a>
+        <span style="font-size: 11px; color: var(--femme-gray);">
+          ${formatarDataUpload(arquivo.data_upload)}
+        </span>
+      </div>
+    </div>
+  `).join('');
+  
+  container.innerHTML = listaHtml;
+}
+
+/**
+ * Formata data de upload para exibição
+ * @param {string} dataISO - Data em formato ISO
+ * @returns {string} Data formatada
+ */
+function formatarDataUpload(dataISO) {
+  try {
+    const data = new Date(dataISO);
+    const dia = String(data.getDate()).padStart(2, '0');
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const ano = data.getFullYear();
+    const hora = String(data.getHours()).padStart(2, '0');
+    const min = String(data.getMinutes()).padStart(2, '0');
+    
+    return `Enviado em ${dia}/${mes}/${ano} às ${hora}:${min}`;
+  } catch (e) {
+    return 'Data não disponível';
+  }
+}
+
+// Expor função globalmente para o scanner.js
+window.atualizarListaArquivos = atualizarListaArquivos;
 
 // ============================================
 // INICIALIZAÇÃO
