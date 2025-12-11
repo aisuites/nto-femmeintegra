@@ -20,6 +20,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django_ratelimit.decorators import ratelimit
 
+from core.config import get_aws_signed_url_api, get_file_url
 from .models import DadosRequisicao, RequisicaoArquivo, TipoArquivo
 
 logger = logging.getLogger(__name__)
@@ -81,13 +82,12 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
             # Formato: processing/{process_id}/{filename}
             
             # Obter signed URL da API Lambda
-            import os
             import requests
             
-            aws_signed_url_api = os.getenv('AWS_SIGNED_URL_API')
+            aws_signed_url_api = get_aws_signed_url_api()
             
             if not aws_signed_url_api:
-                logger.error("AWS_SIGNED_URL_API não configurada no .env")
+                logger.error("AWS_SIGNED_URL_API não configurada para o ambiente atual")
                 return JsonResponse(
                     {'status': 'error', 'message': 'Configuração de upload não encontrada.'},
                     status=500
@@ -97,24 +97,17 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
             # Formato esperado pela API conforme documentação
             # IMPORTANTE: process_id deve ser o ID numérico da tabela dados_requisicao
             
-            # Preparar payload
+            # Preparar payload para API Lambda
             lambda_payload = {
-                'process_id': str(requisicao.id),  # ID numérico da requisição
+                'process_id': str(requisicao.id),
                 'files': [
                     {
-                        'name': filename_padrao.replace('.pdf', ''),  # Nome sem extensão
-                        'type': 'application/pdf',  # Sempre PDF
-                        'filename': filename_padrao  # IDREQ_{cod_req}_{timestamp}.pdf
+                        'name': filename_padrao.replace('.pdf', ''),
+                        'type': 'application/pdf',
+                        'filename': filename_padrao
                     }
                 ]
             }
-            
-            # DEBUG: Log do payload enviado
-            logger.info("=" * 80)
-            logger.info("📤 PAYLOAD ENVIADO PARA API LAMBDA:")
-            logger.info(f"URL: {aws_signed_url_api}")
-            logger.info(f"Payload: {json.dumps(lambda_payload, indent=2)}")
-            logger.info("=" * 80)
             
             try:
                 lambda_response = requests.post(
@@ -136,39 +129,22 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                 
                 lambda_data = lambda_response.json()
                 
-                # DEBUG: Log completo da resposta Lambda
-                logger.info("=" * 80)
-                logger.info("📥 RESPOSTA COMPLETA DA API LAMBDA:")
-                logger.info(f"{json.dumps(lambda_data, indent=2)}")
-                logger.info("=" * 80)
-                
                 # A API retorna um objeto com o nome do arquivo como chave
                 # Formato: { "filename": { "key": "...", "url": "...", "name": "..." } }
-                
-                # Pegar o primeiro (e único) arquivo do objeto
                 if not lambda_data or len(lambda_data) == 0:
-                    logger.error(f"Nenhum arquivo retornado pela API Lambda. Resposta: {lambda_data}")
+                    logger.error("Nenhum arquivo retornado pela API Lambda")
                     return JsonResponse(
                         {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
                         status=500
                     )
                 
-                # Pegar a primeira chave (nome do arquivo)
+                # Extrair dados do primeiro arquivo
                 file_name_key = list(lambda_data.keys())[0]
                 file_data = lambda_data[file_name_key]
-                
-                # A signed URL está no campo "url", não "signed_url"
                 signed_url = file_data.get('url')
                 
-                # DEBUG: Log detalhado dos dados extraídos
-                logger.info("🔑 DADOS EXTRAÍDOS:")
-                logger.info(f"   File Name Key: {file_name_key}")
-                logger.info(f"   Signed URL: {signed_url[:100]}..." if signed_url and len(signed_url) > 100 else f"   Signed URL: {signed_url}")
-                logger.info(f"   File Key: {file_data.get('key')}")
-                logger.info(f"   Name: {file_data.get('name')}")
-                
                 if not signed_url:
-                    logger.error(f"URL não encontrada na resposta. Dados: {file_data}")
+                    logger.error("URL não encontrada na resposta da API Lambda")
                     return JsonResponse(
                         {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
                         status=500
@@ -182,12 +158,9 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                 )
             
             # Extrair file_key da resposta (ou construir se não vier)
-            # O file_key usa o ID numérico da requisição
             file_key = file_data.get('key') or f"processing/{requisicao.id}/{filename_padrao}"
             
-            logger.info(
-                f"Signed URL gerada para requisição {requisicao.cod_req} (ID: {requisicao.id}): {file_key}"
-            )
+            logger.info(f"Signed URL gerada: {requisicao.cod_req} - {filename_padrao}")
             
             return JsonResponse({
                 'status': 'success',
@@ -279,23 +252,14 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
                 tipo_arquivo = self._get_tipo_arquivo_padrao()
             
             # Construir URL do arquivo usando CloudFront
-            import os
-            from django.conf import settings
+            file_url = get_file_url(file_key)
             
-            # Determinar ambiente baseado em DEBUG
-            if settings.DEBUG:
-                cloudfront_url = os.getenv('CLOUDFRONT_URL_DEV')
-            else:
-                cloudfront_url = os.getenv('CLOUDFRONT_URL_PROD')
-            
-            if not cloudfront_url:
-                logger.error("CLOUDFRONT_URL não configurada no .env")
+            if not file_url or file_url == f"/{file_key}":
+                logger.error("Erro ao construir URL do arquivo no CloudFront")
                 return JsonResponse(
                     {'status': 'error', 'message': 'Configuração de armazenamento não encontrada.'},
                     status=500
                 )
-            
-            file_url = f"{cloudfront_url}/{file_key}"
             
             # Criar registro do arquivo
             arquivo = RequisicaoArquivo.objects.create(
