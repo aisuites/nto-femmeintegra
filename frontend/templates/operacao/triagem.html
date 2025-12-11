@@ -325,8 +325,15 @@
     Dynamsoft.DWT.ProductKey = '{{ dynamsoft_license }}';  // Licença do .env
     
     // DEBUG: Verificar licença carregada
-    console.log('🔑 Licença Dynamsoft carregada:', Dynamsoft.DWT.ProductKey ? 
-      Dynamsoft.DWT.ProductKey.substring(0, 20) + '...' : 'VAZIA');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('🔑 DEBUG LICENÇA DYNAMSOFT');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('Licença do template:', '{{ dynamsoft_license }}'.substring(0, 30) + '...');
+    console.log('Licença configurada:', Dynamsoft.DWT.ProductKey ? 
+      Dynamsoft.DWT.ProductKey.substring(0, 30) + '...' : 'VAZIA');
+    console.log('Tamanho da licença:', Dynamsoft.DWT.ProductKey ? Dynamsoft.DWT.ProductKey.length : 0);
+    console.log('Licença válida?', Dynamsoft.DWT.ProductKey && Dynamsoft.DWT.ProductKey.length > 100);
+    console.log('═══════════════════════════════════════════════════');
     
     // Lista de scripts para carregar
     const scripts = [
@@ -359,12 +366,31 @@
   }
   
   function inicializarDynamsoft() {
+    console.log('🔧 Inicializando Dynamsoft...');
+    console.log('ProductKey atual:', Dynamsoft.DWT.ProductKey ? Dynamsoft.DWT.ProductKey.substring(0, 30) + '...' : 'VAZIA');
+    
     // Registrar callback quando Dynamsoft estiver pronto
     if (typeof Dynamsoft !== 'undefined' && Dynamsoft.DWT) {
+      // Registrar listener de erro ANTES de OnWebTwainReady
+      Dynamsoft.DWT.RegisterEvent('OnWebTwainNotFound', function() {
+        console.error('❌ OnWebTwainNotFound: Dynamsoft não encontrado!');
+      });
+      
+      Dynamsoft.DWT.RegisterEvent('OnWebTwainPreExecute', function() {
+        console.log('⏳ OnWebTwainPreExecute: Preparando Dynamsoft...');
+      });
+      
+      Dynamsoft.DWT.RegisterEvent('OnWebTwainPostExecute', function() {
+        console.log('✅ OnWebTwainPostExecute: Dynamsoft executado!');
+      });
+      
       Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function() {
+        console.log('✅ OnWebTwainReady disparado!');
         DWTObject = Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
         
         if (DWTObject) {
+          console.log('✅ DWTObject criado com sucesso!');
+          console.log('Versão:', DWTObject.VersionInfo);
           DWTObject.Viewer.width = '100%';
           DWTObject.Viewer.height = '450px';
           DWTObject.Viewer.show();
