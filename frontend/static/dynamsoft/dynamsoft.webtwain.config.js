@@ -25,17 +25,15 @@ Dynamsoft.DWT.Containers = [{ WebTwainId: '', ContainerId: 'dwtcontrolContainer'
 /// If you need to use multiple keys on the same server, you can combine keys and write like this 
 /// Dynamsoft.DWT.ProductKey = 'key1;key2;key3';
 /// To get a free trial, please visit https://www.dynamsoft.com/customer/license/trialLicense?product=dwt&utm_source=installer.
-/// IMPORTANT: License configured directly here (temporary solution)
+/// IMPORTANT: ProductKey is now configured via Django template (triagem.html)
+/// The license is loaded from environment variables and injected before this script loads
+/// This file should NOT contain the license key directly
 
-console.log('🔥 CONFIG.JS EXECUTANDO! Configurando ProductKey...');
-console.log('🔥 Dynamsoft antes:', typeof Dynamsoft, Dynamsoft);
-console.log('🔥 Dynamsoft.DWT antes:', typeof Dynamsoft?.DWT, Dynamsoft?.DWT);
-
-Dynamsoft.DWT.ProductKey = 't0200EQYAACKQjx5c161aQcsePZTpOusB14MJwH9fiD7LK+8cGXreOEYogzHsyxcGc/jcu0xp5XbFW8noVQQvXN9zKEomhkwY4nHmZAentndu4rZOdHDyllP87xBDPG0Txm0DuAJTnOx7HX4AciCu5QDMdu89MyQAa4BWAK2tATWguAuffObJC5//Ob12oCUnOzi1vTMvkDZOdHDyltMXiBvELH63SywQ5DcnAVgDtAhs80IKBSJHgDVAi8B8qGImgDirjlD9AIZtPEo=';
-
-console.log('🔥 ProductKey CONFIGURADA:', Dynamsoft.DWT.ProductKey);
-console.log('🔥 Tamanho:', Dynamsoft.DWT.ProductKey.length);
-console.log('🔥 CONFIG.JS FINALIZADO!');
+// ProductKey should already be set by the template before this script loads
+// If not set, log a warning
+if (!Dynamsoft.DWT.ProductKey || Dynamsoft.DWT.ProductKey === '') {
+    console.warn('⚠️ WARNING: Dynamsoft ProductKey not configured! License should be set in template before loading config.js');
+}
 
 ///
 //Dynamsoft.DWT.ResourcesPath = 'Resources';

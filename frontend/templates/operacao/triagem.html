@@ -318,39 +318,34 @@
   }
   
   function carregarScriptsDynamsoft() {
-    console.log('\n\n');
-    console.log('╔═══════════════════════════════════════════════════════════════╗');
-    console.log('║  🔍 DEBUG COMPLETO - CARREGAMENTO LICENÇA DYNAMSOFT          ║');
-    console.log('╚═══════════════════════════════════════════════════════════════╝');
-    console.log('\n📍 ETAPA 1: ANTES DE CARREGAR SCRIPTS');
-    console.log('─────────────────────────────────────────────────────────────────');
-    
-    // Verificar estado inicial
-    console.log('window.Dynamsoft existe?', typeof window.Dynamsoft !== 'undefined');
-    console.log('window.Dynamsoft.DWT existe?', typeof window.Dynamsoft?.DWT !== 'undefined');
+    {% if DEBUG %}
+    console.log('\n🔧 Carregando scripts Dynamsoft...');
+    {% endif %}
     
     // Configurar ResourcesPath e ProductKey ANTES de carregar scripts
     window.Dynamsoft = window.Dynamsoft || {};
     Dynamsoft.DWT = Dynamsoft.DWT || {};
     Dynamsoft.DWT.ResourcesPath = '/static/dynamsoft';
     
-    // NÃO configurar ProductKey aqui - deixar o config.js fazer isso
+    // IMPORTANTE: Configurar ProductKey ANTES de carregar os scripts
+    // A licença vem do .env via contexto Django
+    Dynamsoft.DWT.ProductKey = '{{ dynamsoft_license }}';
+    
+    {% if DEBUG %}
     console.log('\n🔧 Configurações iniciais:');
     console.log('ResourcesPath:', Dynamsoft.DWT.ResourcesPath);
-    console.log('ProductKey (antes dos scripts):', Dynamsoft.DWT.ProductKey || 'NÃO DEFINIDA');
+    console.log('ProductKey configurada:', Dynamsoft.DWT.ProductKey ? 
+      Dynamsoft.DWT.ProductKey.substring(0, 30) + '... (tamanho: ' + Dynamsoft.DWT.ProductKey.length + ')' : 
+      '❌ VAZIA');
+    {% endif %}
     
-    // Lista de scripts para carregar (com timestamp para evitar cache)
-    const timestamp = new Date().getTime();
+    // Lista de scripts para carregar
+    // Versão fixa para permitir cache do navegador
+    const APP_VERSION = '1.0.1';  // Incrementar quando atualizar os arquivos
     const scripts = [
-      '{% static "dynamsoft/dynamsoft.webtwain.initiate.js" %}' + '?v=' + timestamp,
-      '{% static "dynamsoft/dynamsoft.webtwain.config.js" %}' + '?v=' + timestamp
+      '{% static "dynamsoft/dynamsoft.webtwain.initiate.js" %}' + '?v=' + APP_VERSION,
+      '{% static "dynamsoft/dynamsoft.webtwain.config.js" %}' + '?v=' + APP_VERSION
     ];
-    
-    console.log('📦 URLs dos scripts (com anti-cache):');
-    scripts.forEach((s, i) => console.log(`  ${i+1}. ${s}`));
-    
-    console.log('\n📦 Scripts a carregar:', scripts.length);
-    scripts.forEach((s, i) => console.log(`  ${i+1}. ${s}`));
     
     let scriptsCarregadosCount = 0;
     
@@ -360,79 +355,49 @@
       
       script.onload = () => {
         scriptsCarregadosCount++;
-        console.log(`\n✅ Script ${scriptsCarregadosCount}/${scripts.length} carregado: ${src.split('/').pop()}`);
         
-        // Verificar ProductKey após cada script
-        console.log('   ProductKey agora:', Dynamsoft.DWT.ProductKey ? 
-          Dynamsoft.DWT.ProductKey.substring(0, 30) + '... (tamanho: ' + Dynamsoft.DWT.ProductKey.length + ')' : 
-          '❌ AINDA VAZIA');
+        {% if DEBUG %}
+        console.log(`✅ Script ${scriptsCarregadosCount}/${scripts.length} carregado`);
+        {% endif %}
         
         // Quando todos os scripts estiverem carregados
         if (scriptsCarregadosCount === scripts.length) {
-          console.log('\n📍 ETAPA 2: TODOS OS SCRIPTS CARREGADOS');
-          console.log('─────────────────────────────────────────────────────────────────');
-          console.log('🔑 ProductKey FINAL:', Dynamsoft.DWT.ProductKey ? 
-            Dynamsoft.DWT.ProductKey.substring(0, 30) + '...' : '❌ VAZIA');
-          console.log('📏 Tamanho:', Dynamsoft.DWT.ProductKey ? Dynamsoft.DWT.ProductKey.length : 0);
-          console.log('✓ Válida?', Dynamsoft.DWT.ProductKey && Dynamsoft.DWT.ProductKey.length > 100);
-          console.log('\n🚀 Iniciando Dynamsoft...\n');
+          {% if DEBUG %}
+          console.log('✅ Todos os scripts Dynamsoft carregados, inicializando...');
+          {% endif %}
           inicializarDynamsoft();
         }
       };
       
       script.onerror = () => {
-        console.error('❌ ERRO ao carregar script:', src);
+        console.error('❌ Erro ao carregar script Dynamsoft:', src);
       };
       
       document.head.appendChild(script);
-      console.log(`⏳ Carregando script ${index + 1}...`);
     });
     
     dynamosoftScriptsCarregados = true;
   }
   
   function inicializarDynamsoft() {
-    console.log('\n📍 ETAPA 3: INICIALIZANDO DYNAMSOFT');
-    console.log('─────────────────────────────────────────────────────────────────');
-    console.log('🔑 ProductKey no momento da inicialização:');
-    console.log('   Existe?', !!Dynamsoft.DWT.ProductKey);
-    console.log('   Tamanho:', Dynamsoft.DWT.ProductKey ? Dynamsoft.DWT.ProductKey.length : 0);
-    console.log('   Primeiros 50 chars:', Dynamsoft.DWT.ProductKey ? Dynamsoft.DWT.ProductKey.substring(0, 50) + '...' : 'VAZIA');
-    console.log('   LICENÇA COMPLETA:', Dynamsoft.DWT.ProductKey || 'VAZIA');
-    
     // Registrar callback quando Dynamsoft estiver pronto
     if (typeof Dynamsoft !== 'undefined' && Dynamsoft.DWT) {
-      console.log('\n📋 Registrando eventos Dynamsoft...');
-      
-      // Registrar listener de erro ANTES de OnWebTwainReady
+      // Registrar listener de erro
       Dynamsoft.DWT.RegisterEvent('OnWebTwainNotFound', function() {
-        console.error('\n❌ OnWebTwainNotFound: Dynamsoft não encontrado!');
-      });
-      
-      Dynamsoft.DWT.RegisterEvent('OnWebTwainPreExecute', function() {
-        console.log('\n⏳ OnWebTwainPreExecute: Preparando Dynamsoft...');
-        console.log('   ProductKey neste momento:', Dynamsoft.DWT.ProductKey ? 
-          Dynamsoft.DWT.ProductKey.substring(0, 30) + '...' : 'VAZIA');
-      });
-      
-      Dynamsoft.DWT.RegisterEvent('OnWebTwainPostExecute', function() {
-        console.log('\n✅ OnWebTwainPostExecute: Dynamsoft executado!');
-        console.log('   ProductKey após execução:', Dynamsoft.DWT.ProductKey ? 
-          Dynamsoft.DWT.ProductKey.substring(0, 30) + '...' : 'VAZIA');
+        console.error('❌ Dynamsoft Web TWAIN não encontrado!');
       });
       
       Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function() {
-        console.log('\n📍 ETAPA 4: DYNAMSOFT PRONTO (OnWebTwainReady)');
-        console.log('─────────────────────────────────────────────────────────────────');
-        console.log('✅ OnWebTwainReady disparado!');
+        {% if DEBUG %}
+        console.log('✅ Dynamsoft Web TWAIN pronto!');
+        {% endif %}
         
         DWTObject = Dynamsoft.DWT.GetWebTwain('dwtcontrolContainer');
         
         if (DWTObject) {
-          console.log('✅ DWTObject criado com sucesso!');
-          console.log('   Versão:', DWTObject.VersionInfo);
-          console.log('   ProductKey usado:', Dynamsoft.DWT.ProductKey ? 
-            Dynamsoft.DWT.ProductKey.substring(0, 30) + '...' : 'VAZIA');
+          {% if DEBUG %}
+          console.log('✅ Scanner inicializado. Versão:', DWTObject.VersionInfo);
+          {% endif %}
           DWTObject.Viewer.width = '100%';
           DWTObject.Viewer.height = '450px';
           DWTObject.Viewer.show();
