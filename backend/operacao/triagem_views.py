@@ -208,6 +208,27 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
                 'requisicao__unidade'
             ).get(id=amostra_id)
             
+            # VALIDAÇÃO CRÍTICA: Verificar se existe arquivo de requisição
+            from .models import RequisicaoArquivo, TipoArquivo
+            
+            # Buscar tipo de arquivo REQUISICAO (código 1)
+            tipo_requisicao = TipoArquivo.objects.filter(codigo=1).first()
+            
+            if tipo_requisicao:
+                tem_arquivo = RequisicaoArquivo.objects.filter(
+                    requisicao=amostra.requisicao,
+                    tipo_arquivo=tipo_requisicao
+                ).exists()
+                
+                if not tem_arquivo:
+                    return JsonResponse(
+                        {
+                            'status': 'error',
+                            'message': 'É obrigatório digitalizar a requisição antes de validar as amostras.'
+                        },
+                        status=400
+                    )
+            
             # Atualizar campos
             amostra.data_coleta = data.get('data_coleta') or None
             amostra.data_validade = data.get('data_validade') or None

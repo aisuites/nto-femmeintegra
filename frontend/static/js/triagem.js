@@ -662,6 +662,14 @@ function limparCamposAmostra() {
 function validarFormularioAmostra() {
   const erros = [];
   
+  // CRÍTICO: Verificar se existe arquivo digitalizado da requisição
+  const containerArquivos = document.getElementById('scanner-files-container');
+  const temArquivo = containerArquivos && containerArquivos.children.length > 0;
+  
+  if (!temArquivo) {
+    erros.push('É obrigatório digitalizar a requisição antes de validar as amostras.\nClique no botão "📠 SCANNER" para digitalizar.');
+  }
+  
   // Amostra selecionada obrigatória
   if (!selectAmostra.value) {
     erros.push('Selecione uma amostra');
