@@ -10,7 +10,15 @@
 var Dynamsoft = Dynamsoft || { DWT: {} };if(!Dynamsoft.DWT) Dynamsoft.DWT = {};
 
 ///
-Dynamsoft.DWT.AutoLoad = true;
+// AutoLoad = false permite carregar apenas quando necessário (quando modal abre)
+// Isso evita carregar o serviço desnecessariamente ao abrir a página
+Dynamsoft.DWT.AutoLoad = false;
+
+// Configurações para evitar popup de download quando serviço já está instalado
+Dynamsoft.DWT.UseLocalService = true;  // Preferir serviço local instalado
+Dynamsoft.DWT.IfCheckDWTVersion = false;  // Não verificar versão específica
+Dynamsoft.DWT.IfUpdateService = false;  // Não atualizar automaticamente
+
 ///
 Dynamsoft.DWT.Containers = [{ WebTwainId: '', ContainerId: 'dwtcontrolContainer', Width: 350, Height: 380 }];
 

@@ -27,7 +27,7 @@ const DynamosoftScanner = (function() {
   
   const CONFIG = {
     resourcesPath: '/static/dynamsoft',
-    appVersion: '1.0.1',
+    appVersion: '1.0.2',  // Incrementado para forçar reload após mudanças
     license: null,
     debug: false  // Será configurado externamente
   };
@@ -78,6 +78,9 @@ const DynamosoftScanner = (function() {
       Dynamsoft.DWT = Dynamsoft.DWT || {};
       Dynamsoft.DWT.ResourcesPath = CONFIG.resourcesPath;
       Dynamsoft.DWT.ProductKey = CONFIG.license;
+      
+      // Outras configurações estão em dynamsoft.webtwain.config.js
+      // (AutoLoad, UseLocalService, IfCheckDWTVersion, IfUpdateService)
       
       log('ProductKey configurada:', CONFIG.license ? 
         CONFIG.license.substring(0, 30) + '... (tamanho: ' + CONFIG.license.length + ')' : 
@@ -133,7 +136,17 @@ const DynamosoftScanner = (function() {
       
       // Registrar eventos
       Dynamsoft.DWT.RegisterEvent('OnWebTwainNotFound', function() {
-        logError('Dynamsoft Web TWAIN não encontrado!');
+        logError('Serviço Dynamsoft não encontrado');
+        
+        // Verificar se o serviço está instalado mas não rodando
+        alert('⚠️ SERVIÇO DO SCANNER NÃO DETECTADO\n\n' +
+              'O serviço do Dynamsoft está instalado mas pode não estar rodando.\n\n' +
+              'SOLUÇÃO:\n' +
+              '1. Abra "Aplicações" no Mac\n' +
+              '2. Procure por "Dynamic Web TWAIN Service"\n' +
+              '3. Execute o serviço\n' +
+              '4. Recarregue esta página (CMD+R)\n\n' +
+              'Se o problema persistir, ignore o popup de download que aparecer.');
       });
       
       Dynamsoft.DWT.RegisterEvent('OnWebTwainReady', function() {
@@ -167,6 +180,10 @@ const DynamosoftScanner = (function() {
           reject(new Error('Falha ao criar DWTObject'));
         }
       });
+      
+      // Como AutoLoad = false, precisamos carregar explicitamente
+      log('Carregando Dynamsoft explicitamente...');
+      Dynamsoft.DWT.Load();
     });
   }
   
