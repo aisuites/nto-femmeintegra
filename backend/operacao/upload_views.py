@@ -242,14 +242,15 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
                     status=404
                 )
             
-            # Obter ou criar tipo de arquivo padrão
-            if tipo_arquivo_id:
-                try:
-                    tipo_arquivo = TipoArquivo.objects.get(id=tipo_arquivo_id, ativo=True)
-                except TipoArquivo.DoesNotExist:
-                    tipo_arquivo = self._get_tipo_arquivo_padrao()
-            else:
-                tipo_arquivo = self._get_tipo_arquivo_padrao()
+            # Obter tipo de arquivo REQUISICAO (codigo=1)
+            try:
+                tipo_arquivo = TipoArquivo.objects.get(codigo=1, ativo=True)
+            except TipoArquivo.DoesNotExist:
+                logger.error("Tipo de arquivo REQUISICAO (codigo=1) não encontrado")
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Tipo de arquivo não configurado.'},
+                    status=500
+                )
             
             # Construir URL do arquivo usando CloudFront
             file_url = get_file_url(file_key)
@@ -266,6 +267,7 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
                 requisicao=requisicao,
                 cod_req=requisicao.cod_req,
                 tipo_arquivo=tipo_arquivo,
+                cod_tipo_arquivo=1,  # REQUISICAO
                 nome_arquivo=filename,
                 url_arquivo=file_url,
                 created_by=request.user,
@@ -300,14 +302,6 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro ao registrar arquivo.'},
                 status=500
             )
-    
-    def _get_tipo_arquivo_padrao(self):
-        """Obtém ou cria tipo de arquivo padrão para scanner."""
-        tipo, created = TipoArquivo.objects.get_or_create(
-            descricao='Documento Digitalizado',
-            defaults={'ativo': True}
-        )
-        return tipo
 
 
 @method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
