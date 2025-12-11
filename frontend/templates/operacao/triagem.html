@@ -255,11 +255,71 @@
   </div>
 </div>
 
+<!-- Modal: Confirmar Substituição de Arquivo -->
+<div id="modal-confirmar-substituicao" class="modal-overlay" style="display:none;">
+  <div class="modal-container" style="max-width:500px;">
+    <div class="modal-header">
+      <h3>⚠️ Arquivo Existente</h3>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:15px;">
+        Já existe um arquivo digitalizado para esta requisição.
+      </p>
+      <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:15px;">
+        <strong>Arquivo atual:</strong><br>
+        <span id="arquivo-existente-nome" style="font-size:0.9em;color:#666;"></span>
+      </div>
+      <p style="color:#d32f2f;font-weight:500;">
+        Se você prosseguir, o arquivo atual será descartado e um novo arquivo será digitalizado.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-pill-primary" id="btn-confirmar-substituicao">
+        Prosseguir e Substituir
+      </button>
+      <button type="button" class="btn-pill-ghost" id="btn-cancelar-substituicao">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Confirmar Exclusão de Arquivo -->
+<div id="modal-confirmar-exclusao" class="modal-overlay" style="display:none;">
+  <div class="modal-container" style="max-width:450px;">
+    <div class="modal-header">
+      <h3>🗑️ Confirmar Exclusão</h3>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:10px;">
+        Tem certeza que deseja deletar este arquivo?
+      </p>
+      <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:10px;">
+        <strong id="arquivo-deletar-nome" style="font-size:0.9em;color:#666;"></strong>
+      </div>
+      <p style="color:#d32f2f;font-size:0.9em;">
+        Esta ação não pode ser desfeita.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-pill-danger" id="btn-confirmar-exclusao">
+        Deletar Arquivo
+      </button>
+      <button type="button" class="btn-pill-ghost" id="btn-cancelar-exclusao">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
 <!-- Configurações e Ambiente -->
 <script src="{% static 'js/config.js' %}"></script>
+
+<!-- Gerenciador de Arquivos -->
+<script src="{% static 'js/arquivo-manager.js' %}"></script>
 
 <!-- Módulo do Scanner Dynamsoft -->
 <script src="{% static 'js/scanner.js' %}"></script>

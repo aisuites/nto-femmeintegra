@@ -270,20 +270,51 @@ btnSeguir.addEventListener('click', async () => {
 /**
  * Scanner - Abrir modal com iframe
  */
-btnScanner.addEventListener('click', () => {
+btnScanner.addEventListener('click', async () => {
   if (!requisicaoAtual) {
     mostrarErro('Localize uma requisição primeiro.');
     return;
   }
   
-  // Chamar função global definida no template
+  try {
+    // Verificar se já existe arquivo tipo REQUISICAO
+    const resultado = await ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
+    
+    if (resultado.existe) {
+      // Mostrar modal de confirmação de substituição
+      ArquivoManager.mostrarModalSubstituicao(
+        resultado.arquivo,
+        () => {
+          // Confirmou: abrir scanner
+          abrirScanner();
+        },
+        () => {
+          // Cancelou: não fazer nada
+          console.log('Usuário cancelou a substituição do arquivo');
+        }
+      );
+    } else {
+      // Não existe arquivo: abrir scanner diretamente
+      abrirScanner();
+    }
+  } catch (error) {
+    console.error('Erro ao verificar arquivo:', error);
+    // Em caso de erro, abrir scanner normalmente
+    abrirScanner();
+  }
+});
+
+/**
+ * Abre o modal do scanner
+ */
+function abrirScanner() {
   if (typeof abrirModalScanner === 'function') {
     abrirModalScanner();
   } else {
     console.error('Função abrirModalScanner não encontrada.');
     mostrarErro('Erro ao abrir o scanner. Recarregue a página.');
   }
-});
+}
 
 // ============================================
 // ARQUIVOS DIGITALIZADOS
@@ -342,9 +373,14 @@ function atualizarListaArquivos(arquivos) {
     return;
   }
   
-  // Construir lista de arquivos
-  const listaHtml = arquivos.map(arquivo => `
-    <div class="arquivo-item" style="
+  // Limpar container
+  container.innerHTML = '';
+  
+  // Criar elementos de arquivo com botão de exclusão
+  arquivos.forEach(arquivo => {
+    const arquivoDiv = document.createElement('div');
+    arquivoDiv.className = 'arquivo-item';
+    arquivoDiv.style.cssText = `
       display: flex;
       align-items: center;
       gap: 12px;
@@ -353,7 +389,10 @@ function atualizarListaArquivos(arquivos) {
       border: 1px solid #e2e8f0;
       border-radius: 6px;
       margin-bottom: 8px;
-    ">
+      position: relative;
+    `;
+    
+    arquivoDiv.innerHTML = `
       <span style="font-size: 20px;">📄</span>
       <div style="flex: 1; min-width: 0;">
         <a 
@@ -379,10 +418,16 @@ function atualizarListaArquivos(arquivos) {
           ${formatarDataUpload(arquivo.data_upload)}
         </span>
       </div>
-    </div>
-  `).join('');
-  
-  container.innerHTML = listaHtml;
+    `;
+    
+    // Adicionar botão de exclusão
+    ArquivoManager.adicionarBotaoExclusao(arquivoDiv, arquivo, () => {
+      // Callback após exclusão: recarregar lista de arquivos
+      carregarArquivos();
+    });
+    
+    container.appendChild(arquivoDiv);
+  });
 }
 
 /**
