@@ -79,8 +79,10 @@ const ArquivoManager = {
             return;
         }
 
-        if (nomeArquivo && arquivo.nome_arquivo) {
-            nomeArquivo.textContent = arquivo.nome_arquivo;
+        // Aceitar tanto 'nome_arquivo' (da API de verificação) quanto 'nome' (da API de listagem)
+        const nomeDoArquivo = arquivo.nome_arquivo || arquivo.nome;
+        if (nomeArquivo && nomeDoArquivo) {
+            nomeArquivo.textContent = nomeDoArquivo;
         }
         
         modal.style.display = 'flex';
@@ -123,8 +125,10 @@ const ArquivoManager = {
             return;
         }
 
-        if (nomeArquivo && arquivo.nome_arquivo) {
-            nomeArquivo.textContent = arquivo.nome_arquivo;
+        // Aceitar tanto 'nome_arquivo' (da API de verificação) quanto 'nome' (da API de listagem)
+        const nomeDoArquivo = arquivo.nome_arquivo || arquivo.nome;
+        if (nomeArquivo && nomeDoArquivo) {
+            nomeArquivo.textContent = nomeDoArquivo;
         }
         
         modal.style.display = 'flex';

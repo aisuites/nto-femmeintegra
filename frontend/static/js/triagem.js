@@ -293,7 +293,12 @@ if (btnScanner) {
         // Mostrar modal de confirmação de substituição
         window.ArquivoManager.mostrarModalSubstituicao(
           resultado.arquivo,
-          () => abrirScanner(),
+          async () => {
+            // Recarregar lista de arquivos após deletar
+            await carregarArquivos();
+            // Depois abrir o scanner
+            abrirScanner();
+          },
           () => {}
         );
       } else {
