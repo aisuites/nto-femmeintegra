@@ -48,16 +48,16 @@ const AppConfig = (function() {
     dev: {
       name: 'Desenvolvimento',
       apiBaseUrl: 'http://127.0.0.1:8000',
-      awsUploadUrl: 'https://dev-upload.example.com',  // TODO: Ajustar URL real
+      awsSignedUrlApi: 'https://a5xel8q8ld.execute-api.us-east-1.amazonaws.com/dev/signed-url',
+      cloudfrontUrl: 'https://d3fdwvz6ilbr80.cloudfront.net',
       debug: true,
-      s3BucketUrl: 'https://s3-dev.amazonaws.com',  // TODO: Ajustar bucket real
     },
     prod: {
       name: 'Produção',
-      apiBaseUrl: 'https://api.femme.com.br',  // TODO: Ajustar URL real
-      awsUploadUrl: 'https://upload.femme.com.br',  // TODO: Ajustar URL real
+      apiBaseUrl: 'https://api.femme.com.br',  // TODO: Ajustar quando tiver domínio prod
+      awsSignedUrlApi: 'https://a5xel8q8ld.execute-api.us-east-1.amazonaws.com/prod/signed-url',  // TODO: Ajustar para prod
+      cloudfrontUrl: 'https://d62ucrzqdbxhj.cloudfront.net',
       debug: false,
-      s3BucketUrl: 'https://s3-prod.amazonaws.com',  // TODO: Ajustar bucket real
     }
   };
   
@@ -144,8 +144,8 @@ const AppConfig = (function() {
     // Configurações
     ENVIRONMENT: CURRENT_ENV,
     API_BASE_URL: CONFIG.apiBaseUrl,
-    AWS_UPLOAD_URL: CONFIG.awsUploadUrl,
-    S3_BUCKET_URL: CONFIG.s3BucketUrl,
+    AWS_SIGNED_URL_API: CONFIG.awsSignedUrlApi,
+    CLOUDFRONT_URL: CONFIG.cloudfrontUrl,
     DEBUG: CONFIG.debug,
     ENV_NAME: CONFIG.name,
     

@@ -81,24 +81,53 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
             unique_filename = f"{uuid.uuid4()}.{file_extension}"
             file_key = f"requisicoes/{requisicao.cod_req}/{unique_filename}"
             
-            # TODO: Implementar geração real de signed URL com boto3
-            # Por enquanto, retornar URL mockada para desenvolvimento
+            # Obter signed URL da API Lambda
+            import os
+            import requests
             
-            # Em produção, usar algo como:
-            # import boto3
-            # s3_client = boto3.client('s3')
-            # signed_url = s3_client.generate_presigned_url(
-            #     'put_object',
-            #     Params={
-            #         'Bucket': settings.AWS_STORAGE_BUCKET_NAME,
-            #         'Key': file_key,
-            #         'ContentType': content_type
-            #     },
-            #     ExpiresIn=3600
-            # )
+            aws_signed_url_api = os.getenv('AWS_SIGNED_URL_API')
             
-            # Mock para desenvolvimento
-            signed_url = f"https://s3-dev.mock.com/{file_key}?signature=mock"
+            if not aws_signed_url_api:
+                logger.error("AWS_SIGNED_URL_API não configurada no .env")
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Configuração de upload não encontrada.'},
+                    status=500
+                )
+            
+            # Chamar API Lambda para obter signed URL
+            try:
+                lambda_response = requests.post(
+                    aws_signed_url_api,
+                    json={
+                        'file_key': file_key,
+                        'content_type': content_type
+                    },
+                    timeout=10
+                )
+                
+                if lambda_response.status_code != 200:
+                    logger.error(f"Erro ao obter signed URL: {lambda_response.text}")
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
+                        status=500
+                    )
+                
+                lambda_data = lambda_response.json()
+                signed_url = lambda_data.get('signed_url')
+                
+                if not signed_url:
+                    logger.error("Signed URL não retornada pela API Lambda")
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
+                        status=500
+                    )
+                
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Erro ao chamar API Lambda: {str(e)}")
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Erro ao conectar com serviço de upload.'},
+                    status=500
+                )
             
             logger.info(
                 f"Signed URL gerada para requisição {requisicao.cod_req}: {file_key}"
@@ -193,9 +222,24 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
             else:
                 tipo_arquivo = self._get_tipo_arquivo_padrao()
             
-            # Construir URL do arquivo
-            # TODO: Usar URL real do S3 em produção
-            file_url = f"https://s3-bucket.amazonaws.com/{file_key}"
+            # Construir URL do arquivo usando CloudFront
+            import os
+            from django.conf import settings
+            
+            # Determinar ambiente baseado em DEBUG
+            if settings.DEBUG:
+                cloudfront_url = os.getenv('CLOUDFRONT_URL_DEV')
+            else:
+                cloudfront_url = os.getenv('CLOUDFRONT_URL_PROD')
+            
+            if not cloudfront_url:
+                logger.error("CLOUDFRONT_URL não configurada no .env")
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Configuração de armazenamento não encontrada.'},
+                    status=500
+                )
+            
+            file_url = f"{cloudfront_url}/{file_key}"
             
             # Criar registro do arquivo
             arquivo = RequisicaoArquivo.objects.create(
