@@ -6,6 +6,13 @@
  */
 
 const ArquivoManager = {
+    _initialized: false,
+    
+    init() {
+        if (this._initialized) return;
+        this._initialized = true;
+        console.log('✅ ArquivoManager inicializado');
+    },
     /**
      * Verifica se já existe arquivo tipo REQUISICAO para a requisição
      */
@@ -177,9 +184,29 @@ const ArquivoManager = {
      * Obtém CSRF token
      */
     getCsrfToken() {
-        const token = document.querySelector('[name=csrfmiddlewaretoken]');
-        return token ? token.value : '';
+        // Tentar pegar do input hidden
+        let token = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (token) return token.value;
+        
+        // Tentar pegar do cookie
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='));
+        
+        if (cookieValue) {
+            return cookieValue.split('=')[1];
+        }
+        
+        console.warn('CSRF token não encontrado');
+        return '';
     }
 };
 
 window.ArquivoManager = ArquivoManager;
+
+// Inicializar quando o script carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => ArquivoManager.init());
+} else {
+    ArquivoManager.init();
+}

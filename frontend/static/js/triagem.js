@@ -276,13 +276,20 @@ btnScanner.addEventListener('click', async () => {
     return;
   }
   
+  // Verificar se ArquivoManager está disponível
+  if (!window.ArquivoManager) {
+    console.warn('ArquivoManager não disponível, abrindo scanner diretamente');
+    abrirScanner();
+    return;
+  }
+  
   try {
     // Verificar se já existe arquivo tipo REQUISICAO
-    const resultado = await ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
+    const resultado = await window.ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
     
     if (resultado.existe) {
       // Mostrar modal de confirmação de substituição
-      ArquivoManager.mostrarModalSubstituicao(
+      window.ArquivoManager.mostrarModalSubstituicao(
         resultado.arquivo,
         () => {
           // Confirmou: abrir scanner
@@ -420,11 +427,13 @@ function atualizarListaArquivos(arquivos) {
       </div>
     `;
     
-    // Adicionar botão de exclusão
-    ArquivoManager.adicionarBotaoExclusao(arquivoDiv, arquivo, () => {
-      // Callback após exclusão: recarregar lista de arquivos
-      carregarArquivos();
-    });
+    // Adicionar botão de exclusão (se ArquivoManager estiver disponível)
+    if (window.ArquivoManager) {
+      window.ArquivoManager.adicionarBotaoExclusao(arquivoDiv, arquivo, () => {
+        // Callback após exclusão: recarregar lista de arquivos
+        carregarArquivos();
+      });
+    }
     
     container.appendChild(arquivoDiv);
   });
