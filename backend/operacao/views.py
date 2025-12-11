@@ -38,7 +38,10 @@ class TriagemView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['active_page'] = 'triagem'
         # Tenta DYNAMSOFT_LICENSE primeiro, depois DYNAMSOFT_LICENSE_KEY
-        context['dynamsoft_license'] = os.getenv('DYNAMSOFT_LICENSE') or os.getenv('DYNAMSOFT_LICENSE_KEY', '')
+        license_key = os.getenv('DYNAMSOFT_LICENSE') or os.getenv('DYNAMSOFT_LICENSE_KEY', '')
+        context['dynamsoft_license'] = license_key
+        # DEBUG: Log da licença (primeiros 30 chars)
+        logger.info(f"🔑 Licença Dynamsoft: {license_key[:30]}... (tamanho: {len(license_key)})")
         return context
 
 
@@ -515,3 +518,23 @@ class TestScannerView(LoginRequiredMixin, TemplateView):
     """View para teste isolado do scanner."""
     template_name = 'test_scanner_final.html'
     login_url = 'admin:login'
+
+
+class DebugLicenseView(View):
+    """View temporária para debug da licença Dynamsoft."""
+    # LoginRequiredMixin removido temporariamente para debug
+    
+    def get(self, request, *args, **kwargs):
+        import os
+        license_key = os.getenv('DYNAMSOFT_LICENSE') or os.getenv('DYNAMSOFT_LICENSE_KEY', '')
+        
+        return JsonResponse({
+            'license_found': bool(license_key),
+            'license_length': len(license_key),
+            'license_prefix': license_key[:30] if license_key else 'VAZIA',
+            'license_full': license_key,  # CUIDADO: Remover em produção!
+            'env_vars': {
+                'DYNAMSOFT_LICENSE': bool(os.getenv('DYNAMSOFT_LICENSE')),
+                'DYNAMSOFT_LICENSE_KEY': bool(os.getenv('DYNAMSOFT_LICENSE_KEY')),
+            }
+        })

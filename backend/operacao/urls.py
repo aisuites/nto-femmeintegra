@@ -60,4 +60,10 @@ urlpatterns = [
         views.TestScannerView.as_view(),
         name='test-scanner',
     ),
+    # DEBUG: Verificar licença Dynamsoft
+    path(
+        'debug/license/',
+        views.DebugLicenseView.as_view(),
+        name='debug-license',
+    ),
 ]
