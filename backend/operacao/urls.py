@@ -24,6 +24,16 @@ urlpatterns = [
         name='upload-confirmar',
     ),
     path(
+        'upload/verificar-existente/',
+        upload_views.VerificarArquivoExistenteView.as_view(),
+        name='upload-verificar-existente',
+    ),
+    path(
+        'upload/deletar/',
+        upload_views.DeletarArquivoView.as_view(),
+        name='upload-deletar',
+    ),
+    path(
         'upload/listar/',
         upload_views.ListarArquivosRequisicaoView.as_view(),
         name='upload-listar',

@@ -305,6 +305,145 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
 
 
 @method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
+class VerificarArquivoExistenteView(LoginRequiredMixin, View):
+    """
+    Verifica se já existe arquivo tipo REQUISICAO (codigo=1) para uma requisição.
+    
+    GET /operacao/upload/verificar/?requisicao_id=123
+    
+    Response:
+        {
+            "status": "success",
+            "existe": true,
+            "arquivo": {
+                "id": 1,
+                "nome_arquivo": "IDREQ_ABC123_20241211.pdf",
+                "url_arquivo": "https://...",
+                "data_upload": "2024-12-11T15:30:00Z"
+            }
+        }
+    """
+    
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            requisicao_id = request.GET.get('requisicao_id')
+            
+            if not requisicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da requisição não informado.'},
+                    status=400
+                )
+            
+            # Verificar se requisição existe
+            try:
+                requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+            except DadosRequisicao.DoesNotExist:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Requisição não encontrada.'},
+                    status=404
+                )
+            
+            # Buscar arquivo tipo REQUISICAO (codigo=1)
+            arquivo = RequisicaoArquivo.objects.filter(
+                requisicao=requisicao,
+                cod_tipo_arquivo=1
+            ).first()
+            
+            if arquivo:
+                return JsonResponse({
+                    'status': 'success',
+                    'existe': True,
+                    'arquivo': {
+                        'id': arquivo.id,
+                        'nome_arquivo': arquivo.nome_arquivo,
+                        'url_arquivo': arquivo.url_arquivo,
+                        'data_upload': arquivo.data_upload.isoformat()
+                    }
+                })
+            else:
+                return JsonResponse({
+                    'status': 'success',
+                    'existe': False
+                })
+                
+        except Exception as e:
+            logger.error(f"Erro ao verificar arquivo: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao verificar arquivo.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='dispatch')
+class DeletarArquivoView(LoginRequiredMixin, View):
+    """
+    Deleta um arquivo da requisição.
+    
+    POST /operacao/upload/deletar/
+    Body: {"arquivo_id": 123}
+    
+    Response:
+        {
+            "status": "success",
+            "message": "Arquivo deletado com sucesso."
+        }
+    """
+    
+    login_url = 'admin:login'
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            arquivo_id = data.get('arquivo_id')
+            
+            if not arquivo_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID do arquivo não informado.'},
+                    status=400
+                )
+            
+            # Buscar arquivo
+            try:
+                arquivo = RequisicaoArquivo.objects.get(id=arquivo_id)
+            except RequisicaoArquivo.DoesNotExist:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Arquivo não encontrado.'},
+                    status=404
+                )
+            
+            # Guardar informações para log
+            requisicao_cod = arquivo.cod_req
+            nome_arquivo = arquivo.nome_arquivo
+            
+            # Deletar arquivo
+            arquivo.delete()
+            
+            logger.info(
+                f"Arquivo deletado: {nome_arquivo} da requisição {requisicao_cod} "
+                f"por usuário {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Arquivo deletado com sucesso.'
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'JSON inválido.'},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Erro ao deletar arquivo: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao deletar arquivo.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
 class ListarArquivosRequisicaoView(LoginRequiredMixin, View):
     """
     Lista arquivos de uma requisição.
