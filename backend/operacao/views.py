@@ -37,7 +37,8 @@ class TriagemView(LoginRequiredMixin, TemplateView):
         import os
         context = super().get_context_data(**kwargs)
         context['active_page'] = 'triagem'
-        context['dynamsoft_license'] = os.getenv('DYNAMSOFT_LICENSE', '')
+        # Tenta DYNAMSOFT_LICENSE primeiro, depois DYNAMSOFT_LICENSE_KEY
+        context['dynamsoft_license'] = os.getenv('DYNAMSOFT_LICENSE') or os.getenv('DYNAMSOFT_LICENSE_KEY', '')
         return context
 
 

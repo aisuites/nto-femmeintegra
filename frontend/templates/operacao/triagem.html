@@ -324,6 +324,10 @@
     Dynamsoft.DWT.ResourcesPath = '/static/dynamsoft';
     Dynamsoft.DWT.ProductKey = '{{ dynamsoft_license }}';  // Licença do .env
     
+    // DEBUG: Verificar licença carregada
+    console.log('🔑 Licença Dynamsoft carregada:', Dynamsoft.DWT.ProductKey ? 
+      Dynamsoft.DWT.ProductKey.substring(0, 20) + '...' : 'VAZIA');
+    
     // Lista de scripts para carregar
     const scripts = [
       '{% static "dynamsoft/dynamsoft.webtwain.initiate.js" %}',
