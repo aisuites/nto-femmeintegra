@@ -225,6 +225,55 @@
   cursor: grabbing !important;
 }
 
+/* Modal Overlay (para modais de confirmação) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 3, 30, 0.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.modal-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(20, 5, 36, 0.3);
+  max-width: 500px;
+  width: 90%;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f4e9f8 0%, #fff 100%);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #7a3d8a;
+}
+
+.modal-body {
+  padding: 24px;
+  color: #34343a;
+  line-height: 1.6;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: #f8f9fa;
+}
+
 /* Botão Danger (vermelho) */
 .btn-pill-danger {
   display: inline-flex;

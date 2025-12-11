@@ -7,6 +7,9 @@
  * - Validar e salvar dados da triagem
  */
 
+console.log('🟢 TRIAGEM.JS CARREGADO');
+console.log('🟢 document.readyState:', document.readyState);
+
 // ============================================
 // ELEMENTOS DO DOM
 // ============================================
@@ -281,79 +284,92 @@ btnSeguir.addEventListener('click', async () => {
  * Scanner - Abrir modal com iframe
  */
 if (btnScanner) {
+  console.log('🔧 DEBUG: Botão Scanner encontrado, anexando evento');
+  
   btnScanner.addEventListener('click', async () => {
-  if (!requisicaoAtual) {
-    mostrarErro('Localize uma requisição primeiro.');
-    return;
-  }
-  
-  // Verificar se ArquivoManager está disponível
-  if (!window.ArquivoManager) {
-    console.warn('ArquivoManager não disponível, abrindo scanner diretamente');
-    abrirScanner();
-    return;
-  }
-  
-  try {
-    // Verificar se já existe arquivo tipo REQUISICAO
-    const resultado = await window.ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
+    console.log('🔧 DEBUG: Botão Scanner CLICADO');
+    console.log('🔧 DEBUG: requisicaoAtual =', requisicaoAtual);
     
-    if (resultado.existe) {
-      // Mostrar modal de confirmação de substituição
-      window.ArquivoManager.mostrarModalSubstituicao(
-        resultado.arquivo,
-        () => {
-          // Confirmou: abrir scanner
-          abrirScanner();
-        },
-        () => {
-          // Cancelou: não fazer nada
-          console.log('Usuário cancelou a substituição do arquivo');
-        }
-      );
-    } else {
-      // Não existe arquivo: abrir scanner diretamente
+    if (!requisicaoAtual) {
+      console.log('🔧 DEBUG: Sem requisição, mostrando erro');
+      mostrarErro('Localize uma requisição primeiro.');
+      return;
+    }
+    
+    // Verificar se ArquivoManager está disponível
+    if (!window.ArquivoManager) {
+      console.warn('🔧 DEBUG: ArquivoManager não disponível');
+      abrirScanner();
+      return;
+    }
+    
+    console.log('🔧 DEBUG: Verificando arquivo existente...');
+    
+    try {
+      // Verificar se já existe arquivo tipo REQUISICAO
+      const resultado = await window.ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
+      console.log('🔧 DEBUG: Resultado da verificação:', resultado);
+      
+      if (resultado.existe) {
+        console.log('🔧 DEBUG: Arquivo existe, mostrando modal de substituição');
+        // Mostrar modal de confirmação de substituição
+        window.ArquivoManager.mostrarModalSubstituicao(
+          resultado.arquivo,
+          () => {
+            console.log('🔧 DEBUG: Usuário confirmou substituição, abrindo scanner');
+            abrirScanner();
+          },
+          () => {
+            console.log('🔧 DEBUG: Usuário cancelou a substituição');
+          }
+        );
+      } else {
+        console.log('🔧 DEBUG: Arquivo não existe, abrindo scanner diretamente');
+        abrirScanner();
+      }
+    } catch (error) {
+      console.error('🔧 DEBUG: Erro ao verificar arquivo:', error);
+      console.log('🔧 DEBUG: Abrindo scanner apesar do erro');
       abrirScanner();
     }
-  } catch (error) {
-    console.error('Erro ao verificar arquivo:', error);
-    // Em caso de erro, abrir scanner normalmente
-    abrirScanner();
-  }
   });
 } else {
   console.error('❌ Botão Scanner não encontrado no DOM');
 }
 
 /**
- * Abre o modal do scanner
+ * Abre o modal do scanner com inicialização do Dynamsoft
  */
 function abrirScanner() {
-  const modalScanner = document.getElementById('modal-scanner-teste');
-  if (modalScanner) {
-    modalScanner.style.display = 'flex';
-    console.log('✅ Modal do scanner aberto');
+  console.log('🔧 abrirScanner chamado');
+  
+  // Usar o método correto do DynamosoftScanner que inicializa tudo
+  if (typeof DynamosoftScanner !== 'undefined' && DynamosoftScanner.open) {
+    console.log('✅ Abrindo scanner via DynamosoftScanner.open()');
+    DynamosoftScanner.open();
   } else {
-    console.error('❌ Modal do scanner não encontrado');
+    console.error('❌ DynamosoftScanner não disponível');
     mostrarErro('Erro ao abrir o scanner. Recarregue a página.');
   }
 }
 
-// Fechar modal do scanner
+// Fechar modal do scanner usando DynamosoftScanner.close()
 const btnFecharModal = document.getElementById('btn-fechar-modal');
 const btnFecharModalFooter = document.getElementById('btn-fechar-modal-footer');
 
 if (btnFecharModal) {
   btnFecharModal.addEventListener('click', () => {
-    const modalScanner = document.getElementById('modal-scanner-teste');
-    if (modalScanner) modalScanner.style.display = 'none';
+    if (typeof DynamosoftScanner !== 'undefined' && DynamosoftScanner.close) {
+      DynamosoftScanner.close();
+    }
   });
 }
 
 if (btnFecharModalFooter) {
   btnFecharModalFooter.addEventListener('click', () => {
-    const modalScanner = document.getElementById('modal-scanner-teste');
-    if (modalScanner) modalScanner.style.display = 'none';
+    if (typeof DynamosoftScanner !== 'undefined' && DynamosoftScanner.close) {
+      DynamosoftScanner.close();
+    }
   });
 }
 
