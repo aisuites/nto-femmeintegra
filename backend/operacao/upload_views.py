@@ -79,7 +79,8 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
             # Gerar nome único para o arquivo no S3
             file_extension = filename.split('.')[-1] if '.' in filename else 'jpg'
             unique_filename = f"{uuid.uuid4()}.{file_extension}"
-            file_key = f"requisicoes/{requisicao.cod_req}/{unique_filename}"
+            # O file_key será gerado pela API Lambda usando process_id
+            # Formato: {process_id}/{filename}
             
             # Obter signed URL da API Lambda
             import os
@@ -95,12 +96,23 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                 )
             
             # Chamar API Lambda para obter signed URL
+            # Formato esperado pela API conforme documentação
             try:
                 lambda_response = requests.post(
                     aws_signed_url_api,
                     json={
-                        'file_key': file_key,
-                        'content_type': content_type
+                        'process_id': requisicao.cod_req,
+                        'files': [
+                            {
+                                'name': unique_filename.split('.')[0],  # Nome sem extensão
+                                'type': content_type,
+                                'filename': unique_filename
+                            }
+                        ]
+                    },
+                    headers={
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'FEMME-Integra/1.0'
                     },
                     timeout=10
                 )
@@ -113,10 +125,24 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                     )
                 
                 lambda_data = lambda_response.json()
-                signed_url = lambda_data.get('signed_url')
+                
+                # A API retorna um array de arquivos
+                # Formato esperado: { "files": [{ "signed_url": "...", "filename": "..." }] }
+                files = lambda_data.get('files', [])
+                
+                if not files or len(files) == 0:
+                    logger.error(f"Nenhum arquivo retornado pela API Lambda. Resposta: {lambda_data}")
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
+                        status=500
+                    )
+                
+                # Pegar o primeiro arquivo (enviamos apenas 1)
+                file_data = files[0]
+                signed_url = file_data.get('signed_url')
                 
                 if not signed_url:
-                    logger.error("Signed URL não retornada pela API Lambda")
+                    logger.error(f"Signed URL não encontrada na resposta. Dados: {file_data}")
                     return JsonResponse(
                         {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
                         status=500
@@ -129,6 +155,9 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                     status=500
                 )
             
+            # Extrair file_key da resposta (ou construir se não vier)
+            file_key = file_data.get('key') or f"{requisicao.cod_req}/{unique_filename}"
+            
             logger.info(
                 f"Signed URL gerada para requisição {requisicao.cod_req}: {file_key}"
             )
@@ -137,7 +166,7 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                 'status': 'success',
                 'signed_url': signed_url,
                 'file_key': file_key,
-                'original_filename': filename,
+                'original_filename': unique_filename,
                 'expires_in': 3600,
                 'requisicao_cod': requisicao.cod_req
             })
