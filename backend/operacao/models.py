@@ -108,6 +108,36 @@ class MotivoStatusManual(TimeStampedModel):
         return self.descricao
 
 
+class ListaMotivoInadequado(TimeStampedModel):
+    """
+    Lista de motivos de armazenamento inadequado de amostras.
+    Usado na triagem etapa 1 quando flag_armazenamento_inadequado=True.
+    """
+    codigo = models.CharField(
+        'Código',
+        max_length=20,
+        unique=True,
+        help_text='Código único do motivo'
+    )
+    descricao = models.CharField(
+        'Descrição',
+        max_length=200
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True
+    )
+
+    class Meta:
+        db_table = 'lista_motivo_inadequado'
+        ordering = ('codigo', 'descricao')
+        verbose_name = 'Motivo de Armazenamento Inadequado'
+        verbose_name_plural = 'Motivos de Armazenamento Inadequado'
+
+    def __str__(self) -> str:
+        return f'{self.codigo} - {self.descricao}'
+
+
 class LogRecebimento(TimeStampedModel):
     cod_barras_req = models.CharField('Código de barras da requisição', max_length=64, unique=True)
     dados = models.JSONField('Payload bruto', default=dict, blank=True)
@@ -351,11 +381,23 @@ class RequisicaoAmostra(AuditModel):
         'Tipo de material não analisado pelo FEMME',
         default=False,
     )
-    motivo_inadequado_id = models.IntegerField(
-        'ID do motivo de armazenamento inadequado',
+    motivo_inadequado = models.ForeignKey(
+        'ListaMotivoInadequado',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text='Referência ao motivo quando flag_armazenamento_inadequado=True',
+        related_name='amostras',
+        verbose_name='Motivo de armazenamento inadequado',
+        help_text='Motivo quando flag_armazenamento_inadequado=True',
+        db_column='motivo_inadequado_id',
+    )
+    
+    # Campo de validação da triagem etapa 1
+    triagem1_validada = models.BooleanField(
+        'Triagem 1 validada',
+        default=False,
+        db_index=True,
+        help_text='Indica se a amostra foi validada na triagem etapa 1',
     )
 
     class Meta:
@@ -445,6 +487,7 @@ class TipoArquivo(TimeStampedModel):
         'Código',
         unique=True,
         db_index=True,
+        default=0,
         help_text='Código único do tipo de arquivo (ex: 1=REQUISICAO)'
     )
     descricao = models.CharField(
