@@ -329,12 +329,32 @@ if (btnScanner) {
  * Abre o modal do scanner
  */
 function abrirScanner() {
-  if (typeof abrirModalScanner === 'function') {
-    abrirModalScanner();
+  const modalScanner = document.getElementById('modal-scanner-teste');
+  if (modalScanner) {
+    modalScanner.style.display = 'flex';
+    console.log('✅ Modal do scanner aberto');
   } else {
-    console.error('Função abrirModalScanner não encontrada.');
+    console.error('❌ Modal do scanner não encontrado');
     mostrarErro('Erro ao abrir o scanner. Recarregue a página.');
   }
+}
+
+// Fechar modal do scanner
+const btnFecharModal = document.getElementById('btn-fechar-modal');
+const btnFecharModalFooter = document.getElementById('btn-fechar-modal-footer');
+
+if (btnFecharModal) {
+  btnFecharModal.addEventListener('click', () => {
+    const modalScanner = document.getElementById('modal-scanner-teste');
+    if (modalScanner) modalScanner.style.display = 'none';
+  });
+}
+
+if (btnFecharModalFooter) {
+  btnFecharModalFooter.addEventListener('click', () => {
+    const modalScanner = document.getElementById('modal-scanner-teste');
+    if (modalScanner) modalScanner.style.display = 'none';
+  });
 }
 
 // ============================================
