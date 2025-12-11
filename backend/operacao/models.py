@@ -437,7 +437,16 @@ class TipoArquivo(TimeStampedModel):
     """
     Tipos de arquivos que podem ser anexados às requisições.
     Ex: Requisição, Laudo, Resultado, Documento de Identificação, etc.
+    
+    Códigos fixos:
+    1 = REQUISICAO (documento digitalizado da requisição)
     """
+    codigo = models.IntegerField(
+        'Código',
+        unique=True,
+        db_index=True,
+        help_text='Código único do tipo de arquivo (ex: 1=REQUISICAO)'
+    )
     descricao = models.CharField(
         'Descrição',
         max_length=100,
@@ -446,12 +455,12 @@ class TipoArquivo(TimeStampedModel):
     ativo = models.BooleanField(default=True)
     
     class Meta:
-        ordering = ('descricao',)
+        ordering = ('codigo',)
         verbose_name = 'Tipo de Arquivo'
         verbose_name_plural = 'Tipos de Arquivo'
     
     def __str__(self) -> str:
-        return self.descricao
+        return f'{self.codigo} - {self.descricao}'
 
 
 class RequisicaoArquivo(AuditModel):
@@ -479,6 +488,12 @@ class RequisicaoArquivo(AuditModel):
         verbose_name='Tipo de Arquivo',
         help_text='Tipo/categoria do arquivo',
     )
+    cod_tipo_arquivo = models.IntegerField(
+        'Código do Tipo',
+        db_index=True,
+        default=1,
+        help_text='Código do tipo de arquivo (desnormalizado para performance). Ex: 1=REQUISICAO',
+    )
     nome_arquivo = models.CharField(
         'Nome do arquivo',
         max_length=255,
@@ -503,6 +518,8 @@ class RequisicaoArquivo(AuditModel):
             models.Index(fields=['requisicao', '-data_upload']),
             models.Index(fields=['cod_req', '-data_upload']),
             models.Index(fields=['tipo_arquivo', '-data_upload']),
+            models.Index(fields=['cod_tipo_arquivo', '-data_upload']),
+            models.Index(fields=['requisicao', 'cod_tipo_arquivo']),
         ]
     
     def __str__(self) -> str:
