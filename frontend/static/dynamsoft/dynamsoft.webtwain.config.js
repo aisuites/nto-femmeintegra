@@ -27,7 +27,8 @@ Dynamsoft.DWT.Containers = [{ WebTwainId: '', ContainerId: 'dwtcontrolContainer'
 /// To get a free trial, please visit https://www.dynamsoft.com/customer/license/trialLicense?product=dwt&utm_source=installer.
 /// IMPORTANT: The ProductKey is now configured via Django template (triagem.html) using environment variables
 /// This ensures the license is not hardcoded in the repository
-Dynamsoft.DWT.ProductKey = '';
+/// COMMENTED OUT: This line was overwriting the license set in the template
+// Dynamsoft.DWT.ProductKey = '';
 
 ///
 //Dynamsoft.DWT.ResourcesPath = 'Resources';
