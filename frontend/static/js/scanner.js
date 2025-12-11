@@ -404,6 +404,14 @@ const DynamosoftScanner = (function() {
             blob.type
           );
           
+          // DEBUG: Log da signed URL para teste no Postman
+          console.log('=' .repeat(80));
+          console.log('📥 SIGNED URL RECEBIDA:');
+          console.log('URL:', signedUrlData.signed_url);
+          console.log('File Key:', signedUrlData.file_key);
+          console.log('Filename:', signedUrlData.original_filename);
+          console.log('=' .repeat(80));
+          
           // Etapa 2: Upload para S3
           await uploadParaS3(signedUrlData.signed_url, blob, blob.type);
           

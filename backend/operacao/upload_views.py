@@ -96,19 +96,30 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
             # Chamar API Lambda para obter signed URL
             # Formato esperado pela API conforme documentação
             # IMPORTANTE: process_id deve ser o ID numérico da tabela dados_requisicao
+            
+            # Preparar payload
+            lambda_payload = {
+                'process_id': str(requisicao.id),  # ID numérico da requisição
+                'files': [
+                    {
+                        'name': filename_padrao.replace('.pdf', ''),  # Nome sem extensão
+                        'type': 'application/pdf',  # Sempre PDF
+                        'filename': filename_padrao  # IDREQ_{cod_req}_{timestamp}.pdf
+                    }
+                ]
+            }
+            
+            # DEBUG: Log do payload enviado
+            logger.info("=" * 80)
+            logger.info("📤 PAYLOAD ENVIADO PARA API LAMBDA:")
+            logger.info(f"URL: {aws_signed_url_api}")
+            logger.info(f"Payload: {json.dumps(lambda_payload, indent=2)}")
+            logger.info("=" * 80)
+            
             try:
                 lambda_response = requests.post(
                     aws_signed_url_api,
-                    json={
-                        'process_id': str(requisicao.id),  # ID numérico da requisição
-                        'files': [
-                            {
-                                'name': filename_padrao.replace('.pdf', ''),  # Nome sem extensão
-                                'type': 'application/pdf',  # Sempre PDF
-                                'filename': filename_padrao  # IDREQ_{cod_req}_{timestamp}.pdf
-                            }
-                        ]
-                    },
+                    json=lambda_payload,
                     headers={
                         'Content-Type': 'application/json',
                         'User-Agent': 'FEMME-Integra/1.0'
@@ -124,6 +135,12 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                     )
                 
                 lambda_data = lambda_response.json()
+                
+                # DEBUG: Log completo da resposta Lambda
+                logger.info("=" * 80)
+                logger.info("📥 RESPOSTA COMPLETA DA API LAMBDA:")
+                logger.info(f"{json.dumps(lambda_data, indent=2)}")
+                logger.info("=" * 80)
                 
                 # A API retorna um objeto com o nome do arquivo como chave
                 # Formato: { "filename": { "key": "...", "url": "...", "name": "..." } }
@@ -142,6 +159,13 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                 
                 # A signed URL está no campo "url", não "signed_url"
                 signed_url = file_data.get('url')
+                
+                # DEBUG: Log detalhado dos dados extraídos
+                logger.info("🔑 DADOS EXTRAÍDOS:")
+                logger.info(f"   File Name Key: {file_name_key}")
+                logger.info(f"   Signed URL: {signed_url[:100]}..." if signed_url and len(signed_url) > 100 else f"   Signed URL: {signed_url}")
+                logger.info(f"   File Key: {file_data.get('key')}")
+                logger.info(f"   Name: {file_data.get('name')}")
                 
                 if not signed_url:
                     logger.error(f"URL não encontrada na resposta. Dados: {file_data}")
