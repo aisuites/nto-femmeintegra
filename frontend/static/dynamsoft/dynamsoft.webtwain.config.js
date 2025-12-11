@@ -25,10 +25,8 @@ Dynamsoft.DWT.Containers = [{ WebTwainId: '', ContainerId: 'dwtcontrolContainer'
 /// If you need to use multiple keys on the same server, you can combine keys and write like this 
 /// Dynamsoft.DWT.ProductKey = 'key1;key2;key3';
 /// To get a free trial, please visit https://www.dynamsoft.com/customer/license/trialLicense?product=dwt&utm_source=installer.
-/// IMPORTANT: The ProductKey is now configured via Django template (triagem.html) using environment variables
-/// This ensures the license is not hardcoded in the repository
-/// COMMENTED OUT: This line was overwriting the license set in the template
-// Dynamsoft.DWT.ProductKey = '';
+/// IMPORTANT: License configured directly here (temporary solution)
+Dynamsoft.DWT.ProductKey = 't0200EQYAACKQjx5c161aQcsePZTpOusB14MJwH9fiD7LK+8cGXreOEYogzHsyxcGc/jcu0xp5XbFW8noVQQvXN9zKEomhkwY4nHmZAentndu4rZOdHDyllP87xBDPG0Txm0DuAJTnOx7HX4AciCu5QDMdu89MyQAa4BWAK2tATWguAuffObJC5//Ob12oCUnOzi1vTMvkDZOdHDyltMXiBvELH63SywQ5DcnAVgDtAhs80IKBSJHgDVAi8B8qGImgDirjlD9AIZtPEo=';
 
 ///
 //Dynamsoft.DWT.ResourcesPath = 'Resources';
