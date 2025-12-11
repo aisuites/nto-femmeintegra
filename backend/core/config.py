@@ -36,38 +36,35 @@ class EnvironmentConfig:
     
     def _detect_environment(self) -> str:
         """
-        Detecta o ambiente atual baseado na variável ENVIRONMENT.
+        Detecta o ambiente atual baseado em DJANGO_DEBUG.
         
         Returns:
             str: 'dev' ou 'prod'
         """
-        env = os.getenv('ENVIRONMENT', 'dev').lower().strip()
+        # Se ENVIRONMENT existe, usar ela
+        env = os.getenv('ENVIRONMENT', '').lower().strip()
+        if env in self.VALID_ENVIRONMENTS:
+            return env
         
-        if env not in self.VALID_ENVIRONMENTS:
-            logger.warning(
-                f"Ambiente inválido '{env}'. Usando 'dev' como padrão. "
-                f"Valores válidos: {', '.join(self.VALID_ENVIRONMENTS)}"
-            )
-            return 'dev'
-        
-        return env
+        # Caso contrário, detectar por DJANGO_DEBUG
+        debug = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
+        return 'dev' if debug else 'prod'
     
     def _validate_config(self):
         """Valida se todas as variáveis necessárias estão configuradas."""
-        required_vars = [
-            f'AWS_SIGNED_URL_API_{self._environment.upper()}',
-            f'CLOUDFRONT_URL_{self._environment.upper()}'
-        ]
+        # Verificar se existe AWS_SIGNED_URL_API (sem sufixo) ou com sufixo
+        aws_api = os.getenv('AWS_SIGNED_URL_API') or os.getenv(f'AWS_SIGNED_URL_API_{self._environment.upper()}')
+        cloudfront = os.getenv(f'CLOUDFRONT_URL_{self._environment.upper()}')
         
         missing_vars = []
-        for var in required_vars:
-            if not os.getenv(var):
-                missing_vars.append(var)
+        if not aws_api:
+            missing_vars.append('AWS_SIGNED_URL_API ou AWS_SIGNED_URL_API_[ENV]')
+        if not cloudfront:
+            missing_vars.append(f'CLOUDFRONT_URL_{self._environment.upper()}')
         
         if missing_vars:
             logger.error(
-                f"Variáveis de ambiente faltando para {self._environment.upper()}: "
-                f"{', '.join(missing_vars)}"
+                f"Variáveis de ambiente faltando: {', '.join(missing_vars)}"
             )
     
     def _log_environment(self):
@@ -97,15 +94,21 @@ class EnvironmentConfig:
     def aws_signed_url_api(self) -> str:
         """
         Retorna a URL da API Lambda de signed URL para o ambiente atual.
+        Suporta tanto AWS_SIGNED_URL_API quanto AWS_SIGNED_URL_API_[ENV].
         
         Returns:
             str: URL da API Lambda
         """
-        var_name = f'AWS_SIGNED_URL_API_{self._environment.upper()}'
-        url = os.getenv(var_name, '')
+        # Primeiro tentar variável sem sufixo (compatibilidade)
+        url = os.getenv('AWS_SIGNED_URL_API')
         
+        # Se não existir, tentar com sufixo do ambiente
         if not url:
-            logger.error(f"Variável {var_name} não configurada no .env")
+            var_name = f'AWS_SIGNED_URL_API_{self._environment.upper()}'
+            url = os.getenv(var_name, '')
+            
+            if not url:
+                logger.error(f"Variável AWS_SIGNED_URL_API ou {var_name} não configurada no .env")
         
         return url
     
