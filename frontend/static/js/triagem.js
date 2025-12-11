@@ -15,6 +15,16 @@ const inputCodBarras = document.getElementById('input-cod-barras-triagem');
 const btnLocalizar = document.getElementById('btn-localizar-triagem');
 const stepContainer = document.getElementById('triagem-step-container');
 
+// Verificar se elementos essenciais existem
+if (!inputCodBarras || !btnLocalizar || !stepContainer) {
+    console.error('❌ Elementos essenciais não encontrados no DOM');
+    console.log({
+        inputCodBarras: !!inputCodBarras,
+        btnLocalizar: !!btnLocalizar,
+        stepContainer: !!stepContainer
+    });
+}
+
 // Campos da etapa 1
 const reqId = document.getElementById('req-id');
 const reqCodBarras = document.getElementById('req-cod-barras');
@@ -270,7 +280,8 @@ btnSeguir.addEventListener('click', async () => {
 /**
  * Scanner - Abrir modal com iframe
  */
-btnScanner.addEventListener('click', async () => {
+if (btnScanner) {
+  btnScanner.addEventListener('click', async () => {
   if (!requisicaoAtual) {
     mostrarErro('Localize uma requisição primeiro.');
     return;
@@ -309,7 +320,10 @@ btnScanner.addEventListener('click', async () => {
     // Em caso de erro, abrir scanner normalmente
     abrirScanner();
   }
-});
+  });
+} else {
+  console.error('❌ Botão Scanner não encontrado no DOM');
+}
 
 /**
  * Abre o modal do scanner
