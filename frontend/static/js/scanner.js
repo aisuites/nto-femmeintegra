@@ -394,14 +394,13 @@ const DynamosoftScanner = (function() {
         try {
           log(`Processando imagem ${i + 1}/${totalImagens}...`);
           
-          // Converter imagem para blob
+          // Converter imagem para PDF
           const blob = await obterImagemComoBlob(i);
-          const filename = `scan_${Date.now()}_${i + 1}.jpg`;
           
           // Etapa 1: Obter signed URL
+          // O filename será gerado no backend no padrão: IDREQ_{cod_req}_{timestamp}.pdf
           const signedUrlData = await obterSignedUrl(
             requisicaoAtual.id,
-            filename,
             blob.type
           );
           
@@ -457,20 +456,21 @@ const DynamosoftScanner = (function() {
   }
   
   /**
-   * Converte imagem do buffer do Dynamsoft para Blob
+   * Converte imagem do buffer do Dynamsoft para PDF
    * @param {number} index - Índice da imagem no buffer
    * @returns {Promise<Blob>}
    */
   function obterImagemComoBlob(index) {
     return new Promise((resolve, reject) => {
+      // Converter para PDF (não JPG)
       DWTObject.ConvertToBlob(
         [index],
-        Dynamsoft.DWT.EnumDWT_ImageType.IT_JPG,
+        Dynamsoft.DWT.EnumDWT_ImageType.IT_PDF,
         (result, indices, type) => {
           resolve(result);
         },
         (errorCode, errorString) => {
-          reject(new Error(`Erro ao converter imagem: ${errorString}`));
+          reject(new Error(`Erro ao converter imagem para PDF: ${errorString}`));
         }
       );
     });
@@ -479,15 +479,13 @@ const DynamosoftScanner = (function() {
   /**
    * Obtém signed URL do backend
    * @param {number} requisicaoId - ID da requisição
-   * @param {string} filename - Nome do arquivo
    * @param {string} contentType - Tipo MIME
    * @returns {Promise<Object>}
    */
-  async function obterSignedUrl(requisicaoId, filename, contentType) {
+  async function obterSignedUrl(requisicaoId, contentType) {
     const url = AppConfig.buildApiUrl('/operacao/upload/signed-url/');
     const params = new URLSearchParams({
       requisicao_id: requisicaoId,
-      filename: filename,
       content_type: contentType
     });
     

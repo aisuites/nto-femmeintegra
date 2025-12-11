@@ -51,8 +51,7 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
         try:
             # Obter parâmetros
             requisicao_id = request.GET.get('requisicao_id')
-            filename = request.GET.get('filename')
-            content_type = request.GET.get('content_type', 'application/octet-stream')
+            content_type = request.GET.get('content_type', 'application/pdf')
             
             # Validações
             if not requisicao_id:
@@ -61,11 +60,7 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                     status=400
                 )
             
-            if not filename:
-                return JsonResponse(
-                    {'status': 'error', 'message': 'Nome do arquivo não informado.'},
-                    status=400
-                )
+            # Filename será gerado automaticamente no padrão IDREQ_{cod_req}_{timestamp}.pdf
             
             # Verificar se requisição existe e usuário tem acesso
             try:
@@ -76,11 +71,14 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                     status=404
                 )
             
-            # Gerar nome único para o arquivo no S3
-            file_extension = filename.split('.')[-1] if '.' in filename else 'jpg'
-            unique_filename = f"{uuid.uuid4()}.{file_extension}"
+            # Gerar nome do arquivo no padrão estabelecido
+            # Formato: IDREQ_{cod_req}_{YYYYMMDDHHMMSS}.pdf
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+            filename_padrao = f"IDREQ_{requisicao.cod_req}_{timestamp}.pdf"
+            
             # O file_key será gerado pela API Lambda usando process_id
-            # Formato: {process_id}/{filename}
+            # Formato: processing/{process_id}/{filename}
             
             # Obter signed URL da API Lambda
             import os
@@ -105,9 +103,9 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
                         'process_id': str(requisicao.id),  # ID numérico da requisição
                         'files': [
                             {
-                                'name': unique_filename.split('.')[0],  # Nome sem extensão
-                                'type': content_type,
-                                'filename': unique_filename
+                                'name': filename_padrao.replace('.pdf', ''),  # Nome sem extensão
+                                'type': 'application/pdf',  # Sempre PDF
+                                'filename': filename_padrao  # IDREQ_{cod_req}_{timestamp}.pdf
                             }
                         ]
                     },
@@ -161,17 +159,17 @@ class ObterSignedUrlView(LoginRequiredMixin, View):
             
             # Extrair file_key da resposta (ou construir se não vier)
             # O file_key usa o ID numérico da requisição
-            file_key = file_data.get('key') or f"processing/{requisicao.id}/{unique_filename}"
+            file_key = file_data.get('key') or f"processing/{requisicao.id}/{filename_padrao}"
             
             logger.info(
-                f"Signed URL gerada para requisição {requisicao.cod_req}: {file_key}"
+                f"Signed URL gerada para requisição {requisicao.cod_req} (ID: {requisicao.id}): {file_key}"
             )
             
             return JsonResponse({
                 'status': 'success',
                 'signed_url': signed_url,
                 'file_key': file_key,
-                'original_filename': unique_filename,
+                'original_filename': filename_padrao,
                 'expires_in': 3600,
                 'requisicao_cod': requisicao.cod_req
             })
