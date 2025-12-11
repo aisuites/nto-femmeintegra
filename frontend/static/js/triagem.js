@@ -55,19 +55,7 @@ let amostrasAtual = [];
 // FUNÇÕES AUXILIARES
 // ============================================
 
-/**
- * Mostra mensagem de erro
- */
-function mostrarErro(mensagem) {
-  alert('❌ ' + mensagem);
-}
-
-/**
- * Mostra mensagem de sucesso
- */
-function mostrarSucesso(mensagem) {
-  alert('✅ ' + mensagem);
-}
+// Funções de alerta removidas - usar mostrarAlerta() e mostrarMensagemSucesso()
 
 /**
  * Limpa o formulário
@@ -181,7 +169,7 @@ btnLocalizar.addEventListener('click', async () => {
   const codBarras = inputCodBarras.value.trim();
   
   if (!codBarras) {
-    mostrarErro('Informe o código de barras da requisição.');
+    mostrarAlerta('Informe o código de barras da requisição.');
     inputCodBarras.focus();
     return;
   }
@@ -206,15 +194,15 @@ btnLocalizar.addEventListener('click', async () => {
     if (data.status === 'success') {
       carregarRequisicao(data.requisicao);
     } else if (data.status === 'not_found') {
-      mostrarErro('Requisição não encontrada ou não está na etapa de triagem.');
+      mostrarAlerta('Requisição não encontrada ou não está na etapa de triagem.');
       limparFormulario();
     } else {
-      mostrarErro(data.message || 'Erro ao localizar requisição.');
+      mostrarAlerta(data.message || 'Erro ao localizar requisição.');
     }
     
   } catch (error) {
     console.error('Erro ao localizar requisição:', error);
-    mostrarErro('Erro ao localizar requisição. Tente novamente.');
+    mostrarAlerta('Erro ao localizar requisição. Tente novamente.');
   } finally {
     btnLocalizar.disabled = false;
     btnLocalizar.textContent = '🔍 Localizar';
@@ -250,27 +238,7 @@ btnCancelar.addEventListener('click', () => {
   }
 });
 
-/**
- * Seguir para próxima etapa
- */
-btnSeguir.addEventListener('click', async () => {
-  // Validações básicas
-  if (!requisicaoAtual) {
-    mostrarErro('Nenhuma requisição carregada.');
-    return;
-  }
-  
-  if (!reqDataRecebimento.value) {
-    mostrarErro('Informe a data de recebimento.');
-    reqDataRecebimento.focus();
-    return;
-  }
-  
-  // TODO: Implementar validações completas e envio para API
-  
-  // Por enquanto, apenas mostrar mensagem
-  mostrarSucesso('Funcionalidade em desenvolvimento. Dados validados com sucesso!');
-});
+// Event listener do botão Seguir movido para o final do arquivo (linha ~920)
 
 /**
  * Scanner - Abrir modal com iframe
@@ -278,7 +246,7 @@ btnSeguir.addEventListener('click', async () => {
 if (btnScanner) {
   btnScanner.addEventListener('click', async () => {
     if (!requisicaoAtual) {
-      mostrarErro('Localize uma requisição primeiro.');
+      mostrarAlerta('Localize uma requisição primeiro.');
       return;
     }
     
@@ -322,7 +290,7 @@ function abrirScanner() {
     DynamosoftScanner.open();
   } else {
     console.error('❌ DynamosoftScanner não disponível');
-    mostrarErro('Erro ao abrir o scanner. Recarregue a página.');
+    mostrarAlerta('Erro ao abrir o scanner. Recarregue a página.');
   }
 }
 
@@ -560,7 +528,7 @@ async function carregarAmostrasTriagem(requisicaoId) {
     }
   } catch (error) {
     console.error('Erro ao carregar amostras:', error);
-    mostrarErro('Erro ao carregar amostras da requisição.');
+    mostrarAlerta('Erro ao carregar amostras da requisição.');
   }
 }
 
@@ -680,7 +648,7 @@ function validarFormularioAmostra() {
   
   // 2. Amostra selecionada obrigatória
   if (!selectAmostra.value) {
-    mostrarErro('Selecione uma amostra');
+    mostrarAlerta('Selecione uma amostra');
     return false;
   }
   
@@ -689,7 +657,7 @@ function validarFormularioAmostra() {
   
   // 4. Data de validade obrigatória e dentro da validade
   if (!amostraDataValidade.value) {
-    mostrarErro('Informe a data de validade');
+    mostrarAlerta('Informe a data de validade');
     return false;
   }
   
@@ -699,7 +667,7 @@ function validarFormularioAmostra() {
   hoje.setHours(0, 0, 0, 0);
   
   if (dataValidade < hoje) {
-    mostrarErro('A data de validade não pode ser anterior à data atual');
+    mostrarAlerta('A data de validade não pode ser anterior à data atual');
     return false;
   }
   
@@ -708,7 +676,7 @@ function validarFormularioAmostra() {
   
   // 7. Se armazenamento inadequado está selecionado, motivo é obrigatório
   if (checkArmazenamentoInadequado.checked && !selectMotivoArmazenamento.value) {
-    mostrarErro('Selecione o motivo do armazenamento inadequado');
+    mostrarAlerta('Selecione o motivo do armazenamento inadequado');
     return false;
   }
   
@@ -781,12 +749,12 @@ async function salvarAmostraTriagem() {
       }
       
     } else if (result.status === 'error') {
-      mostrarErro(result.message);
+      mostrarAlerta(result.message);
     }
     
   } catch (error) {
     console.error('Erro ao salvar amostra:', error);
-    mostrarErro('Erro ao salvar amostra. Tente novamente.');
+    mostrarAlerta('Erro ao salvar amostra. Tente novamente.');
   }
 }
 
@@ -843,12 +811,12 @@ async function confirmarRejeicao() {
       limparFormulario();
       inputCodBarras.focus();
     } else {
-      mostrarErro(result.message);
+      mostrarAlerta(result.message);
     }
     
   } catch (error) {
     console.error('Erro ao rejeitar requisição:', error);
-    mostrarErro('Erro ao rejeitar requisição. Tente novamente.');
+    mostrarAlerta('Erro ao rejeitar requisição. Tente novamente.');
   }
 }
 
