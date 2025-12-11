@@ -145,6 +145,9 @@ function carregarRequisicao(dados) {
   // Carregar arquivos digitalizados
   carregarArquivos();
   
+  // Carregar amostras para triagem etapa 1
+  carregarAmostrasTriagem(dados.id);
+  
   // Scroll suave para a seção
   stepContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -483,8 +486,442 @@ function formatarDataUpload(dataISO) {
 window.atualizarListaArquivos = atualizarListaArquivos;
 
 // ============================================
+// TRIAGEM ETAPA 1 - VALIDAÇÃO DE AMOSTRAS
+// ============================================
+
+// Cache de dados
+let motivosInadequadosCache = [];
+let amostrasCache = [];
+let amostraAtualId = null;
+
+/**
+ * Carrega motivos de armazenamento inadequado do backend
+ */
+async function carregarMotivosInadequados() {
+  try {
+    const response = await fetch('/operacao/triagem/motivos-inadequados/');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      motivosInadequadosCache = data.motivos;
+      popularSelectMotivos();
+    }
+  } catch (error) {
+    console.error('Erro ao carregar motivos inadequados:', error);
+  }
+}
+
+/**
+ * Popula select de motivos inadequados
+ */
+function popularSelectMotivos() {
+  selectMotivoArmazenamento.innerHTML = '<option value="">Selecione o motivo…</option>';
+  
+  motivosInadequadosCache.forEach(motivo => {
+    const option = document.createElement('option');
+    option.value = motivo.id;
+    option.textContent = motivo.descricao;
+    selectMotivoArmazenamento.appendChild(option);
+  });
+}
+
+/**
+ * Carrega amostras da requisição com status de validação
+ */
+async function carregarAmostrasTriagem(requisicaoId) {
+  try {
+    const response = await fetch(`/operacao/triagem/amostras/?requisicao_id=${requisicaoId}`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      amostrasCache = data.amostras;
+      
+      // Filtrar apenas amostras não validadas
+      const amostrasPendentes = data.amostras.filter(a => !a.triagem1_validada);
+      
+      if (amostrasPendentes.length === 0) {
+        // Todas validadas - prosseguir para Etapa 2
+        mostrarMensagemSucesso('Todas as amostras foram validadas!');
+        carregarEtapa2();
+        return;
+      }
+      
+      // Popular select com amostras pendentes
+      popularSelectAmostras(amostrasPendentes);
+      
+      // Selecionar primeira amostra automaticamente
+      if (amostrasPendentes.length > 0) {
+        selectAmostra.value = amostrasPendentes[0].id;
+        aoSelecionarAmostra(amostrasPendentes[0].id);
+      }
+      
+      // Atualizar contador
+      atualizarContadorAmostras(data.validadas, data.total);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar amostras:', error);
+    mostrarErro('Erro ao carregar amostras da requisição.');
+  }
+}
+
+/**
+ * Popula select de amostras
+ */
+function popularSelectAmostras(amostras) {
+  selectAmostra.innerHTML = '<option value="">Selecione uma amostra...</option>';
+  
+  amostras.forEach(amostra => {
+    const option = document.createElement('option');
+    option.value = amostra.id;
+    option.textContent = `Amostra ${amostra.ordem} - ${amostra.cod_barras_amostra}`;
+    selectAmostra.appendChild(option);
+  });
+}
+
+/**
+ * Atualiza contador de amostras validadas
+ */
+function atualizarContadorAmostras(validadas, total) {
+  // Criar ou atualizar elemento de contador
+  let contador = document.getElementById('contador-amostras');
+  
+  if (!contador) {
+    contador = document.createElement('div');
+    contador.id = 'contador-amostras';
+    contador.style.cssText = `
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 16px;
+    `;
+    
+    // Inserir antes do select de amostras
+    const selectField = selectAmostra.closest('.field');
+    if (selectField) {
+      selectField.parentElement.insertBefore(contador, selectField);
+    }
+  }
+  
+  contador.textContent = `${validadas} de ${total} amostras validadas`;
+}
+
+/**
+ * Ao selecionar amostra no select
+ */
+function aoSelecionarAmostra(amostraId) {
+  const amostra = amostrasCache.find(a => a.id == amostraId);
+  
+  if (!amostra) {
+    limparCamposAmostra();
+    return;
+  }
+  
+  amostraAtualId = amostraId;
+  
+  // Preencher campos com dados existentes
+  amostraDataColeta.value = amostra.data_coleta || '';
+  amostraDataValidade.value = amostra.data_validade || '';
+  
+  // Preencher checkboxes
+  checkDataRasurada.checked = amostra.flags.data_coleta_rasurada;
+  checkSemValidade.checked = amostra.flags.sem_data_validade;
+  checkSemIdentificacao.checked = amostra.flags.amostra_sem_identificacao;
+  checkArmazenamentoInadequado.checked = amostra.flags.armazenamento_inadequado;
+  checkFrascoTrocado.checked = amostra.flags.frasco_trocado;
+  checkMaterialNaoAnalisado.checked = amostra.flags.material_nao_analisado;
+  
+  // Motivo inadequado
+  selectMotivoArmazenamento.value = amostra.motivo_inadequado_id || '';
+  selectMotivoArmazenamento.disabled = !amostra.flags.armazenamento_inadequado;
+}
+
+/**
+ * Limpa campos de amostra
+ */
+function limparCamposAmostra() {
+  amostraDataColeta.value = '';
+  amostraDataValidade.value = '';
+  checkDataRasurada.checked = false;
+  checkSemValidade.checked = false;
+  checkSemIdentificacao.checked = false;
+  checkArmazenamentoInadequado.checked = false;
+  checkFrascoTrocado.checked = false;
+  checkMaterialNaoAnalisado.checked = false;
+  selectMotivoArmazenamento.value = '';
+  selectMotivoArmazenamento.disabled = true;
+  amostraAtualId = null;
+}
+
+/**
+ * Valida formulário de amostra
+ */
+function validarFormularioAmostra() {
+  const erros = [];
+  
+  // Amostra selecionada obrigatória
+  if (!selectAmostra.value) {
+    erros.push('Selecione uma amostra');
+  }
+  
+  // Data de validade obrigatória
+  if (!amostraDataValidade.value) {
+    erros.push('Informe a data de validade');
+  }
+  
+  // Se armazenamento inadequado, motivo é obrigatório
+  if (checkArmazenamentoInadequado.checked && !selectMotivoArmazenamento.value) {
+    erros.push('Selecione o motivo do armazenamento inadequado');
+  }
+  
+  if (erros.length > 0) {
+    mostrarErro(erros.join('\n'));
+    return false;
+  }
+  
+  return true;
+}
+
+/**
+ * Coleta dados do formulário de amostra
+ */
+function coletarDadosAmostra() {
+  return {
+    amostra_id: selectAmostra.value,
+    data_coleta: amostraDataColeta.value || null,
+    data_validade: amostraDataValidade.value || null,
+    flag_data_coleta_rasurada: checkDataRasurada.checked,
+    flag_sem_data_validade: checkSemValidade.checked,
+    flag_amostra_sem_identificacao: checkSemIdentificacao.checked,
+    flag_armazenamento_inadequado: checkArmazenamentoInadequado.checked,
+    motivo_inadequado_id: selectMotivoArmazenamento.value || null,
+    flag_frasco_trocado: checkFrascoTrocado.checked,
+    flag_material_nao_analisado: checkMaterialNaoAnalisado.checked,
+    descricao: ''
+  };
+}
+
+/**
+ * Salva amostra com validação de impeditivos
+ */
+async function salvarAmostraTriagem() {
+  if (!validarFormularioAmostra()) return;
+  
+  const dados = coletarDadosAmostra();
+  
+  try {
+    const response = await fetch('/operacao/triagem/salvar-amostra/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(dados)
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'impeditivo') {
+      // Há impeditivos - mostrar modal de rejeição
+      mostrarModalRejeicao(result);
+      
+    } else if (result.status === 'success') {
+      // Validada com sucesso
+      mostrarMensagemSucesso('Amostra validada com sucesso!');
+      
+      if (result.proxima_amostra.existe) {
+        // Há mais amostras pendentes
+        await carregarAmostrasTriagem(requisicaoAtual.id);
+        
+      } else {
+        // Todas validadas - prosseguir para Etapa 2
+        mostrarMensagemSucesso('Todas as amostras foram validadas! Prosseguindo para Etapa 2...');
+        setTimeout(() => carregarEtapa2(), 1500);
+      }
+    } else if (result.status === 'error') {
+      mostrarErro(result.message);
+    }
+    
+  } catch (error) {
+    console.error('Erro ao salvar amostra:', error);
+    mostrarErro('Erro ao salvar amostra. Tente novamente.');
+  }
+}
+
+/**
+ * Mostra modal de rejeição com impeditivos
+ */
+function mostrarModalRejeicao(data) {
+  const modal = document.getElementById('modal-rejeicao');
+  const listaImpeditivos = document.getElementById('lista-impeditivos');
+  const statusRejeicao = document.getElementById('status-rejeicao-nome');
+  
+  // Montar lista de impeditivos
+  listaImpeditivos.innerHTML = data.impeditivos.map(imp => 
+    `<li style="color: #d32f2f;">• ${imp}</li>`
+  ).join('');
+  
+  // Mostrar status de destino
+  statusRejeicao.textContent = data.status_rejeicao.nome;
+  
+  // Guardar dados para uso nos botões
+  modal.dataset.statusRejeicaoId = data.status_rejeicao.id;
+  
+  // Exibir modal
+  modal.style.display = 'flex';
+}
+
+/**
+ * Confirma rejeição da requisição
+ */
+async function confirmarRejeicao() {
+  const modal = document.getElementById('modal-rejeicao');
+  const statusRejeicaoId = modal.dataset.statusRejeicaoId;
+  
+  try {
+    const response = await fetch('/operacao/triagem/rejeitar-requisicao/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        status_rejeicao_id: statusRejeicaoId
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      modal.style.display = 'none';
+      mostrarMensagemSucesso(result.message);
+      
+      // Limpar formulário e voltar para busca
+      limparFormulario();
+      inputCodBarras.focus();
+    } else {
+      mostrarErro(result.message);
+    }
+    
+  } catch (error) {
+    console.error('Erro ao rejeitar requisição:', error);
+    mostrarErro('Erro ao rejeitar requisição. Tente novamente.');
+  }
+}
+
+/**
+ * Cancela rejeição
+ */
+function cancelarRejeicao() {
+  const modal = document.getElementById('modal-rejeicao');
+  modal.style.display = 'none';
+  // Usuário pode corrigir dados e tentar novamente
+}
+
+/**
+ * Carrega Etapa 2 (placeholder)
+ */
+function carregarEtapa2() {
+  stepContainer.innerHTML = `
+    <div style="padding: 40px; text-align: center;">
+      <h2 style="color: var(--femme-purple);">🎉 Etapa 1 Concluída!</h2>
+      <p>Etapa 2 será implementada em breve.</p>
+      <button class="btn btn-primary" onclick="limparFormulario(); inputCodBarras.focus();">
+        Nova Triagem
+      </button>
+    </div>
+  `;
+}
+
+/**
+ * Mostra mensagem de sucesso com barra verde
+ */
+function mostrarMensagemSucesso(mensagem) {
+  // Criar toast de sucesso
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    border-left: 4px solid #2e7d32;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-weight: 500;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+  `;
+  toast.textContent = '✅ ' + mensagem;
+  
+  document.body.appendChild(toast);
+  
+  // Remover após 3 segundos
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+/**
+ * Obtém CSRF token
+ */
+function getCsrfToken() {
+  const name = 'csrftoken';
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// ============================================
+// EVENT LISTENERS - TRIAGEM ETAPA 1
+// ============================================
+
+// Habilitar/desabilitar select de motivo ao marcar checkbox
+checkArmazenamentoInadequado.addEventListener('change', function() {
+  selectMotivoArmazenamento.disabled = !this.checked;
+  if (!this.checked) {
+    selectMotivoArmazenamento.value = '';
+  }
+});
+
+// Ao selecionar amostra
+selectAmostra.addEventListener('change', function() {
+  if (this.value) {
+    aoSelecionarAmostra(this.value);
+  } else {
+    limparCamposAmostra();
+  }
+});
+
+// Botão Seguir
+btnSeguir.addEventListener('click', salvarAmostraTriagem);
+
+// Botões do modal de rejeição
+document.getElementById('btn-confirmar-rejeicao').addEventListener('click', confirmarRejeicao);
+document.getElementById('btn-cancelar-rejeicao').addEventListener('click', cancelarRejeicao);
+
+// ============================================
 // INICIALIZAÇÃO
 // ============================================
+
+// Carregar dados iniciais
+carregarMotivosInadequados();
 
 // Focar no input ao carregar a página
 inputCodBarras.focus();
