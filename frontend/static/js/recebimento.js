@@ -654,7 +654,7 @@ const RecebimentoModule = (() => {
         if (headerDiv) {
           headerDiv.innerHTML = `
             <span style="font-weight:600; color:var(--femme-purple);">Requisições bipadas neste kit:</span>
-            <span style="color:var(--femme-gray); font-size:13px;">1 requisição</span>
+            <span id="kit_counter" style="color:var(--femme-gray); font-size:13px;">1</span> requisição
           `;
         }
         
@@ -681,7 +681,7 @@ const RecebimentoModule = (() => {
           const count = tbody.querySelectorAll('tr').length + 1;
           headerDiv.innerHTML = `
             <span style="font-weight:600; color:var(--femme-purple);">Requisições bipadas neste kit:</span>
-            <span style="color:var(--femme-gray); font-size:13px;">${count} requisição${count > 1 ? 'ões' : ''}</span>
+            <span id="kit_counter" style="color:var(--femme-gray); font-size:13px;">${count}</span> requisição${count > 1 ? 'ões' : ''}
           `;
         }
       }
