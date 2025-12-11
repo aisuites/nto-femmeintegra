@@ -286,6 +286,19 @@ input[readonly] {
   font-size: 12px;
 }
 
+/* CONTADOR DE AMOSTRAS */
+.contador-amostras {
+  color: #000000;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  align-content: flex-end;
+  display: flex;
+  align-items: flex-end;
+}
+
 /* RESPONSIVIDADE */
 @media (max-width: 720px) {
   .fields-grid-2col {

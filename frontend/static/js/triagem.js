@@ -582,31 +582,11 @@ function popularSelectAmostras(amostras) {
  * Atualiza contador de amostras validadas
  */
 function atualizarContadorAmostras(validadas, total) {
-  // Criar ou atualizar elemento de contador
-  let contador = document.getElementById('contador-amostras');
+  const contador = document.getElementById('contador-amostras');
   
-  if (!contador) {
-    contador = document.createElement('div');
-    contador.id = 'contador-amostras';
-    contador.style.cssText = `
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      text-align: center;
-      margin-bottom: 16px;
-    `;
-    
-    // Inserir antes do select de amostras
-    const selectField = selectAmostra.closest('.field');
-    if (selectField) {
-      selectField.parentElement.insertBefore(contador, selectField);
-    }
+  if (contador) {
+    contador.textContent = `${validadas} de ${total} amostras validadas`;
   }
-  
-  contador.textContent = `${validadas} de ${total} amostras validadas`;
 }
 
 /**
