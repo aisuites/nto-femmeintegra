@@ -7,8 +7,6 @@
  * - Validar e salvar dados da triagem
  */
 
-console.log('🟢 TRIAGEM.JS CARREGADO');
-console.log('🟢 document.readyState:', document.readyState);
 
 // ============================================
 // ELEMENTOS DO DOM
@@ -18,15 +16,6 @@ const inputCodBarras = document.getElementById('input-cod-barras-triagem');
 const btnLocalizar = document.getElementById('btn-localizar-triagem');
 const stepContainer = document.getElementById('triagem-step-container');
 
-// Verificar se elementos essenciais existem
-if (!inputCodBarras || !btnLocalizar || !stepContainer) {
-    console.error('❌ Elementos essenciais não encontrados no DOM');
-    console.log({
-        inputCodBarras: !!inputCodBarras,
-        btnLocalizar: !!btnLocalizar,
-        stepContainer: !!stepContainer
-    });
-}
 
 // Campos da etapa 1
 const reqId = document.getElementById('req-id');
@@ -284,68 +273,44 @@ btnSeguir.addEventListener('click', async () => {
  * Scanner - Abrir modal com iframe
  */
 if (btnScanner) {
-  console.log('🔧 DEBUG: Botão Scanner encontrado, anexando evento');
-  
   btnScanner.addEventListener('click', async () => {
-    console.log('🔧 DEBUG: Botão Scanner CLICADO');
-    console.log('🔧 DEBUG: requisicaoAtual =', requisicaoAtual);
-    
     if (!requisicaoAtual) {
-      console.log('🔧 DEBUG: Sem requisição, mostrando erro');
       mostrarErro('Localize uma requisição primeiro.');
       return;
     }
     
     // Verificar se ArquivoManager está disponível
     if (!window.ArquivoManager) {
-      console.warn('🔧 DEBUG: ArquivoManager não disponível');
       abrirScanner();
       return;
     }
     
-    console.log('🔧 DEBUG: Verificando arquivo existente...');
-    
     try {
       // Verificar se já existe arquivo tipo REQUISICAO
       const resultado = await window.ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
-      console.log('🔧 DEBUG: Resultado da verificação:', resultado);
       
       if (resultado.existe) {
-        console.log('🔧 DEBUG: Arquivo existe, mostrando modal de substituição');
         // Mostrar modal de confirmação de substituição
         window.ArquivoManager.mostrarModalSubstituicao(
           resultado.arquivo,
-          () => {
-            console.log('🔧 DEBUG: Usuário confirmou substituição, abrindo scanner');
-            abrirScanner();
-          },
-          () => {
-            console.log('🔧 DEBUG: Usuário cancelou a substituição');
-          }
+          () => abrirScanner(),
+          () => {}
         );
       } else {
-        console.log('🔧 DEBUG: Arquivo não existe, abrindo scanner diretamente');
         abrirScanner();
       }
     } catch (error) {
-      console.error('🔧 DEBUG: Erro ao verificar arquivo:', error);
-      console.log('🔧 DEBUG: Abrindo scanner apesar do erro');
+      console.error('Erro ao verificar arquivo:', error);
       abrirScanner();
     }
   });
-} else {
-  console.error('❌ Botão Scanner não encontrado no DOM');
 }
 
 /**
  * Abre o modal do scanner com inicialização do Dynamsoft
  */
 function abrirScanner() {
-  console.log('🔧 abrirScanner chamado');
-  
-  // Usar o método correto do DynamosoftScanner que inicializa tudo
   if (typeof DynamosoftScanner !== 'undefined' && DynamosoftScanner.open) {
-    console.log('✅ Abrindo scanner via DynamosoftScanner.open()');
     DynamosoftScanner.open();
   } else {
     console.error('❌ DynamosoftScanner não disponível');

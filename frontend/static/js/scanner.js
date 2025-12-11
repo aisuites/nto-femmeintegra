@@ -376,11 +376,12 @@ const DynamosoftScanner = (function() {
       return;
     }
     
-    // Desabilitar botão durante envio
+    // Desabilitar botão e adicionar spinner durante envio
     const btnEnviar = document.getElementById('btn-enviar-aws');
     if (btnEnviar) {
       btnEnviar.disabled = true;
-      btnEnviar.textContent = '📤 Enviando...';
+      btnEnviar.classList.add('btn-loading');
+      btnEnviar.innerHTML = '<span class="btn-spinner"></span> Enviando...';
     }
     
     try {
@@ -392,13 +393,17 @@ const DynamosoftScanner = (function() {
       // Processar cada imagem
       for (let i = 0; i < totalImagens; i++) {
         try {
+          // Atualizar progresso no botão
+          if (btnEnviar && totalImagens > 1) {
+            btnEnviar.innerHTML = `<span class="btn-spinner"></span> Enviando ${i + 1}/${totalImagens}...`;
+          }
+          
           log(`Processando imagem ${i + 1}/${totalImagens}...`);
           
           // Converter imagem para PDF
           const blob = await obterImagemComoBlob(i);
           
           // Etapa 1: Obter signed URL
-          // O filename será gerado no backend no padrão: IDREQ_{cod_req}_{timestamp}.pdf
           const signedUrlData = await obterSignedUrl(
             requisicaoAtual.id,
             blob.type
@@ -429,7 +434,7 @@ const DynamosoftScanner = (function() {
       // Fechar modal
       fecharModal();
       
-      // Exibir mensagem de sucesso (similar ao recebimento)
+      // Exibir mensagem de sucesso
       mostrarMensagemSucesso(
         `${totalImagens} ${totalImagens === 1 ? 'imagem enviada' : 'imagens enviadas'} com sucesso!`
       );
@@ -447,10 +452,11 @@ const DynamosoftScanner = (function() {
       alert(`❌ Erro ao enviar imagens:\n${error.message}`);
       
     } finally {
-      // Reabilitar botão
+      // Reabilitar botão e remover spinner
       if (btnEnviar) {
         btnEnviar.disabled = false;
-        btnEnviar.textContent = '📤 Enviar para AWS';
+        btnEnviar.classList.remove('btn-loading');
+        btnEnviar.innerHTML = '📤 Enviar';
       }
     }
   }
