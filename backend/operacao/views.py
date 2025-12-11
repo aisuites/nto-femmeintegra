@@ -34,8 +34,10 @@ class TriagemView(LoginRequiredMixin, TemplateView):
     login_url = 'admin:login'
 
     def get_context_data(self, **kwargs):
+        import os
         context = super().get_context_data(**kwargs)
         context['active_page'] = 'triagem'
+        context['dynamsoft_license'] = os.getenv('DYNAMSOFT_LICENSE', '')
         return context
 
 

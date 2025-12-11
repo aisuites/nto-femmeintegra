@@ -318,10 +318,11 @@
   }
   
   function carregarScriptsDynamsoft() {
-    // Configurar ResourcesPath ANTES de carregar scripts
+    // Configurar ResourcesPath e ProductKey ANTES de carregar scripts
     window.Dynamsoft = window.Dynamsoft || {};
     Dynamsoft.DWT = Dynamsoft.DWT || {};
     Dynamsoft.DWT.ResourcesPath = '/static/dynamsoft';
+    Dynamsoft.DWT.ProductKey = '{{ dynamsoft_license }}';  // Licença do .env
     
     // Lista de scripts para carregar
     const scripts = [
