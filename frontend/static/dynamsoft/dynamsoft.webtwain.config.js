@@ -26,7 +26,16 @@ Dynamsoft.DWT.Containers = [{ WebTwainId: '', ContainerId: 'dwtcontrolContainer'
 /// Dynamsoft.DWT.ProductKey = 'key1;key2;key3';
 /// To get a free trial, please visit https://www.dynamsoft.com/customer/license/trialLicense?product=dwt&utm_source=installer.
 /// IMPORTANT: License configured directly here (temporary solution)
+
+console.log('🔥 CONFIG.JS EXECUTANDO! Configurando ProductKey...');
+console.log('🔥 Dynamsoft antes:', typeof Dynamsoft, Dynamsoft);
+console.log('🔥 Dynamsoft.DWT antes:', typeof Dynamsoft?.DWT, Dynamsoft?.DWT);
+
 Dynamsoft.DWT.ProductKey = 't0200EQYAACKQjx5c161aQcsePZTpOusB14MJwH9fiD7LK+8cGXreOEYogzHsyxcGc/jcu0xp5XbFW8noVQQvXN9zKEomhkwY4nHmZAentndu4rZOdHDyllP87xBDPG0Txm0DuAJTnOx7HX4AciCu5QDMdu89MyQAa4BWAK2tATWguAuffObJC5//Ob12oCUnOzi1vTMvkDZOdHDyltMXiBvELH63SywQ5DcnAVgDtAhs80IKBSJHgDVAi8B8qGImgDirjlD9AIZtPEo=';
+
+console.log('🔥 ProductKey CONFIGURADA:', Dynamsoft.DWT.ProductKey);
+console.log('🔥 Tamanho:', Dynamsoft.DWT.ProductKey.length);
+console.log('🔥 CONFIG.JS FINALIZADO!');
 
 ///
 //Dynamsoft.DWT.ResourcesPath = 'Resources';
