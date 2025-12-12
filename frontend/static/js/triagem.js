@@ -130,6 +130,12 @@ function carregarRequisicao(dados) {
   // Mostrar seção de triagem
   stepContainer.style.display = 'block';
   
+  // Recarregar arquivos da requisição
+  carregarArquivosRequisicao();
+  
+  // Esconder alerta de arquivo obrigatório se estava visível
+  esconderAlerta();
+  
   // Carregar arquivos digitalizados
   carregarArquivos();
   
@@ -605,11 +611,14 @@ function limparCamposAmostra() {
 }
 
 /**
- * Mostra alerta visual na página (sem modal)
+ * Mostra alerta visual na área fixa acima dos botões
  */
+let alertTimeout = null;
+
 function mostrarAlerta(mensagem) {
-  const alert = document.getElementById('triagem_alert');
-  const alertMessage = document.getElementById('triagem_alert_message');
+  // Usar área de validação fixa acima dos botões
+  const alert = document.getElementById('triagem_alert_validacao');
+  const alertMessage = document.getElementById('triagem_alert_validacao_message');
   
   if (alert && alertMessage) {
     alertMessage.textContent = mensagem;
@@ -617,6 +626,14 @@ function mostrarAlerta(mensagem) {
     
     // Scroll suave até o alerta
     alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Auto-hide após 5 segundos
+    if (alertTimeout) {
+      clearTimeout(alertTimeout);
+    }
+    alertTimeout = setTimeout(() => {
+      esconderAlerta();
+    }, 5000);
   }
 }
 
@@ -624,9 +641,15 @@ function mostrarAlerta(mensagem) {
  * Esconde alerta visual
  */
 function esconderAlerta() {
-  const alert = document.getElementById('triagem_alert');
+  const alert = document.getElementById('triagem_alert_validacao');
   if (alert) {
     alert.classList.remove('alert--visible');
+  }
+  
+  // Limpar timeout se existir
+  if (alertTimeout) {
+    clearTimeout(alertTimeout);
+    alertTimeout = null;
   }
 }
 
@@ -667,13 +690,22 @@ async function validarFormularioAmostra() {
     return false;
   }
   
-  // Validar se data de validade está dentro do prazo (não vencida)
+  // Validar se data de validade está dentro do prazo (hoje até hoje-90 dias)
   const dataValidade = new Date(amostraDataValidade.value);
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   
-  if (dataValidade < hoje) {
-    mostrarAlerta('A data de validade não pode ser anterior à data atual');
+  // Calcular data mínima (hoje - 90 dias)
+  const dataMinima = new Date(hoje);
+  dataMinima.setDate(dataMinima.getDate() - 90);
+  
+  if (dataValidade > hoje) {
+    mostrarAlerta('A data de validade não pode ser posterior à data atual');
+    return false;
+  }
+  
+  if (dataValidade < dataMinima) {
+    mostrarAlerta('A data de validade não pode ser anterior a 90 dias da data atual');
     return false;
   }
   

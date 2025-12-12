@@ -321,6 +321,12 @@ input[readonly] {
   font-size: 13px;
 }
 
+/* ÁREA DE ERRO FIXA ACIMA DOS BOTÕES */
+.alert-validacao {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}
+
 /* RESPONSIVIDADE */
 @media (max-width: 720px) {
   .fields-grid-2col {
