@@ -243,6 +243,8 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
     
     def post(self, request):
         try:
+            from datetime import datetime
+            
             data = json.loads(request.body)
             amostra_id = data.get('amostra_id')
             
@@ -279,9 +281,20 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
                         status=400
                     )
             
-            # Atualizar campos
-            amostra.data_coleta = data.get('data_coleta') or None
-            amostra.data_validade = data.get('data_validade') or None
+            # Atualizar campos - converter strings de data para objetos date
+            data_coleta_str = data.get('data_coleta')
+            data_validade_str = data.get('data_validade')
+            
+            # Converter strings YYYY-MM-DD para objetos date
+            if data_coleta_str:
+                amostra.data_coleta = datetime.strptime(data_coleta_str, '%Y-%m-%d').date()
+            else:
+                amostra.data_coleta = None
+                
+            if data_validade_str:
+                amostra.data_validade = datetime.strptime(data_validade_str, '%Y-%m-%d').date()
+            else:
+                amostra.data_validade = None
             amostra.flag_data_coleta_rasurada = data.get('flag_data_coleta_rasurada', False)
             amostra.flag_sem_data_validade = data.get('flag_sem_data_validade', False)
             amostra.flag_amostra_sem_identificacao = data.get('flag_amostra_sem_identificacao', False)
