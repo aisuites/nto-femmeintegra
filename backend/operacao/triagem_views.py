@@ -425,7 +425,7 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
         except Exception as e:
             logger.error(f"Erro ao salvar amostra: {str(e)}", exc_info=True)
             return JsonResponse(
-                {'status': 'error', 'message': 'Erro ao salvar amostra.'},
+                {'status': 'error', 'message': f'Erro ao salvar amostra: {str(e)}'},
                 status=500
             )
 
