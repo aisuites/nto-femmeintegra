@@ -747,10 +747,14 @@ function coletarDadosAmostra() {
  * Salva amostra com validação de impeditivos
  */
 async function salvarAmostraTriagem() {
+  console.log('🔍 Iniciando salvarAmostraTriagem...');
+  
   const validacaoOk = await validarFormularioAmostra();
+  console.log('✓ Validação:', validacaoOk);
   if (!validacaoOk) return;
   
   const dados = coletarDadosAmostra();
+  console.log('📦 Dados coletados:', dados);
   
   try {
     const response = await fetch('/operacao/triagem/salvar-amostra/', {
@@ -762,7 +766,10 @@ async function salvarAmostraTriagem() {
       body: JSON.stringify(dados)
     });
     
+    console.log('📡 Response status:', response.status);
+    
     const result = await response.json();
+    console.log('📥 Result:', result);
     
     if (result.status === 'impeditivo') {
       // Há impeditivos - mostrar modal de rejeição
