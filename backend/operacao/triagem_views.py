@@ -331,9 +331,10 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
                 impeditivos.append('Sem data de validade')
             
             if amostra.data_validade:
-                dias_validade = (amostra.data_validade - timezone.now().date()).days
-                if dias_validade > 90:
-                    impeditivos.append(f'Data de validade excede 90 dias ({dias_validade} dias)')
+                # Calcular quantos dias atrás está a data de validade
+                dias_atras = (timezone.now().date() - amostra.data_validade).days
+                if dias_atras > 90:
+                    impeditivos.append(f'Data de validade excede 90 dias (há {dias_atras} dias)')
             
             if amostra.flag_amostra_sem_identificacao:
                 impeditivos.append('Amostra sem identificação')
