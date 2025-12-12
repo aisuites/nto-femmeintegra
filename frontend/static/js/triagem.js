@@ -681,33 +681,15 @@ async function validarFormularioAmostra() {
   // 3. Verificar se flag data rasurada está selecionado (apenas verificação, não bloqueia)
   // Este é um impeditivo que será tratado no backend
   
-  // 4. Data de validade obrigatória e dentro da validade
+  // 4. Data de validade obrigatória (validação de prazo é impeditivo - tratado no backend)
   if (!amostraDataValidade.value) {
     mostrarAlerta('Informe a data de validade');
     return false;
   }
   
-  // Validar se data de validade está dentro do prazo (hoje até hoje-90 dias)
-  const dataValidade = new Date(amostraDataValidade.value);
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  
-  // Calcular data mínima (hoje - 90 dias)
-  const dataMinima = new Date(hoje);
-  dataMinima.setDate(dataMinima.getDate() - 90);
-  
-  if (dataValidade > hoje) {
-    mostrarAlerta('A data de validade não pode ser posterior à data atual');
-    return false;
-  }
-  
-  if (dataValidade < dataMinima) {
-    mostrarAlerta('A data de validade não pode ser anterior a 90 dias da data atual');
-    return false;
-  }
-  
   // 5. Flag sem data de validade (impeditivo - será tratado no backend)
   // 6. Flag amostra sem identificação (impeditivo - será tratado no backend)
+  // 7. Data de validade > 90 dias (impeditivo - será tratado no backend)
   
   // 7. Se armazenamento inadequado está selecionado, motivo é obrigatório
   if (checkArmazenamentoInadequado.checked && !selectMotivoArmazenamento.value) {
