@@ -130,9 +130,6 @@ function carregarRequisicao(dados) {
   // Mostrar seção de triagem
   stepContainer.style.display = 'block';
   
-  // Recarregar arquivos da requisição
-  carregarArquivosRequisicao();
-  
   // Esconder alerta de arquivo obrigatório se estava visível
   esconderAlerta();
   
