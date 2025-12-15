@@ -1,9 +1,7 @@
 from django.db import models
 from operacao.models import (
-    AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
     LogRecebimento,
-    MotivoArmazenamentoInadequado,
     Origem,
     PortadorRepresentante,
     RequisicaoAmostra,
@@ -71,15 +69,3 @@ class DbRequisicaoArquivo(RequisicaoArquivo):
         verbose_name_plural = 'requisicao_arquivo'
 
 
-class DbMotivoArmazenamentoInadequado(MotivoArmazenamentoInadequado):
-    class Meta:
-        proxy = True
-        verbose_name = 'motivo_armazen_inadequado'
-        verbose_name_plural = 'motivo_armazen_inadequado'
-
-
-class DbAmostraMotivoArmazenamentoInadequado(AmostraMotivoArmazenamentoInadequado):
-    class Meta:
-        proxy = True
-        verbose_name = 'amostra_mtv_armaz_inadequado'
-        verbose_name_plural = 'amostra_mtv_armaz_inadequado'

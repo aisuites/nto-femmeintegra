@@ -1,10 +1,8 @@
 from django.contrib import admin
 from django.db import models
 from .models import (
-    DbAmostraMotivoArmazenamentoInadequado,
     DbHistorico,
     DbLogRecebimento,
-    DbMotivoArmazenamentoInadequado,
     DbPortador,
     DbRequisicao,
     DbRequisicaoAmostra,
@@ -110,13 +108,3 @@ class DbRequisicaoArquivoAdmin(ReadOnlyAdmin):
     list_filter = ['tipo_arquivo', 'data_upload']
 
 
-@admin.register(DbMotivoArmazenamentoInadequado)
-class DbMotivoArmazenamentoInadequadoAdmin(ReadOnlyAdmin):
-    search_fields = ['codigo', 'descricao']
-    list_filter = ['ativo']
-
-
-@admin.register(DbAmostraMotivoArmazenamentoInadequado)
-class DbAmostraMotivoArmazenamentoInadequadoAdmin(ReadOnlyAdmin):
-    search_fields = ['cod_barras', 'motivo__descricao']
-    list_filter = ['motivo', 'created_at']

@@ -136,8 +136,8 @@ class MotivoArmazenamentoInadequado(TimeStampedModel):
     class Meta:
         db_table = 'motivo_armazen_inadequado'
         ordering = ('codigo', 'descricao')
-        verbose_name = 'Motivo de Armazenamento Inadequado'
-        verbose_name_plural = 'Motivos de Armazenamento Inadequado'
+        verbose_name = 'Motivo Inadequado'
+        verbose_name_plural = 'Motivos Inadequados'
 
     def __str__(self) -> str:
         return f'{self.codigo} - {self.descricao}'
@@ -180,8 +180,8 @@ class AmostraMotivoArmazenamentoInadequado(TimeStampedModel):
     class Meta:
         db_table = 'amostra_mtv_armaz_inadequado'
         ordering = ('-created_at',)
-        verbose_name = 'Motivo de Armazenamento Inadequado da Amostra'
-        verbose_name_plural = 'Motivos de Armazenamento Inadequado das Amostras'
+        verbose_name = 'Amostra × Motivo'
+        verbose_name_plural = 'Amostras × Motivos'
         constraints = [
             models.UniqueConstraint(
                 fields=['amostra', 'motivo'],
