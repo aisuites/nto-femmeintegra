@@ -150,23 +150,6 @@ function carregarRequisicao(dados) {
 // EVENTOS
 // ============================================
 
-/**
- * Obtém CSRF token
- */
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
 
 /**
  * Localizar requisição
@@ -184,13 +167,11 @@ btnLocalizar.addEventListener('click', async () => {
   btnLocalizar.textContent = '🔄 Localizando...';
   
   try {
-    const csrftoken = getCookie('csrftoken');
-    
     const response = await fetch('/operacao/triagem/localizar/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': csrftoken,
+        'X-CSRFToken': getCsrfToken()
       },
       body: JSON.stringify({ cod_barras: codBarras })
     });
@@ -813,14 +794,10 @@ function coletarDadosAmostra() {
  * Salva amostra com validação de impeditivos
  */
 async function salvarAmostraTriagem() {
-  console.log('🔍 Iniciando salvarAmostraTriagem...');
-  
   const validacaoOk = await validarFormularioAmostra();
-  console.log('✓ Validação:', validacaoOk);
   if (!validacaoOk) return;
   
   const dados = coletarDadosAmostra();
-  console.log('📦 Dados coletados:', dados);
   
   try {
     const response = await fetch('/operacao/triagem/salvar-amostra/', {
@@ -832,10 +809,7 @@ async function salvarAmostraTriagem() {
       body: JSON.stringify(dados)
     });
     
-    console.log('📡 Response status:', response.status);
-    
     const result = await response.json();
-    console.log('📥 Result:', result);
     
     if (result.status === 'impeditivo') {
       // Há impeditivos - mostrar modal de rejeição
