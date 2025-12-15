@@ -34,7 +34,7 @@ const checkDataRasurada = document.getElementById('check-data-rasurada');
 const checkSemValidade = document.getElementById('check-sem-validade');
 const checkSemIdentificacao = document.getElementById('check-sem-identificacao');
 const checkArmazenamentoInadequado = document.getElementById('check-armazenamento-inadequado');
-const selectMotivoArmazenamento = document.getElementById('select-motivo-armazenamento');
+const motivosContainer = document.getElementById('motivos-armazenamento-container');
 const checkFrascoTrocado = document.getElementById('check-frasco-trocado');
 const checkMaterialNaoAnalisado = document.getElementById('check-material-nao-analisado');
 
@@ -475,7 +475,7 @@ async function carregarMotivosInadequados() {
     
     if (data.status === 'success') {
       motivosInadequadosCache = data.motivos;
-      popularSelectMotivos();
+      popularMotivosCheckboxes();
     }
   } catch (error) {
     console.error('Erro ao carregar motivos inadequados:', error);
@@ -483,17 +483,35 @@ async function carregarMotivosInadequados() {
 }
 
 /**
- * Popula select de motivos inadequados
+ * Popula container com checkboxes de motivos inadequados
  */
-function popularSelectMotivos() {
-  selectMotivoArmazenamento.innerHTML = '<option value="">Selecione o motivo…</option>';
+function popularMotivosCheckboxes() {
+  motivosContainer.innerHTML = '';
   
   motivosInadequadosCache.forEach(motivo => {
-    const option = document.createElement('option');
-    option.value = motivo.id;
-    option.textContent = motivo.descricao;
-    selectMotivoArmazenamento.appendChild(option);
+    const label = document.createElement('label');
+    label.innerHTML = `
+      <input type="checkbox" name="motivo-inadequado" value="${motivo.id}" data-codigo="${motivo.codigo}">
+      <span>${motivo.descricao}</span>
+    `;
+    motivosContainer.appendChild(label);
   });
+}
+
+/**
+ * Obtém IDs dos motivos selecionados
+ */
+function getMotivosInadequadosSelecionados() {
+  const checkboxes = motivosContainer.querySelectorAll('input[name="motivo-inadequado"]:checked');
+  return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+/**
+ * Limpa seleção de motivos
+ */
+function limparMotivosCheckboxes() {
+  const checkboxes = motivosContainer.querySelectorAll('input[name="motivo-inadequado"]');
+  checkboxes.forEach(cb => cb.checked = false);
 }
 
 /**
@@ -585,9 +603,10 @@ function aoSelecionarAmostra(amostraId) {
   checkFrascoTrocado.checked = amostra.flags.frasco_trocado;
   checkMaterialNaoAnalisado.checked = amostra.flags.material_nao_analisado;
   
-  // Motivo inadequado
-  selectMotivoArmazenamento.value = amostra.motivo_inadequado_id || '';
-  selectMotivoArmazenamento.disabled = !amostra.flags.armazenamento_inadequado;
+  // Motivos inadequados - mostrar container se flag marcada
+  motivosContainer.style.display = amostra.flags.armazenamento_inadequado ? 'block' : 'none';
+  limparMotivosCheckboxes();
+  // TODO: Carregar motivos já associados à amostra se existirem
 }
 
 /**
@@ -602,8 +621,8 @@ function limparCamposAmostra() {
   checkArmazenamentoInadequado.checked = false;
   checkFrascoTrocado.checked = false;
   checkMaterialNaoAnalisado.checked = false;
-  selectMotivoArmazenamento.value = '';
-  selectMotivoArmazenamento.disabled = true;
+  motivosContainer.style.display = 'none';
+  limparMotivosCheckboxes();
   amostraAtualId = null;
 }
 
@@ -692,9 +711,9 @@ async function validarFormularioAmostra() {
   // 6. Flag amostra sem identificação (impeditivo - será tratado no backend)
   // 7. Data de validade > 90 dias (impeditivo - será tratado no backend)
   
-  // 7. Se armazenamento inadequado está selecionado, motivo é obrigatório
-  if (checkArmazenamentoInadequado.checked && !selectMotivoArmazenamento.value) {
-    mostrarAlerta('Selecione o motivo do armazenamento inadequado');
+  // 8. Se armazenamento inadequado está selecionado, pelo menos um motivo é obrigatório
+  if (checkArmazenamentoInadequado.checked && getMotivosInadequadosSelecionados().length === 0) {
+    mostrarAlerta('Selecione pelo menos um motivo de armazenamento inadequado');
     return false;
   }
   
@@ -716,7 +735,7 @@ function coletarDadosAmostra() {
     flag_sem_data_validade: checkSemValidade.checked,
     flag_amostra_sem_identificacao: checkSemIdentificacao.checked,
     flag_armazenamento_inadequado: checkArmazenamentoInadequado.checked,
-    motivo_inadequado_id: selectMotivoArmazenamento.value || null,
+    motivos_inadequados_ids: getMotivosInadequadosSelecionados(),
     flag_frasco_trocado: checkFrascoTrocado.checked,
     flag_material_nao_analisado: checkMaterialNaoAnalisado.checked,
     descricao: ''
@@ -925,11 +944,11 @@ function getCsrfToken() {
 // EVENT LISTENERS - TRIAGEM ETAPA 1
 // ============================================
 
-// Habilitar/desabilitar select de motivo ao marcar checkbox
+// Mostrar/esconder container de motivos ao marcar checkbox
 checkArmazenamentoInadequado.addEventListener('change', function() {
-  selectMotivoArmazenamento.disabled = !this.checked;
+  motivosContainer.style.display = this.checked ? 'block' : 'none';
   if (!this.checked) {
-    selectMotivoArmazenamento.value = '';
+    limparMotivosCheckboxes();
   }
 });
 

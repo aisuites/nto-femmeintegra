@@ -302,8 +302,10 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
             amostra.flag_armazenamento_inadequado = data.get('flag_armazenamento_inadequado', False)
             amostra.flag_frasco_trocado_tipo_coleta = data.get('flag_frasco_trocado', False)
             amostra.flag_material_nao_analisado = data.get('flag_material_nao_analisado', False)
-            amostra.motivo_inadequado_id = data.get('motivo_inadequado_id') or None
             amostra.descricao = data.get('descricao', '')
+            
+            # Obter IDs dos motivos selecionados (array)
+            motivos_ids = data.get('motivos_inadequados_ids', [])
             
             # VALIDAÇÕES
             erros = []
@@ -313,9 +315,9 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
             if not amostra.data_validade and not amostra.flag_sem_data_validade:
                 erros.append('Data de validade é obrigatória ou marque "Sem data de validade"')
             
-            # 2. Se armazenamento inadequado, motivo é obrigatório
-            if amostra.flag_armazenamento_inadequado and not amostra.motivo_inadequado_id:
-                erros.append('Motivo de armazenamento inadequado é obrigatório')
+            # 2. Se armazenamento inadequado, pelo menos um motivo é obrigatório
+            if amostra.flag_armazenamento_inadequado and len(motivos_ids) == 0:
+                erros.append('Selecione pelo menos um motivo de armazenamento inadequado')
             
             if erros:
                 return JsonResponse(
@@ -370,6 +372,19 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
                 amostra.updated_by = request.user
                 amostra.save()
                 
+                # Salvar motivos na tabela intermediária
+                if amostra.flag_armazenamento_inadequado and motivos_ids:
+                    # Remover motivos anteriores
+                    AmostraMotivoArmazenamentoInadequado.objects.filter(amostra=amostra).delete()
+                    # Criar novos registros
+                    for motivo_id in motivos_ids:
+                        AmostraMotivoArmazenamentoInadequado.objects.create(
+                            amostra=amostra,
+                            cod_barras=amostra.cod_barras_amostra,
+                            motivo_id=motivo_id,
+                            usuario=request.user
+                        )
+                
                 return JsonResponse({
                     'status': 'impeditivo',
                     'impeditivos': impeditivos,
@@ -384,6 +399,19 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
             amostra.triagem1_validada = True
             amostra.updated_by = request.user
             amostra.save()
+            
+            # Salvar motivos na tabela intermediária (se houver)
+            if amostra.flag_armazenamento_inadequado and motivos_ids:
+                # Remover motivos anteriores
+                AmostraMotivoArmazenamentoInadequado.objects.filter(amostra=amostra).delete()
+                # Criar novos registros
+                for motivo_id in motivos_ids:
+                    AmostraMotivoArmazenamentoInadequado.objects.create(
+                        amostra=amostra,
+                        cod_barras=amostra.cod_barras_amostra,
+                        motivo_id=motivo_id,
+                        usuario=request.user
+                    )
             
             logger.info(
                 f"Amostra {amostra.id} (requisição {amostra.requisicao.cod_req}) "

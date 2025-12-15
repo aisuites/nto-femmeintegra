@@ -130,17 +130,14 @@
         </label>
       </div>
 
-      <div class="checkbox-wrapper">
+      <div class="checkbox-wrapper checkbox-wrapper-motivos">
         <label class="checkbox-item-inline">
           <input type="checkbox" id="check-armazenamento-inadequado" />
           <span>Armazenamento inadequado</span>
         </label>
-        <select class="inline-dropdown" id="select-motivo-armazenamento" disabled>
-          <option value="">Selecione o motivo…</option>
-          <option value="temperatura">Temperatura fora do padrão</option>
-          <option value="transporte">Transporte inadequado</option>
-          <option value="tempo">Tempo de guarda excedido</option>
-        </select>
+        <div class="motivos-container" id="motivos-armazenamento-container" style="display: none;">
+          <!-- Checkboxes de motivos serão carregados dinamicamente via JS -->
+        </div>
       </div>
 
       <!-- Linha 2 -->
