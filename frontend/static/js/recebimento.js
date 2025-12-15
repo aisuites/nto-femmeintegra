@@ -108,8 +108,8 @@ const RecebimentoModule = (() => {
       alertaMsg: document.getElementById('alert_message')
     };
     
-    // Obter CSRF token
-    csrfToken = getCookie('csrftoken');
+    // Obter CSRF token (cookie ou fallback do Django template)
+    csrfToken = getCookie('csrftoken') || window.FEMME_DATA?.csrfToken || '';
     
     // Obter dados de portadores
     portadoresData = window.FEMME_DATA?.portadores || [];

@@ -1,14 +1,22 @@
 from django.contrib import admin
 from django.db import models
 from .models import (
+    DbAmostraMotivoArmazenamentoInadequado,
     DbHistorico,
     DbLogRecebimento,
+    DbMotivoArmazenamentoInadequado,
+    DbMotivoPreenchimento,
+    DbMotivoStatusManual,
+    DbNotificacao,
+    DbOrigem,
     DbPortador,
     DbRequisicao,
     DbRequisicaoAmostra,
     DbRequisicaoArquivo,
+    DbRequisicaoPendencia,
     DbStatusRequisicao,
     DbTipoArquivo,
+    DbTipoPendencia,
     DbUnidade,
 )
 
@@ -108,3 +116,49 @@ class DbRequisicaoArquivoAdmin(ReadOnlyAdmin):
     list_filter = ['tipo_arquivo', 'data_upload']
 
 
+@admin.register(DbOrigem)
+class DbOrigemAdmin(ReadOnlyAdmin):
+    search_fields = ['descricao']
+    list_filter = ['tipo', 'ativo']
+
+
+@admin.register(DbMotivoPreenchimento)
+class DbMotivoPreenchimentoAdmin(ReadOnlyAdmin):
+    search_fields = ['descricao']
+    list_filter = ['ativo']
+
+
+@admin.register(DbMotivoStatusManual)
+class DbMotivoStatusManualAdmin(ReadOnlyAdmin):
+    search_fields = ['descricao']
+    list_filter = ['ativo']
+
+
+@admin.register(DbMotivoArmazenamentoInadequado)
+class DbMotivoArmazenamentoInadequadoAdmin(ReadOnlyAdmin):
+    search_fields = ['codigo', 'descricao']
+    list_filter = ['ativo']
+
+
+@admin.register(DbAmostraMotivoArmazenamentoInadequado)
+class DbAmostraMotivoArmazenamentoInadequadoAdmin(ReadOnlyAdmin):
+    search_fields = ['cod_barras', 'motivo__descricao']
+    list_filter = ['motivo', 'created_at']
+
+
+@admin.register(DbTipoPendencia)
+class DbTipoPendenciaAdmin(ReadOnlyAdmin):
+    search_fields = ['codigo', 'descricao']
+    list_filter = ['ativo']
+
+
+@admin.register(DbRequisicaoPendencia)
+class DbRequisicaoPendenciaAdmin(ReadOnlyAdmin):
+    search_fields = ['codigo_barras', 'tipo_pendencia__descricao']
+    list_filter = ['status', 'tipo_pendencia', 'created_at']
+
+
+@admin.register(DbNotificacao)
+class DbNotificacaoAdmin(ReadOnlyAdmin):
+    search_fields = ['titulo', 'mensagem']
+    list_filter = ['tipo', 'lida', 'created_at']

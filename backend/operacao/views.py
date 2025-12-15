@@ -62,51 +62,77 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
                     status=400
                 )
             
-            # Buscar requisição com status RECEBIDO (código 2)
+            # Buscar requisição
+            from .models import DadosRequisicao, RequisicaoAmostra
+            
+            # Primeiro, verificar se a requisição existe
             try:
-                from .models import DadosRequisicao, RequisicaoAmostra
-                
                 requisicao = DadosRequisicao.objects.select_related(
                     'status', 'unidade', 'origem'
-                ).get(
-                    cod_barras_req=cod_barras,
-                    status__codigo='2'  # RECEBIDO - Etapa 1 da triagem
-                )
-                
-                # Buscar amostras vinculadas
-                amostras = RequisicaoAmostra.objects.filter(
-                    requisicao=requisicao
-                ).order_by('ordem')
-                
-                # Montar resposta
-                return JsonResponse({
-                    'status': 'success',
-                    'requisicao': {
-                        'id': requisicao.id,
-                        'cod_req': requisicao.cod_req,
-                        'cod_barras_req': requisicao.cod_barras_req,
-                        'data_recebimento_nto': requisicao.data_recebimento_nto.strftime('%Y-%m-%d') if requisicao.data_recebimento_nto else None,
-                        'status_codigo': requisicao.status.codigo,
-                        'status_descricao': requisicao.status.descricao,
-                        'amostras': [
-                            {
-                                'id': amostra.id,
-                                'cod_barras_amostra': amostra.cod_barras_amostra,
-                                'ordem': amostra.ordem,
-                            }
-                            for amostra in amostras
-                        ]
-                    }
-                })
-                
+                ).get(cod_barras_req=cod_barras)
             except DadosRequisicao.DoesNotExist:
                 return JsonResponse(
                     {
                         'status': 'not_found',
-                        'message': 'Requisição não encontrada ou não está na etapa de triagem.'
+                        'message': 'Requisição não encontrada no sistema.'
                     },
                     status=404
                 )
+            
+            # Verificar se está no status correto para triagem etapa 1
+            # Status 2 = RECEBIDO (apto para triagem etapa 1)
+            if requisicao.status.codigo != '2':
+                # Montar mensagem explicativa baseada no status atual
+                status_atual = requisicao.status.descricao
+                status_codigo = requisicao.status.codigo
+                
+                # Mensagens específicas por status
+                if status_codigo == '1':
+                    msg = f'Requisição ainda não foi recebida no NTO. Status atual: {status_atual}'
+                elif status_codigo in ['3', '4', '5']:
+                    msg = f'Requisição já passou pela triagem etapa 1. Status atual: {status_atual}'
+                elif status_codigo == '99':
+                    msg = f'Requisição foi rejeitada. Status atual: {status_atual}'
+                else:
+                    msg = f'Requisição não está apta para triagem. Status atual: {status_atual}'
+                
+                return JsonResponse(
+                    {
+                        'status': 'not_eligible',
+                        'message': msg,
+                        'status_atual': {
+                            'codigo': status_codigo,
+                            'descricao': status_atual
+                        }
+                    },
+                    status=200  # 200 pois a requisição existe, só não está apta
+                )
+            
+            # Buscar amostras vinculadas
+            amostras = RequisicaoAmostra.objects.filter(
+                requisicao=requisicao
+            ).order_by('ordem')
+            
+            # Montar resposta
+            return JsonResponse({
+                'status': 'success',
+                'requisicao': {
+                    'id': requisicao.id,
+                    'cod_req': requisicao.cod_req,
+                    'cod_barras_req': requisicao.cod_barras_req,
+                    'data_recebimento_nto': requisicao.data_recebimento_nto.strftime('%Y-%m-%d') if requisicao.data_recebimento_nto else None,
+                    'status_codigo': requisicao.status.codigo,
+                    'status_descricao': requisicao.status.descricao,
+                    'amostras': [
+                        {
+                            'id': amostra.id,
+                            'cod_barras_amostra': amostra.cod_barras_amostra,
+                            'ordem': amostra.ordem,
+                        }
+                        for amostra in amostras
+                    ]
+                }
+            })
                 
         except json.JSONDecodeError:
             return JsonResponse(

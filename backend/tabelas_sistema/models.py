@@ -1,14 +1,21 @@
 from django.db import models
 from operacao.models import (
+    AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
     LogRecebimento,
+    MotivoArmazenamentoInadequado,
+    MotivoPreenchimento,
+    MotivoStatusManual,
+    Notificacao,
     Origem,
     PortadorRepresentante,
     RequisicaoAmostra,
     RequisicaoArquivo,
+    RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
     TipoArquivo,
+    TipoPendencia,
     Unidade,
 )
 
@@ -69,3 +76,57 @@ class DbRequisicaoArquivo(RequisicaoArquivo):
         verbose_name_plural = 'requisicao_arquivo'
 
 
+class DbOrigem(Origem):
+    class Meta:
+        proxy = True
+        verbose_name = 'origem'
+        verbose_name_plural = 'origem'
+
+
+class DbMotivoPreenchimento(MotivoPreenchimento):
+    class Meta:
+        proxy = True
+        verbose_name = 'motivo_preenchimento'
+        verbose_name_plural = 'motivo_preenchimento'
+
+
+class DbMotivoStatusManual(MotivoStatusManual):
+    class Meta:
+        proxy = True
+        verbose_name = 'motivo_status_manual'
+        verbose_name_plural = 'motivo_status_manual'
+
+
+class DbMotivoArmazenamentoInadequado(MotivoArmazenamentoInadequado):
+    class Meta:
+        proxy = True
+        verbose_name = 'motivo_armazen_inadequado'
+        verbose_name_plural = 'motivo_armazen_inadequado'
+
+
+class DbAmostraMotivoArmazenamentoInadequado(AmostraMotivoArmazenamentoInadequado):
+    class Meta:
+        proxy = True
+        verbose_name = 'amostra_mtv_armaz_inadequado'
+        verbose_name_plural = 'amostra_mtv_armaz_inadequado'
+
+
+class DbTipoPendencia(TipoPendencia):
+    class Meta:
+        proxy = True
+        verbose_name = 'tipo_pendencia'
+        verbose_name_plural = 'tipo_pendencia'
+
+
+class DbRequisicaoPendencia(RequisicaoPendencia):
+    class Meta:
+        proxy = True
+        verbose_name = 'requisicao_pendencia'
+        verbose_name_plural = 'requisicao_pendencia'
+
+
+class DbNotificacao(Notificacao):
+    class Meta:
+        proxy = True
+        verbose_name = 'notificacao'
+        verbose_name_plural = 'notificacao'

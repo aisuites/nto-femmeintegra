@@ -61,6 +61,45 @@ let amostrasAtual = [];
 // Funções de alerta removidas - usar mostrarAlerta() e mostrarMensagemSucesso()
 
 /**
+ * Mostra mensagem de erro abaixo do campo de código de barras
+ */
+function mostrarMensagemErroLocalizacao(mensagem) {
+  let erroDiv = document.getElementById('erro-localizacao');
+  
+  if (!erroDiv) {
+    // Criar div de erro se não existir
+    erroDiv = document.createElement('div');
+    erroDiv.id = 'erro-localizacao';
+    erroDiv.className = 'erro-localizacao';
+    
+    // Inserir após o help-text do código de barras
+    const helpText = document.querySelector('.help-text');
+    if (helpText) {
+      helpText.parentNode.insertBefore(erroDiv, helpText.nextSibling);
+    } else {
+      // Fallback: inserir após o input-group
+      const inputGroup = inputCodBarras.closest('.input-group');
+      if (inputGroup) {
+        inputGroup.parentNode.insertBefore(erroDiv, inputGroup.nextSibling);
+      }
+    }
+  }
+  
+  erroDiv.innerHTML = `<strong>Ops!</strong> ${mensagem}`;
+  erroDiv.style.display = 'block';
+}
+
+/**
+ * Oculta mensagem de erro de localização
+ */
+function ocultarMensagemErroLocalizacao() {
+  const erroDiv = document.getElementById('erro-localizacao');
+  if (erroDiv) {
+    erroDiv.style.display = 'none';
+  }
+}
+
+/**
  * Limpa o formulário
  */
 function limparFormulario() {
@@ -179,12 +218,16 @@ btnLocalizar.addEventListener('click', async () => {
     const data = await response.json();
     
     if (data.status === 'success') {
+      ocultarMensagemErroLocalizacao();
       carregarRequisicao(data.requisicao);
     } else if (data.status === 'not_found') {
-      mostrarAlerta('Requisição não encontrada ou não está na etapa de triagem.');
+      mostrarMensagemErroLocalizacao(data.message || 'Requisição não encontrada no sistema.');
+      limparFormulario();
+    } else if (data.status === 'not_eligible') {
+      mostrarMensagemErroLocalizacao(data.message);
       limparFormulario();
     } else {
-      mostrarAlerta(data.message || 'Erro ao localizar requisição.');
+      mostrarMensagemErroLocalizacao(data.message || 'Erro ao localizar requisição.');
     }
     
   } catch (error) {
