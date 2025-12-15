@@ -14,8 +14,9 @@ from django.views import View
 from django_ratelimit.decorators import ratelimit
 
 from .models import (
+    AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
-    ListaMotivoInadequado,
+    MotivoArmazenamentoInadequado,
     RequisicaoAmostra,
     RequisicaoStatusHistorico,
     StatusRequisicao,
@@ -44,7 +45,7 @@ class ListarMotivosInadequadosView(LoginRequiredMixin, View):
     
     def get(self, request):
         try:
-            motivos = ListaMotivoInadequado.objects.filter(
+            motivos = MotivoArmazenamentoInadequado.objects.filter(
                 ativo=True
             ).values('id', 'codigo', 'descricao').order_by('codigo')
             

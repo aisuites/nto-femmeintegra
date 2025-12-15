@@ -2,19 +2,22 @@ from django.contrib import admin, messages
 from django.core.cache import cache
 
 from .models import (
-    RequisicaoAmostra,
+    AmostraMotivoArmazenamentoInadequado,
+    ListaMotivoInadequado,
     LogRecebimento,
+    MotivoArmazenamentoInadequado,
     MotivoPreenchimento,
     MotivoStatusManual,
     Notificacao,
     Origem,
     PortadorRepresentante,
     DadosRequisicao,
+    RequisicaoAmostra,
+    RequisicaoArquivo,
     RequisicaoStatusHistorico,
     StatusRequisicao,
-    Unidade,
     TipoArquivo,
-    RequisicaoArquivo,
+    Unidade,
 )
 
 
@@ -276,3 +279,52 @@ class RequisicaoArquivoAdmin(admin.ModelAdmin):
         return '-'
     data_upload_formatted.short_description = 'Data Upload'
     data_upload_formatted.admin_order_field = 'data_upload'
+
+
+@admin.register(ListaMotivoInadequado)
+class ListaMotivoInadequadoAdmin(admin.ModelAdmin):
+    """Admin para tabela antiga de motivos (deprecada)."""
+    list_display = ('codigo', 'descricao', 'ativo', 'created_at_formatted')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'descricao')
+    ordering = ('codigo',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Criado em'
+
+
+@admin.register(MotivoArmazenamentoInadequado)
+class MotivoArmazenamentoInadequadoAdmin(admin.ModelAdmin):
+    """Admin para motivos de armazenamento inadequado."""
+    list_display = ('codigo', 'descricao', 'ativo', 'created_at_formatted')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'descricao')
+    ordering = ('codigo',)
+    list_editable = ('ativo',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Criado em'
+
+
+@admin.register(AmostraMotivoArmazenamentoInadequado)
+class AmostraMotivoArmazenamentoInadequadoAdmin(admin.ModelAdmin):
+    """Admin para relação N:N entre amostra e motivo de armazenamento inadequado."""
+    list_display = ('amostra', 'cod_barras', 'motivo', 'usuario', 'created_at_formatted')
+    list_filter = ('motivo', 'created_at')
+    search_fields = ('cod_barras', 'amostra__cod_barras_amostra', 'motivo__descricao')
+    raw_id_fields = ('amostra',)
+    autocomplete_fields = ('motivo', 'usuario')
+    date_hierarchy = 'created_at'
+    ordering = ('-created_at',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Registrado em'

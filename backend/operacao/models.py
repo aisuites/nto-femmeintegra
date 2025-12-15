@@ -138,6 +138,94 @@ class ListaMotivoInadequado(TimeStampedModel):
         return f'{self.codigo} - {self.descricao}'
 
 
+class MotivoArmazenamentoInadequado(TimeStampedModel):
+    """
+    Lista de motivos de armazenamento inadequado de amostras.
+    Usado na triagem etapa 1 quando flag_armazenamento_inadequado=True.
+    Uma amostra pode ter múltiplos motivos associados via tabela intermediária.
+    """
+    codigo = models.CharField(
+        'Código',
+        max_length=20,
+        unique=True,
+        db_index=True,
+        help_text='Código único do motivo (ex: TEMP, FRASC, VAZAM)'
+    )
+    descricao = models.CharField(
+        'Descrição',
+        max_length=200,
+        help_text='Descrição do motivo de armazenamento inadequado'
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        db_index=True,
+        help_text='Indica se o motivo está disponível para seleção'
+    )
+
+    class Meta:
+        db_table = 'motivo_armazen_inadequado'
+        ordering = ('codigo', 'descricao')
+        verbose_name = 'Motivo de Armazenamento Inadequado'
+        verbose_name_plural = 'Motivos de Armazenamento Inadequado'
+
+    def __str__(self) -> str:
+        return f'{self.codigo} - {self.descricao}'
+
+
+class AmostraMotivoArmazenamentoInadequado(TimeStampedModel):
+    """
+    Tabela intermediária para relação N:N entre Amostra e Motivo de Armazenamento Inadequado.
+    Permite que uma amostra tenha múltiplos motivos de armazenamento inadequado.
+    Inclui auditoria de quem registrou e quando.
+    """
+    amostra = models.ForeignKey(
+        'RequisicaoAmostra',
+        on_delete=models.CASCADE,
+        related_name='motivos_armazenamento_inadequado',
+        verbose_name='Amostra',
+        help_text='Amostra associada ao motivo'
+    )
+    cod_barras = models.CharField(
+        'Código de barras da amostra',
+        max_length=64,
+        db_index=True,
+        help_text='Código de barras da amostra (desnormalizado para auditoria)'
+    )
+    motivo = models.ForeignKey(
+        'MotivoArmazenamentoInadequado',
+        on_delete=models.PROTECT,
+        related_name='amostras_associadas',
+        verbose_name='Motivo',
+        help_text='Motivo de armazenamento inadequado'
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='motivos_armazenamento_registrados',
+        verbose_name='Usuário',
+        help_text='Usuário que registrou o motivo'
+    )
+
+    class Meta:
+        db_table = 'amostra_mtv_armaz_inadequado'
+        ordering = ('-created_at',)
+        verbose_name = 'Motivo de Armazenamento Inadequado da Amostra'
+        verbose_name_plural = 'Motivos de Armazenamento Inadequado das Amostras'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['amostra', 'motivo'],
+                name='unique_amostra_motivo'
+            )
+        ]
+        indexes = [
+            models.Index(fields=['amostra', 'motivo'], name='idx_amostra_motivo'),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.amostra} - {self.motivo.descricao}'
+
+
 class LogRecebimento(TimeStampedModel):
     cod_barras_req = models.CharField('Código de barras da requisição', max_length=64, unique=True)
     dados = models.JSONField('Payload bruto', default=dict, blank=True)
