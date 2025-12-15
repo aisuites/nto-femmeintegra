@@ -34,7 +34,10 @@ const checkDataRasurada = document.getElementById('check-data-rasurada');
 const checkSemValidade = document.getElementById('check-sem-validade');
 const checkSemIdentificacao = document.getElementById('check-sem-identificacao');
 const checkArmazenamentoInadequado = document.getElementById('check-armazenamento-inadequado');
-const selectMotivoArmazenamento = document.getElementById('select-motivo-armazenamento');
+const multiselectMotivo = document.getElementById('multiselect-motivo-armazenamento');
+const multiselectBtn = multiselectMotivo.querySelector('.multiselect-btn');
+const multiselectText = multiselectMotivo.querySelector('.multiselect-text');
+const multiselectOptions = multiselectMotivo.querySelector('.multiselect-options');
 const checkFrascoTrocado = document.getElementById('check-frasco-trocado');
 const checkMaterialNaoAnalisado = document.getElementById('check-material-nao-analisado');
 
@@ -475,7 +478,7 @@ async function carregarMotivosInadequados() {
     
     if (data.status === 'success') {
       motivosInadequadosCache = data.motivos;
-      popularSelectMotivos();
+      popularMultiselectMotivos();
     }
   } catch (error) {
     console.error('Erro ao carregar motivos inadequados:', error);
@@ -483,32 +486,99 @@ async function carregarMotivosInadequados() {
 }
 
 /**
- * Popula select de motivos inadequados (multiselect)
+ * Popula multiselect dropdown com checkboxes
  */
-function popularSelectMotivos() {
-  selectMotivoArmazenamento.innerHTML = '';
+function popularMultiselectMotivos() {
+  multiselectOptions.innerHTML = '';
   
   motivosInadequadosCache.forEach(motivo => {
-    const option = document.createElement('option');
-    option.value = motivo.id;
-    option.textContent = motivo.descricao;
-    selectMotivoArmazenamento.appendChild(option);
+    const div = document.createElement('div');
+    div.className = 'multiselect-option';
+    div.innerHTML = `
+      <input type="checkbox" id="motivo-${motivo.id}" value="${motivo.id}" data-codigo="${motivo.codigo}">
+      <label for="motivo-${motivo.id}">${motivo.descricao}</label>
+    `;
+    
+    // Event listener para checkbox
+    const checkbox = div.querySelector('input[type="checkbox"]');
+    checkbox.addEventListener('change', () => {
+      div.classList.toggle('selected', checkbox.checked);
+      atualizarTextoMultiselect();
+    });
+    
+    // Click na div também marca o checkbox
+    div.addEventListener('click', (e) => {
+      if (e.target.tagName !== 'INPUT') {
+        checkbox.checked = !checkbox.checked;
+        div.classList.toggle('selected', checkbox.checked);
+        atualizarTextoMultiselect();
+      }
+    });
+    
+    multiselectOptions.appendChild(div);
   });
 }
 
 /**
- * Obtém IDs dos motivos selecionados (multiselect)
+ * Atualiza texto do botão multiselect
+ */
+function atualizarTextoMultiselect() {
+  const selecionados = getMotivosInadequadosSelecionados();
+  
+  if (selecionados.length === 0) {
+    multiselectText.textContent = 'Selecione o motivo...';
+  } else if (selecionados.length === 1) {
+    const motivo = motivosInadequadosCache.find(m => m.id === selecionados[0]);
+    multiselectText.textContent = motivo ? motivo.descricao : '1 selecionado';
+  } else {
+    multiselectText.textContent = `${selecionados.length} selecionados`;
+  }
+}
+
+/**
+ * Obtém IDs dos motivos selecionados
  */
 function getMotivosInadequadosSelecionados() {
-  const selectedOptions = selectMotivoArmazenamento.selectedOptions;
-  return Array.from(selectedOptions).map(opt => parseInt(opt.value));
+  const checkboxes = multiselectOptions.querySelectorAll('input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => parseInt(cb.value));
 }
 
 /**
  * Limpa seleção de motivos
  */
-function limparSelectMotivos() {
-  Array.from(selectMotivoArmazenamento.options).forEach(opt => opt.selected = false);
+function limparMultiselectMotivos() {
+  const checkboxes = multiselectOptions.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach(cb => {
+    cb.checked = false;
+    cb.closest('.multiselect-option').classList.remove('selected');
+  });
+  multiselectText.textContent = 'Selecione o motivo...';
+}
+
+/**
+ * Abre/fecha o dropdown multiselect
+ */
+function toggleMultiselect() {
+  if (!multiselectBtn.disabled) {
+    multiselectMotivo.classList.toggle('open');
+  }
+}
+
+/**
+ * Fecha o dropdown multiselect
+ */
+function fecharMultiselect() {
+  multiselectMotivo.classList.remove('open');
+}
+
+/**
+ * Habilita/desabilita o multiselect
+ */
+function setMultiselectDisabled(disabled) {
+  multiselectBtn.disabled = disabled;
+  if (disabled) {
+    fecharMultiselect();
+  }
 }
 
 /**
@@ -600,9 +670,9 @@ function aoSelecionarAmostra(amostraId) {
   checkFrascoTrocado.checked = amostra.flags.frasco_trocado;
   checkMaterialNaoAnalisado.checked = amostra.flags.material_nao_analisado;
   
-  // Motivos inadequados - habilitar select se flag marcada
-  selectMotivoArmazenamento.disabled = !amostra.flags.armazenamento_inadequado;
-  limparSelectMotivos();
+  // Motivos inadequados - habilitar multiselect se flag marcada
+  setMultiselectDisabled(!amostra.flags.armazenamento_inadequado);
+  limparMultiselectMotivos();
   // TODO: Carregar motivos já associados à amostra se existirem
 }
 
@@ -618,8 +688,8 @@ function limparCamposAmostra() {
   checkArmazenamentoInadequado.checked = false;
   checkFrascoTrocado.checked = false;
   checkMaterialNaoAnalisado.checked = false;
-  selectMotivoArmazenamento.disabled = true;
-  limparSelectMotivos();
+  setMultiselectDisabled(true);
+  limparMultiselectMotivos();
   amostraAtualId = null;
 }
 
@@ -941,11 +1011,21 @@ function getCsrfToken() {
 // EVENT LISTENERS - TRIAGEM ETAPA 1
 // ============================================
 
-// Habilitar/desabilitar select de motivos ao marcar checkbox
+// Habilitar/desabilitar multiselect de motivos ao marcar checkbox
 checkArmazenamentoInadequado.addEventListener('change', function() {
-  selectMotivoArmazenamento.disabled = !this.checked;
+  setMultiselectDisabled(!this.checked);
   if (!this.checked) {
-    limparSelectMotivos();
+    limparMultiselectMotivos();
+  }
+});
+
+// Toggle do dropdown multiselect
+multiselectBtn.addEventListener('click', toggleMultiselect);
+
+// Fechar dropdown ao clicar fora
+document.addEventListener('click', function(e) {
+  if (!multiselectMotivo.contains(e.target)) {
+    fecharMultiselect();
   }
 });
 

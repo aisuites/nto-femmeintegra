@@ -135,9 +135,15 @@
           <input type="checkbox" id="check-armazenamento-inadequado" />
           <span>Armazenamento inadequado</span>
         </label>
-        <select class="inline-dropdown" id="select-motivo-armazenamento" multiple disabled>
-          <!-- Options serão carregados dinamicamente via JS -->
-        </select>
+        <div class="multiselect-dropdown" id="multiselect-motivo-armazenamento">
+          <button type="button" class="multiselect-btn" disabled>
+            <span class="multiselect-text">Selecione o motivo...</span>
+            <span class="multiselect-arrow">▼</span>
+          </button>
+          <div class="multiselect-options">
+            <!-- Options serão carregados dinamicamente via JS -->
+          </div>
+        </div>
       </div>
 
       <!-- Linha 2 -->

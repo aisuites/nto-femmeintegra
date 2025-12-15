@@ -327,21 +327,117 @@ input[readonly] {
   margin-bottom: 12px;
 }
 
-/* SELECT MULTISELECT DE MOTIVOS */
-select[multiple].inline-dropdown {
-  min-height: 80px;
-  padding: 4px;
+/* CUSTOM MULTISELECT DROPDOWN COM CHECKBOXES */
+.multiselect-dropdown {
+  position: relative;
+  display: inline-block;
+  min-width: 180px;
 }
 
-select[multiple].inline-dropdown option {
-  padding: 4px 8px;
-  border-radius: 4px;
-  margin-bottom: 2px;
+.multiselect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #495057;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-select[multiple].inline-dropdown option:checked {
-  background: linear-gradient(0deg, #6f42c1 0%, #6f42c1 100%);
-  color: white;
+.multiselect-btn:hover:not(:disabled) {
+  border-color: #6f42c1;
+}
+
+.multiselect-btn:focus {
+  outline: none;
+  border-color: #6f42c1;
+  box-shadow: 0 0 0 2px rgba(111, 66, 193, 0.25);
+}
+
+.multiselect-btn:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.multiselect-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.multiselect-arrow {
+  font-size: 10px;
+  margin-left: 8px;
+  transition: transform 0.2s ease;
+}
+
+.multiselect-dropdown.open .multiselect-arrow {
+  transform: rotate(180deg);
+}
+
+.multiselect-options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.multiselect-dropdown.open .multiselect-options {
+  display: block;
+}
+
+.multiselect-dropdown.open .multiselect-btn {
+  border-radius: 6px 6px 0 0;
+  border-color: #6f42c1;
+}
+
+.multiselect-option {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.multiselect-option:hover {
+  background-color: #f8f9fa;
+}
+
+.multiselect-option.selected {
+  background-color: #e9ecef;
+}
+
+.multiselect-option input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-right: 10px;
+  accent-color: #6f42c1;
+  cursor: pointer;
+}
+
+.multiselect-option label {
+  flex: 1;
+  margin: 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: #495057;
 }
 
 /* RESPONSIVIDADE */
