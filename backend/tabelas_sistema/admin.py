@@ -1,15 +1,18 @@
 from django.contrib import admin
 from django.db import models
 from .models import (
-    DbRequisicao,
-    DbStatusRequisicao,
-    DbLogRecebimento,
+    DbAmostraMotivoArmazenamentoInadequado,
     DbHistorico,
-    DbUnidade,
+    DbListaMotivoInadequado,
+    DbLogRecebimento,
+    DbMotivoArmazenamentoInadequado,
     DbPortador,
+    DbRequisicao,
     DbRequisicaoAmostra,
-    DbTipoArquivo,
     DbRequisicaoArquivo,
+    DbStatusRequisicao,
+    DbTipoArquivo,
+    DbUnidade,
 )
 
 class ReadOnlyAdmin(admin.ModelAdmin):
@@ -106,3 +109,21 @@ class DbTipoArquivoAdmin(ReadOnlyAdmin):
 class DbRequisicaoArquivoAdmin(ReadOnlyAdmin):
     search_fields = ['cod_req', 'nome_arquivo']
     list_filter = ['tipo_arquivo', 'data_upload']
+
+
+@admin.register(DbListaMotivoInadequado)
+class DbListaMotivoInadequadoAdmin(ReadOnlyAdmin):
+    search_fields = ['codigo', 'descricao']
+    list_filter = ['ativo']
+
+
+@admin.register(DbMotivoArmazenamentoInadequado)
+class DbMotivoArmazenamentoInadequadoAdmin(ReadOnlyAdmin):
+    search_fields = ['codigo', 'descricao']
+    list_filter = ['ativo']
+
+
+@admin.register(DbAmostraMotivoArmazenamentoInadequado)
+class DbAmostraMotivoArmazenamentoInadequadoAdmin(ReadOnlyAdmin):
+    search_fields = ['cod_barras', 'motivo__descricao']
+    list_filter = ['motivo', 'created_at']

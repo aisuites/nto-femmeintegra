@@ -1,15 +1,18 @@
 from django.db import models
 from operacao.models import (
-    DadosRequisicao, 
-    StatusRequisicao, 
-    LogRecebimento, 
-    RequisicaoStatusHistorico,
-    Unidade,
-    PortadorRepresentante,
+    AmostraMotivoArmazenamentoInadequado,
+    DadosRequisicao,
+    ListaMotivoInadequado,
+    LogRecebimento,
+    MotivoArmazenamentoInadequado,
     Origem,
+    PortadorRepresentante,
     RequisicaoAmostra,
-    TipoArquivo,
     RequisicaoArquivo,
+    RequisicaoStatusHistorico,
+    StatusRequisicao,
+    TipoArquivo,
+    Unidade,
 )
 
 # Criamos modelos "Proxy" para exibir no novo menu sem duplicar tabelas no banco
@@ -67,3 +70,24 @@ class DbRequisicaoArquivo(RequisicaoArquivo):
         proxy = True
         verbose_name = 'requisicao_arquivo'
         verbose_name_plural = 'requisicao_arquivo'
+
+
+class DbListaMotivoInadequado(ListaMotivoInadequado):
+    class Meta:
+        proxy = True
+        verbose_name = 'lista_motivo_inadequado'
+        verbose_name_plural = 'lista_motivo_inadequado'
+
+
+class DbMotivoArmazenamentoInadequado(MotivoArmazenamentoInadequado):
+    class Meta:
+        proxy = True
+        verbose_name = 'motivo_armazen_inadequado'
+        verbose_name_plural = 'motivo_armazen_inadequado'
+
+
+class DbAmostraMotivoArmazenamentoInadequado(AmostraMotivoArmazenamentoInadequado):
+    class Meta:
+        proxy = True
+        verbose_name = 'amostra_mtv_armaz_inadequado'
+        verbose_name_plural = 'amostra_mtv_armaz_inadequado'
