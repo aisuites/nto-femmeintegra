@@ -225,7 +225,7 @@ class RequisicaoService:
                 'Requisição criada com sucesso. '
                 'Código: %s, Usuário: %s, Unidade: %s, RequisicaoAmostras: %d',
                 cod_req,
-                user.username,
+                user.username if user else 'N/A',
                 fks['unidade'].nome,
                 len(cod_barras_amostras)
             )
@@ -238,10 +238,10 @@ class RequisicaoService:
             }
             
         except Exception as e:
-            logger.exception('Erro ao criar requisição')
+            logger.exception('Erro ao criar requisição: %s', str(e))
             return {
                 'status': 'error',
-                'message': 'Erro ao salvar requisição. Tente novamente.',
+                'message': f'Erro ao salvar requisição: {str(e)}',
             }
 
 
