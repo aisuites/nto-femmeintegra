@@ -3,7 +3,6 @@ from django.core.cache import cache
 
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
-    ListaMotivoInadequado,
     LogRecebimento,
     MotivoArmazenamentoInadequado,
     MotivoPreenchimento,
@@ -279,21 +278,6 @@ class RequisicaoArquivoAdmin(admin.ModelAdmin):
         return '-'
     data_upload_formatted.short_description = 'Data Upload'
     data_upload_formatted.admin_order_field = 'data_upload'
-
-
-@admin.register(ListaMotivoInadequado)
-class ListaMotivoInadequadoAdmin(admin.ModelAdmin):
-    """Admin para tabela antiga de motivos (deprecada)."""
-    list_display = ('codigo', 'descricao', 'ativo', 'created_at_formatted')
-    list_filter = ('ativo',)
-    search_fields = ('codigo', 'descricao')
-    ordering = ('codigo',)
-    
-    def created_at_formatted(self, obj):
-        if obj.created_at:
-            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
-        return '-'
-    created_at_formatted.short_description = 'Criado em'
 
 
 @admin.register(MotivoArmazenamentoInadequado)

@@ -108,36 +108,6 @@ class MotivoStatusManual(TimeStampedModel):
         return self.descricao
 
 
-class ListaMotivoInadequado(TimeStampedModel):
-    """
-    Lista de motivos de armazenamento inadequado de amostras.
-    Usado na triagem etapa 1 quando flag_armazenamento_inadequado=True.
-    """
-    codigo = models.CharField(
-        'Código',
-        max_length=20,
-        unique=True,
-        help_text='Código único do motivo'
-    )
-    descricao = models.CharField(
-        'Descrição',
-        max_length=200
-    )
-    ativo = models.BooleanField(
-        'Ativo',
-        default=True
-    )
-
-    class Meta:
-        db_table = 'lista_motivo_inadequado'
-        ordering = ('codigo', 'descricao')
-        verbose_name = 'Motivo de Armazenamento Inadequado'
-        verbose_name_plural = 'Motivos de Armazenamento Inadequado'
-
-    def __str__(self) -> str:
-        return f'{self.codigo} - {self.descricao}'
-
-
 class MotivoArmazenamentoInadequado(TimeStampedModel):
     """
     Lista de motivos de armazenamento inadequado de amostras.
@@ -468,16 +438,6 @@ class RequisicaoAmostra(AuditModel):
     flag_material_nao_analisado = models.BooleanField(
         'Tipo de material não analisado pelo FEMME',
         default=False,
-    )
-    motivo_inadequado = models.ForeignKey(
-        'ListaMotivoInadequado',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='amostras',
-        verbose_name='Motivo de armazenamento inadequado',
-        help_text='Motivo quando flag_armazenamento_inadequado=True',
-        db_column='motivo_inadequado_id',
     )
     
     # Campo de validação da triagem etapa 1

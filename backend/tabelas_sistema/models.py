@@ -2,7 +2,6 @@ from django.db import models
 from operacao.models import (
     AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
-    ListaMotivoInadequado,
     LogRecebimento,
     MotivoArmazenamentoInadequado,
     Origem,
@@ -70,13 +69,6 @@ class DbRequisicaoArquivo(RequisicaoArquivo):
         proxy = True
         verbose_name = 'requisicao_arquivo'
         verbose_name_plural = 'requisicao_arquivo'
-
-
-class DbListaMotivoInadequado(ListaMotivoInadequado):
-    class Meta:
-        proxy = True
-        verbose_name = 'lista_motivo_inadequado'
-        verbose_name_plural = 'lista_motivo_inadequado'
 
 
 class DbMotivoArmazenamentoInadequado(MotivoArmazenamentoInadequado):

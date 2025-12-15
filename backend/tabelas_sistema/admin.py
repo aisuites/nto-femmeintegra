@@ -3,7 +3,6 @@ from django.db import models
 from .models import (
     DbAmostraMotivoArmazenamentoInadequado,
     DbHistorico,
-    DbListaMotivoInadequado,
     DbLogRecebimento,
     DbMotivoArmazenamentoInadequado,
     DbPortador,
@@ -109,12 +108,6 @@ class DbTipoArquivoAdmin(ReadOnlyAdmin):
 class DbRequisicaoArquivoAdmin(ReadOnlyAdmin):
     search_fields = ['cod_req', 'nome_arquivo']
     list_filter = ['tipo_arquivo', 'data_upload']
-
-
-@admin.register(DbListaMotivoInadequado)
-class DbListaMotivoInadequadoAdmin(ReadOnlyAdmin):
-    search_fields = ['codigo', 'descricao']
-    list_filter = ['ativo']
 
 
 @admin.register(DbMotivoArmazenamentoInadequado)
