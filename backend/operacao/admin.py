@@ -13,9 +13,11 @@ from .models import (
     DadosRequisicao,
     RequisicaoAmostra,
     RequisicaoArquivo,
+    RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
     TipoArquivo,
+    TipoPendencia,
     Unidade,
 )
 
@@ -306,6 +308,41 @@ class AmostraMotivoArmazenamentoInadequadoAdmin(admin.ModelAdmin):
     autocomplete_fields = ('motivo', 'usuario')
     date_hierarchy = 'created_at'
     ordering = ('-created_at',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Registrado em'
+
+
+@admin.register(TipoPendencia)
+class TipoPendenciaAdmin(admin.ModelAdmin):
+    """Admin para tipos de pendência."""
+    list_display = ('codigo', 'descricao', 'ativo', 'created_at_formatted')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'descricao')
+    ordering = ('codigo',)
+    list_editable = ('ativo',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
+        return '-'
+    created_at_formatted.short_description = 'Criado em'
+
+
+@admin.register(RequisicaoPendencia)
+class RequisicaoPendenciaAdmin(admin.ModelAdmin):
+    """Admin para pendências de requisições."""
+    list_display = ('codigo_barras', 'tipo_pendencia', 'status', 'usuario', 'created_at_formatted')
+    list_filter = ('status', 'tipo_pendencia', 'created_at')
+    search_fields = ('codigo_barras', 'requisicao__cod_barras_req', 'tipo_pendencia__descricao')
+    raw_id_fields = ('requisicao',)
+    autocomplete_fields = ('tipo_pendencia', 'usuario')
+    date_hierarchy = 'created_at'
+    ordering = ('-created_at',)
+    list_editable = ('status',)
     
     def created_at_formatted(self, obj):
         if obj.created_at:

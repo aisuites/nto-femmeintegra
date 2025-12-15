@@ -196,6 +196,98 @@ class AmostraMotivoArmazenamentoInadequado(TimeStampedModel):
         return f'{self.amostra} - {self.motivo.descricao}'
 
 
+class TipoPendencia(TimeStampedModel):
+    """
+    Tipos de pendências que podem ser registradas para requisições.
+    Ex: CPF em branco, Dados convênio incompletos, etc.
+    """
+    codigo = models.PositiveSmallIntegerField(
+        'Código',
+        unique=True,
+        db_index=True,
+        help_text='Código único do tipo de pendência'
+    )
+    descricao = models.CharField(
+        'Descrição',
+        max_length=200,
+        help_text='Descrição do tipo de pendência'
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        db_index=True,
+        help_text='Indica se o tipo de pendência está disponível para uso'
+    )
+
+    class Meta:
+        db_table = 'tipo_pendencia'
+        ordering = ('codigo',)
+        verbose_name = 'Tipo de Pendência'
+        verbose_name_plural = 'Tipos de Pendência'
+
+    def __str__(self) -> str:
+        return f'{self.codigo} - {self.descricao}'
+
+
+class RequisicaoPendencia(TimeStampedModel):
+    """
+    Pendências registradas para requisições.
+    Uma requisição pode ter várias pendências.
+    """
+    class StatusPendencia(models.TextChoices):
+        PENDENTE = 'PENDENTE', 'Pendente'
+        RESOLVIDO = 'RESOLVIDO', 'Resolvido'
+
+    requisicao = models.ForeignKey(
+        'DadosRequisicao',
+        on_delete=models.CASCADE,
+        related_name='pendencias',
+        verbose_name='Requisição',
+        help_text='Requisição associada à pendência'
+    )
+    codigo_barras = models.CharField(
+        'Código de barras',
+        max_length=64,
+        db_index=True,
+        help_text='Código de barras da requisição (desnormalizado para auditoria)'
+    )
+    tipo_pendencia = models.ForeignKey(
+        'TipoPendencia',
+        on_delete=models.PROTECT,
+        related_name='pendencias',
+        verbose_name='Tipo de Pendência',
+        help_text='Tipo da pendência registrada'
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='pendencias_registradas',
+        verbose_name='Usuário',
+        help_text='Usuário que registrou a pendência'
+    )
+    status = models.CharField(
+        'Status',
+        max_length=10,
+        choices=StatusPendencia.choices,
+        default=StatusPendencia.PENDENTE,
+        db_index=True,
+        help_text='Status da pendência'
+    )
+
+    class Meta:
+        db_table = 'requisicao_pendencia'
+        ordering = ('-created_at',)
+        verbose_name = 'Pendência da Requisição'
+        verbose_name_plural = 'Pendências das Requisições'
+        indexes = [
+            models.Index(fields=['requisicao', 'tipo_pendencia'], name='idx_req_tipo_pend'),
+            models.Index(fields=['status', '-created_at'], name='idx_status_created'),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.codigo_barras} - {self.tipo_pendencia.descricao} ({self.status})'
+
+
 class LogRecebimento(TimeStampedModel):
     cod_barras_req = models.CharField('Código de barras da requisição', max_length=64, unique=True)
     dados = models.JSONField('Payload bruto', default=dict, blank=True)
