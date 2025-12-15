@@ -681,9 +681,10 @@ async function validarFormularioAmostra() {
   // 3. Verificar se flag data rasurada está selecionado (apenas verificação, não bloqueia)
   // Este é um impeditivo que será tratado no backend
   
-  // 4. Data de validade obrigatória (validação de prazo é impeditivo - tratado no backend)
-  if (!amostraDataValidade.value) {
-    mostrarAlerta('Informe a data de validade');
+  // 4. Data de validade obrigatória APENAS SE checkbox "sem data de validade" NÃO estiver marcado
+  // Se checkbox estiver marcado, segue como impeditivo (tratado no backend)
+  if (!amostraDataValidade.value && !checkSemValidade.checked) {
+    mostrarAlerta('Informe a data de validade ou marque "Sem data de validade"');
     return false;
   }
   

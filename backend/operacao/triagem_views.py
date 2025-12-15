@@ -307,9 +307,10 @@ class SalvarAmostraTriagemView(LoginRequiredMixin, View):
             # VALIDAÇÕES
             erros = []
             
-            # 1. Data de validade obrigatória
-            if not amostra.data_validade:
-                erros.append('Data de validade é obrigatória')
+            # 1. Data de validade obrigatória APENAS SE flag "sem data de validade" NÃO estiver marcada
+            # Se flag estiver marcada, segue como impeditivo (não bloqueia)
+            if not amostra.data_validade and not amostra.flag_sem_data_validade:
+                erros.append('Data de validade é obrigatória ou marque "Sem data de validade"')
             
             # 2. Se armazenamento inadequado, motivo é obrigatório
             if amostra.flag_armazenamento_inadequado and not amostra.motivo_inadequado_id:
