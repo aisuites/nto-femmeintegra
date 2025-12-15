@@ -327,39 +327,21 @@ input[readonly] {
   margin-bottom: 12px;
 }
 
-/* CONTAINER DE MÚLTIPLOS MOTIVOS */
-.checkbox-wrapper-motivos {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* SELECT MULTISELECT DE MOTIVOS */
+select[multiple].inline-dropdown {
+  min-height: 80px;
+  padding: 4px;
 }
 
-.motivos-container {
-  margin-left: 24px;
-  padding: 8px 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 3px solid #6f42c1;
+select[multiple].inline-dropdown option {
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 2px;
 }
 
-.motivos-container label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 13px;
-  color: #495057;
-  cursor: pointer;
-}
-
-.motivos-container label:hover {
-  color: #6f42c1;
-}
-
-.motivos-container input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #6f42c1;
+select[multiple].inline-dropdown option:checked {
+  background: linear-gradient(0deg, #6f42c1 0%, #6f42c1 100%);
+  color: white;
 }
 
 /* RESPONSIVIDADE */

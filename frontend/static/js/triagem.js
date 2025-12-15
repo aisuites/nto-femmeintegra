@@ -34,7 +34,7 @@ const checkDataRasurada = document.getElementById('check-data-rasurada');
 const checkSemValidade = document.getElementById('check-sem-validade');
 const checkSemIdentificacao = document.getElementById('check-sem-identificacao');
 const checkArmazenamentoInadequado = document.getElementById('check-armazenamento-inadequado');
-const motivosContainer = document.getElementById('motivos-armazenamento-container');
+const selectMotivoArmazenamento = document.getElementById('select-motivo-armazenamento');
 const checkFrascoTrocado = document.getElementById('check-frasco-trocado');
 const checkMaterialNaoAnalisado = document.getElementById('check-material-nao-analisado');
 
@@ -475,7 +475,7 @@ async function carregarMotivosInadequados() {
     
     if (data.status === 'success') {
       motivosInadequadosCache = data.motivos;
-      popularMotivosCheckboxes();
+      popularSelectMotivos();
     }
   } catch (error) {
     console.error('Erro ao carregar motivos inadequados:', error);
@@ -483,35 +483,32 @@ async function carregarMotivosInadequados() {
 }
 
 /**
- * Popula container com checkboxes de motivos inadequados
+ * Popula select de motivos inadequados (multiselect)
  */
-function popularMotivosCheckboxes() {
-  motivosContainer.innerHTML = '';
+function popularSelectMotivos() {
+  selectMotivoArmazenamento.innerHTML = '';
   
   motivosInadequadosCache.forEach(motivo => {
-    const label = document.createElement('label');
-    label.innerHTML = `
-      <input type="checkbox" name="motivo-inadequado" value="${motivo.id}" data-codigo="${motivo.codigo}">
-      <span>${motivo.descricao}</span>
-    `;
-    motivosContainer.appendChild(label);
+    const option = document.createElement('option');
+    option.value = motivo.id;
+    option.textContent = motivo.descricao;
+    selectMotivoArmazenamento.appendChild(option);
   });
 }
 
 /**
- * Obtém IDs dos motivos selecionados
+ * Obtém IDs dos motivos selecionados (multiselect)
  */
 function getMotivosInadequadosSelecionados() {
-  const checkboxes = motivosContainer.querySelectorAll('input[name="motivo-inadequado"]:checked');
-  return Array.from(checkboxes).map(cb => parseInt(cb.value));
+  const selectedOptions = selectMotivoArmazenamento.selectedOptions;
+  return Array.from(selectedOptions).map(opt => parseInt(opt.value));
 }
 
 /**
  * Limpa seleção de motivos
  */
-function limparMotivosCheckboxes() {
-  const checkboxes = motivosContainer.querySelectorAll('input[name="motivo-inadequado"]');
-  checkboxes.forEach(cb => cb.checked = false);
+function limparSelectMotivos() {
+  Array.from(selectMotivoArmazenamento.options).forEach(opt => opt.selected = false);
 }
 
 /**
@@ -603,9 +600,9 @@ function aoSelecionarAmostra(amostraId) {
   checkFrascoTrocado.checked = amostra.flags.frasco_trocado;
   checkMaterialNaoAnalisado.checked = amostra.flags.material_nao_analisado;
   
-  // Motivos inadequados - mostrar container se flag marcada
-  motivosContainer.style.display = amostra.flags.armazenamento_inadequado ? 'block' : 'none';
-  limparMotivosCheckboxes();
+  // Motivos inadequados - habilitar select se flag marcada
+  selectMotivoArmazenamento.disabled = !amostra.flags.armazenamento_inadequado;
+  limparSelectMotivos();
   // TODO: Carregar motivos já associados à amostra se existirem
 }
 
@@ -621,8 +618,8 @@ function limparCamposAmostra() {
   checkArmazenamentoInadequado.checked = false;
   checkFrascoTrocado.checked = false;
   checkMaterialNaoAnalisado.checked = false;
-  motivosContainer.style.display = 'none';
-  limparMotivosCheckboxes();
+  selectMotivoArmazenamento.disabled = true;
+  limparSelectMotivos();
   amostraAtualId = null;
 }
 
@@ -944,11 +941,11 @@ function getCsrfToken() {
 // EVENT LISTENERS - TRIAGEM ETAPA 1
 // ============================================
 
-// Mostrar/esconder container de motivos ao marcar checkbox
+// Habilitar/desabilitar select de motivos ao marcar checkbox
 checkArmazenamentoInadequado.addEventListener('change', function() {
-  motivosContainer.style.display = this.checked ? 'block' : 'none';
+  selectMotivoArmazenamento.disabled = !this.checked;
   if (!this.checked) {
-    limparMotivosCheckboxes();
+    limparSelectMotivos();
   }
 });
 
