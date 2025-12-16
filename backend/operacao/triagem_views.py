@@ -1279,35 +1279,55 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
                 status=400
             )
         
-        # Consultar API Korus
-        korus_client = get_korus_client()
-        response = korus_client.buscar_paciente_por_cpf(cpf)
-        
-        if not response.success:
+        try:
+            # Consultar API Korus
+            korus_client = get_korus_client()
+            response = korus_client.buscar_paciente_por_cpf(cpf)
+            
+            if not response.success:
+                error_msg = response.error or 'Erro ao consultar CPF.'
+                logger.warning(f"Erro na consulta CPF Korus: {error_msg}")
+                return JsonResponse(
+                    {'status': 'error', 'message': error_msg},
+                    status=404 if 'não encontrado' in error_msg.lower() else 500
+                )
+        except Exception as e:
+            logger.error(f"Exceção ao consultar API Korus: {str(e)}", exc_info=True)
             return JsonResponse(
-                {'status': 'error', 'message': response.error or 'Erro ao consultar CPF.'},
-                status=404 if 'não encontrado' in (response.error or '').lower() else 500
+                {'status': 'error', 'message': 'Erro ao conectar com a API externa. Tente novamente.'},
+                status=500
             )
         
         # Extrair dados do paciente da resposta
         # A estrutura pode variar, então tratamos diferentes formatos
         dados_api = response.data
         
+        # Log para debug - ver estrutura real da resposta
+        logger.info(f"Resposta API Korus (tipo={type(dados_api).__name__}): {dados_api}")
+        
         # Se for lista, pegar primeiro item
         if isinstance(dados_api, list) and len(dados_api) > 0:
             dados_api = dados_api[0]
+            logger.info(f"Primeiro item da lista: {dados_api}")
         
-        # Mapear campos da API para nosso formato
-        # Ajustar conforme estrutura real da API Korus
+        # Mapear campos da API Korus para nosso formato
+        # Estrutura real: pessoaFisica contém nome, cpf, dataNascimento, sexo
+        # contato contém email
+        # campos raiz: matricula, convenio, plano
+        pessoa_fisica = dados_api.get('pessoaFisica', {}) or {}
+        contato = dados_api.get('contato', {}) or {}
+        
         paciente = {
-            'nome': dados_api.get('nome', '') or dados_api.get('nomePaciente', '') or '',
-            'data_nascimento': dados_api.get('data_nascimento', '') or dados_api.get('dataNascimento', '') or '',
-            'email': dados_api.get('email', '') or dados_api.get('emailPaciente', '') or '',
-            'sexo': dados_api.get('sexo', '') or dados_api.get('sexoPaciente', '') or '',
-            'matricula': dados_api.get('matricula', '') or dados_api.get('numeroCarteira', '') or '',
-            'convenio': dados_api.get('convenio', '') or dados_api.get('nomeConvenio', '') or '',
-            'plano': dados_api.get('plano', '') or dados_api.get('nomePlano', '') or '',
+            'nome': pessoa_fisica.get('nome', '') or '',
+            'data_nascimento': pessoa_fisica.get('dataNascimento', '') or '',
+            'email': contato.get('email', '') or '',
+            'sexo': pessoa_fisica.get('sexo', '') or '',
+            'matricula': dados_api.get('matricula', '') or '',
+            'convenio': dados_api.get('convenio', '') or '',
+            'plano': dados_api.get('plano', '') or '',
         }
+        
+        logger.info(f"Dados mapeados do paciente: {paciente}")
         
         # Se requisicao_id foi informado, salvar dados na requisição
         if requisicao_id:

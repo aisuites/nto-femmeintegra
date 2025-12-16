@@ -1766,6 +1766,15 @@ async function consultarCpfKorus() {
     
     const data = await response.json();
     
+    // Log para debug
+    console.log('Resposta API Korus:', response.status, data);
+    
+    // Verificar se houve erro (HTTP não OK ou status error no JSON)
+    if (!response.ok || data.status === 'error') {
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+      return;
+    }
+    
     if (data.status === 'success' && data.paciente) {
       // Preencher campos com dados retornados
       if (data.paciente.nome && nomePaciente) {

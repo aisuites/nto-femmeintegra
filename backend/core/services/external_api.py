@@ -235,6 +235,16 @@ class KorusAPIClient(ExternalAPIClient):
             require_auth=True
         )
         
+        # Log da resposta para debug
+        logger.info(f"Resposta Korus - success={response.success}, status={response.status_code}, data={response.data}, error={response.error}")
+        
+        # Tratar caso de CPF não encontrado (pode vir como 404 ou lista/objeto vazio)
+        if response.status_code == 404:
+            return APIResponse(
+                success=False,
+                error='CPF não encontrado na base FEMME.'
+            )
+        
         if response.success and response.data:
             # Verificar se retornou dados do paciente
             # A API pode retornar lista vazia ou objeto vazio se não encontrar
@@ -243,27 +253,30 @@ class KorusAPIClient(ExternalAPIClient):
                     success=False,
                     error='CPF não encontrado na base FEMME.'
                 )
-            elif isinstance(response.data, dict) and not response.data:
-                return APIResponse(
-                    success=False,
-                    error='CPF não encontrado na base FEMME.'
-                )
+            elif isinstance(response.data, dict):
+                # Verificar se é objeto vazio ou tem mensagem de erro
+                if not response.data:
+                    return APIResponse(
+                        success=False,
+                        error='CPF não encontrado na base FEMME.'
+                    )
+                # Verificar se a API retornou mensagem de erro no corpo
+                if response.data.get('erro') or response.data.get('error') or response.data.get('message'):
+                    msg = response.data.get('erro') or response.data.get('error') or response.data.get('message')
+                    return APIResponse(
+                        success=False,
+                        error=str(msg) if 'não encontrado' not in str(msg).lower() else 'CPF não encontrado na base FEMME.'
+                    )
         
         return response
 
 
-# Instância singleton para uso em views
-_korus_client: Optional[KorusAPIClient] = None
-
-
 def get_korus_client() -> KorusAPIClient:
     """
-    Retorna instância do cliente Korus.
+    Retorna nova instância do cliente Korus.
+    Sempre gera novo token a cada requisição conforme especificado.
     
     Returns:
         KorusAPIClient configurado
     """
-    global _korus_client
-    if _korus_client is None:
-        _korus_client = KorusAPIClient()
-    return _korus_client
+    return KorusAPIClient()
