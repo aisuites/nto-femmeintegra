@@ -241,7 +241,7 @@
 
     <div class="step-header">
       <div>
-        <span class="step-badge step-badge-etapa3">Etapa 3 · Cadastro</span>
+        <span class="step-badge step-badge-etapa3">Etapa 3 · Triagem</span>
       </div>
       <div style="font-size:11px; color:var(--femme-gray);">
         Requisição <strong id="req-codigo-display-e3">#---</strong> · Cód. barras <strong id="req-barras-display-e3">---</strong>
@@ -360,20 +360,28 @@
       </div>
     </div>
 
-    <!-- UPLOAD IMAGENS -->
-    <div class="row">
-      <div class="field">
-        <label class="label-strong">Upload imagens (não obrigatório)</label>
-        <div class="upload-row">
-          <input type="file" id="upload-imagem-e3" accept="image/*" style="display:none;" />
-          <input type="text" id="upload-nome-arquivo" readonly placeholder="Nenhum arquivo selecionado" />
-          <button class="btn btn-muted" type="button" id="btn-upload-imagem">Upload</button>
-        </div>
-        <div class="uploaded-files-list" id="lista-arquivos-e3">
-          <!-- Arquivos enviados aparecerão aqui -->
-        </div>
-      </div>
-    </div>
+    <!-- CARREGAR IMAGEM -->
+            <div class="field">
+              <span class="label-strong">Upload imagens (não obrigatório)</span>
+              <div class="scanner-box">
+                <div class="scanner-row">
+                    <button class="btn btn-outline" type="button" id="btn-scanner">📁 Carregar Imagem</button>
+                    <!-- Arquivos aparecerão aqui dinamicamente -->
+                    <div id="scanner-files-container"></div>
+                  </div>
+                  <div class="info-inline">
+                    Obrigatório: 1 imagem por requisição. Se necessário, exclua e faça novo scan.
+                  </div>
+                  <div class="alert" id="triagem_alert" role="alert" aria-live="assertive">
+                    <strong>Atenção!</strong>
+                    <span id="triagem_alert_message"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+
 
     <!-- ÁREA DE ERRO -->
     <div class="alert alert-validacao" id="triagem3_alert_validacao" role="alert" aria-live="assertive">
