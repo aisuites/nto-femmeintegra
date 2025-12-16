@@ -511,23 +511,28 @@ class BuscaService:
             )
             
             # Verificar se é do mesmo usuário
-            if user and requisicao.recebido_por == user:
+            if user and requisicao.recebido_por and requisicao.recebido_por == user:
                 logger.info('Requisição já iniciada pelo mesmo usuário: %s', cod_barras)
                 return {'status': 'already_yours'}
             
-            # É de outro usuário - permitir transferência
+            # É de outro usuário (ou sem usuário) - permitir transferência
+            usuario_anterior = requisicao.recebido_por.username if requisicao.recebido_por else 'N/A'
+            usuario_anterior_nome = (
+                requisicao.recebido_por.get_full_name() or requisicao.recebido_por.username
+            ) if requisicao.recebido_por else 'Usuário não identificado'
+            
             logger.info(
                 'Requisição já iniciada por outro usuário: %s (usuário: %s)',
                 cod_barras,
-                requisicao.recebido_por.username
+                usuario_anterior
             )
             
             return {
                 'status': 'already_started',
                 'requisicao_id': requisicao.id,
                 'cod_req': requisicao.cod_req,
-                'usuario_anterior': requisicao.recebido_por.username,
-                'usuario_anterior_nome': requisicao.recebido_por.get_full_name() or requisicao.recebido_por.username,
+                'usuario_anterior': usuario_anterior,
+                'usuario_anterior_nome': usuario_anterior_nome,
                 'created_at': requisicao.created_at.strftime('%d/%m/%Y %H:%M'),
             }
         except DadosRequisicao.DoesNotExist:
