@@ -1334,6 +1334,10 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
             try:
                 requisicao = DadosRequisicao.objects.get(id=requisicao_id)
                 
+                # Salvar CPF digitado
+                cpf_formatado = cpf.replace('.', '').replace('-', '').strip()
+                requisicao.cpf_paciente = cpf_formatado
+                
                 # Atualizar campos do paciente
                 if paciente['nome']:
                     requisicao.nome_paciente = paciente['nome']
