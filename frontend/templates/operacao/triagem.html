@@ -361,27 +361,22 @@
     </div>
 
     <!-- CARREGAR IMAGEM -->
-            <div class="field">
-              <span class="label-strong">Upload imagens (não obrigatório)</span>
-              <div class="scanner-box">
-                <div class="scanner-row">
-                    <button class="btn btn-outline" type="button" id="btn-scanner">📁 Carregar Imagem</button>
-                    <!-- Arquivos aparecerão aqui dinamicamente -->
-                    <div id="scanner-files-container"></div>
-                  </div>
-                  <div class="info-inline">
-                    Obrigatório: 1 imagem por requisição. Se necessário, exclua e faça novo scan.
-                  </div>
-                  <div class="alert" id="triagem_alert" role="alert" aria-live="assertive">
-                    <strong>Atenção!</strong>
-                    <span id="triagem_alert_message"></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-
-
+    <div class="row">
+      <div class="field">
+        <span class="label-strong">Upload imagens (não obrigatório)</span>
+        <div class="scanner-box">
+          <div class="scanner-row">
+            <button class="btn btn-outline" type="button" id="btn-carregar-imagem-e3">📁 Carregar Imagem</button>
+            <input type="file" id="input-upload-imagem-e3" accept="image/*" multiple style="display:none;" />
+            <!-- Arquivos aparecerão aqui dinamicamente -->
+            <div id="upload-files-container-e3"></div>
+          </div>
+          <div class="info-inline">
+            Selecione uma ou mais imagens. Formatos aceitos: JPG, PNG, GIF.
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ÁREA DE ERRO -->
     <div class="alert alert-validacao" id="triagem3_alert_validacao" role="alert" aria-live="assertive">
@@ -407,7 +402,14 @@
     <div class="modal-body">
       <p>Tem certeza que deseja excluir esta amostra?</p>
       <p class="text-muted" id="amostra-excluir-info">Código: ---</p>
-      <p class="text-danger"><strong>Esta ação não pode ser desfeita.</strong></p>
+      <div class="field" style="margin-top: 12px;">
+        <label class="label-strong">Motivo da exclusão <span class="text-danger">*</span></label>
+        <select id="motivo-exclusao-amostra" required>
+          <option value="">Selecione o motivo...</option>
+          <!-- Opções serão carregadas via JS -->
+        </select>
+      </div>
+      <p class="text-danger" style="margin-top: 12px;"><strong>Esta ação não pode ser desfeita.</strong></p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" type="button" id="btn-cancelar-excluir-amostra">Cancelar</button>
@@ -423,15 +425,47 @@
       <h3>➕ Adicionar Amostra</h3>
     </div>
     <div class="modal-body">
-      <p>Deseja adicionar uma nova amostra a esta requisição?</p>
+      <p>Adicione uma nova amostra a esta requisição.</p>
+      <div class="info-inline" style="margin: 12px 0;">
+        <strong>Importante:</strong> O código de barras da amostra deve ser igual ao código de barras da requisição.
+      </div>
       <div class="field" style="margin-top: 12px;">
-        <label class="label-strong">Código de barras da nova amostra</label>
-        <input type="text" id="nova-amostra-cod-barras" placeholder="Bipe ou digite o código de barras" />
+        <label class="label-strong">Código de barras da nova amostra <span class="text-danger">*</span></label>
+        <input type="text" id="nova-amostra-cod-barras" placeholder="Bipe ou digite o código de barras" autocomplete="off" />
+      </div>
+      <div class="alert alert-danger" id="erro-adicionar-amostra" style="display: none; margin-top: 12px;">
+        <span id="erro-adicionar-amostra-msg"></span>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" type="button" id="btn-cancelar-adicionar-amostra">Cancelar</button>
       <button class="btn btn-primary" type="button" id="btn-confirmar-adicionar-amostra">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AVISO DE PENDÊNCIAS -->
+<div class="modal-overlay" id="modal-aviso-pendencias" style="display: none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>⚠️ Atenção - Pendências Identificadas</h3>
+    </div>
+    <div class="modal-body">
+      <p>Foram identificadas as seguintes pendências nesta requisição:</p>
+      <ul id="lista-pendencias-modal" style="margin: 12px 0; padding-left: 20px;">
+        <!-- Pendências serão listadas via JS -->
+      </ul>
+      <div class="info-inline" style="margin-top: 12px;">
+        <strong>Você pode:</strong>
+        <ul style="margin-top: 8px; padding-left: 20px;">
+          <li>Corrigir as informações e tentar novamente</li>
+          <li>Confirmar e enviar para a fila de pendências</li>
+        </ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" id="btn-voltar-corrigir">Voltar e Corrigir</button>
+      <button class="btn btn-warning" type="button" id="btn-confirmar-pendencia">Enviar para Pendências</button>
     </div>
   </div>
 </div>

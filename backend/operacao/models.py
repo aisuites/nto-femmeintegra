@@ -593,6 +593,118 @@ class RequisicaoAmostra(AuditModel):
         return f'{self.requisicao.cod_req} - Amostra {self.ordem}'
 
 
+class MotivoExclusaoAmostra(TimeStampedModel):
+    """
+    Motivos pré-definidos para exclusão de amostras.
+    Usado para rastrear problemas e manter histórico de exclusões.
+    """
+    codigo = models.PositiveSmallIntegerField(
+        'Código',
+        unique=True,
+        db_index=True,
+        help_text='Código único do motivo de exclusão'
+    )
+    descricao = models.CharField(
+        'Descrição',
+        max_length=200,
+        help_text='Descrição do motivo de exclusão'
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        db_index=True,
+        help_text='Indica se o motivo está disponível para uso'
+    )
+
+    class Meta:
+        db_table = 'motivo_exclusao_amostra'
+        ordering = ('codigo',)
+        verbose_name = 'Motivo de Exclusão de Amostra'
+        verbose_name_plural = 'Motivos de Exclusão de Amostra'
+
+    def __str__(self) -> str:
+        return f'{self.codigo} - {self.descricao}'
+
+
+class LogAlteracaoAmostra(TimeStampedModel):
+    """
+    Log de alterações em amostras (adição/exclusão).
+    Mantém histórico completo de quem fez a alteração, em qual etapa e motivo.
+    """
+    class TipoAlteracao(models.TextChoices):
+        ADICAO = 'ADICAO', 'Adição'
+        EXCLUSAO = 'EXCLUSAO', 'Exclusão'
+
+    requisicao = models.ForeignKey(
+        'DadosRequisicao',
+        on_delete=models.CASCADE,
+        related_name='logs_alteracao_amostra',
+        verbose_name='Requisição',
+        help_text='Requisição associada à alteração'
+    )
+    cod_barras_requisicao = models.CharField(
+        'Código de barras da requisição',
+        max_length=64,
+        db_index=True,
+        help_text='Código de barras da requisição (desnormalizado para auditoria)'
+    )
+    cod_barras_amostra = models.CharField(
+        'Código de barras da amostra',
+        max_length=64,
+        db_index=True,
+        help_text='Código de barras da amostra alterada'
+    )
+    tipo_alteracao = models.CharField(
+        'Tipo de alteração',
+        max_length=10,
+        choices=TipoAlteracao.choices,
+        db_index=True,
+        help_text='Tipo da alteração realizada (adição ou exclusão)'
+    )
+    etapa = models.CharField(
+        'Etapa',
+        max_length=20,
+        db_index=True,
+        help_text='Etapa em que a alteração foi realizada (ex: TRIAGEM3, RECEBIMENTO)'
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='logs_alteracao_amostra',
+        verbose_name='Usuário',
+        help_text='Usuário que realizou a alteração'
+    )
+    motivo_exclusao = models.ForeignKey(
+        'MotivoExclusaoAmostra',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='logs_exclusao',
+        verbose_name='Motivo de exclusão',
+        help_text='Motivo da exclusão (apenas para exclusões)'
+    )
+    observacao = models.TextField(
+        'Observação',
+        blank=True,
+        default='',
+        help_text='Observações adicionais sobre a alteração'
+    )
+
+    class Meta:
+        db_table = 'log_alteracao_amostra'
+        ordering = ('-created_at',)
+        verbose_name = 'Log de Alteração de Amostra'
+        verbose_name_plural = 'Logs de Alteração de Amostra'
+        indexes = [
+            models.Index(fields=['requisicao', '-created_at'], name='idx_log_req_created'),
+            models.Index(fields=['tipo_alteracao', '-created_at'], name='idx_log_tipo_created'),
+            models.Index(fields=['usuario', '-created_at'], name='idx_log_user_created'),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.cod_barras_requisicao} - {self.tipo_alteracao} - {self.cod_barras_amostra}'
+
+
 class Notificacao(TimeStampedModel):
     """
     Modelo para armazenar notificações do sistema.

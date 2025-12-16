@@ -78,6 +78,12 @@ const btnAdicionarFrasco = document.getElementById('btn-adicionar-frasco');
 // Modais Etapa 3
 const modalExcluirAmostra = document.getElementById('modal-excluir-amostra');
 const modalAdicionarAmostra = document.getElementById('modal-adicionar-amostra');
+const modalAvisoPendencias = document.getElementById('modal-aviso-pendencias');
+const selectMotivoExclusao = document.getElementById('motivo-exclusao-amostra');
+const inputNovaAmostraCodBarras = document.getElementById('nova-amostra-cod-barras');
+const erroAdicionarAmostra = document.getElementById('erro-adicionar-amostra');
+const erroAdicionarAmostraMsg = document.getElementById('erro-adicionar-amostra-msg');
+const listaPendenciasModal = document.getElementById('lista-pendencias-modal');
 
 // ============================================
 // ESTADO GLOBAL
@@ -87,7 +93,9 @@ let requisicaoAtual = null;
 let amostrasAtual = [];
 let tiposPendencia = [];
 let tiposAmostra = [];
+let motivosExclusaoAmostra = [];
 let amostraParaExcluir = null;
+let pendenciasIdentificadas = [];
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -1282,6 +1290,11 @@ async function carregarEtapa3(dados) {
     await carregarTiposAmostra();
   }
   
+  // Carregar motivos de exclusão de amostra se ainda não carregados
+  if (motivosExclusaoAmostra.length === 0) {
+    await carregarMotivosExclusaoAmostra();
+  }
+  
   // Carregar amostras da requisição
   await carregarAmostrasEtapa3();
   
@@ -1458,6 +1471,39 @@ async function onTipoAmostraChange(e) {
 }
 
 /**
+ * Carrega motivos de exclusão de amostra do backend
+ */
+async function carregarMotivosExclusaoAmostra() {
+  try {
+    const response = await fetch('/operacao/triagem/motivos-exclusao-amostra/', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      motivosExclusaoAmostra = data.motivos;
+      
+      // Popular select de motivos
+      if (selectMotivoExclusao) {
+        selectMotivoExclusao.innerHTML = '<option value="">Selecione o motivo...</option>';
+        motivosExclusaoAmostra.forEach(motivo => {
+          selectMotivoExclusao.innerHTML += `<option value="${motivo.id}">${motivo.descricao}</option>`;
+        });
+      }
+    } else {
+      console.error('Erro ao carregar motivos de exclusão:', data.message);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar motivos de exclusão:', error);
+  }
+}
+
+/**
  * Handler para clique no botão excluir amostra
  */
 function onExcluirAmostraClick(e) {
@@ -1470,15 +1516,27 @@ function onExcluirAmostraClick(e) {
   // Atualizar modal com info da amostra
   document.getElementById('amostra-excluir-info').textContent = `Código: ${codBarras}`;
   
+  // Resetar select de motivo
+  if (selectMotivoExclusao) {
+    selectMotivoExclusao.value = '';
+  }
+  
   // Mostrar modal
   modalExcluirAmostra.style.display = 'flex';
 }
 
 /**
- * Confirma exclusão de amostra
+ * Confirma exclusão de amostra (com motivo obrigatório)
  */
 async function confirmarExcluirAmostra() {
   if (!amostraParaExcluir) return;
+  
+  // Validar motivo obrigatório
+  const motivoId = selectMotivoExclusao ? selectMotivoExclusao.value : null;
+  if (!motivoId) {
+    mostrarAlerta('Selecione o motivo da exclusão.');
+    return;
+  }
   
   try {
     const response = await fetch('/operacao/triagem/amostras/excluir/', {
@@ -1488,7 +1546,9 @@ async function confirmarExcluirAmostra() {
         'X-CSRFToken': getCsrfToken()
       },
       body: JSON.stringify({
-        amostra_id: amostraParaExcluir.id
+        amostra_id: amostraParaExcluir.id,
+        motivo_exclusao_id: motivoId,
+        etapa: 'TRIAGEM3'
       })
     });
     
@@ -1522,20 +1582,36 @@ function cancelarExcluirAmostra() {
  * Abre modal para adicionar nova amostra
  */
 function abrirModalAdicionarAmostra() {
-  document.getElementById('nova-amostra-cod-barras').value = '';
+  if (inputNovaAmostraCodBarras) {
+    inputNovaAmostraCodBarras.value = '';
+  }
+  
+  // Esconder erro anterior
+  if (erroAdicionarAmostra) {
+    erroAdicionarAmostra.style.display = 'none';
+  }
+  
   modalAdicionarAmostra.style.display = 'flex';
-  document.getElementById('nova-amostra-cod-barras').focus();
+  
+  if (inputNovaAmostraCodBarras) {
+    inputNovaAmostraCodBarras.focus();
+  }
 }
 
 /**
- * Confirma adição de nova amostra
+ * Confirma adição de nova amostra (com validação de código de barras)
  */
 async function confirmarAdicionarAmostra() {
-  const codBarras = document.getElementById('nova-amostra-cod-barras').value.trim();
+  const codBarras = inputNovaAmostraCodBarras ? inputNovaAmostraCodBarras.value.trim() : '';
   
   if (!codBarras) {
     mostrarAlerta('Informe o código de barras da nova amostra.');
     return;
+  }
+  
+  // Esconder erro anterior
+  if (erroAdicionarAmostra) {
+    erroAdicionarAmostra.style.display = 'none';
   }
   
   try {
@@ -1547,7 +1623,8 @@ async function confirmarAdicionarAmostra() {
       },
       body: JSON.stringify({
         requisicao_id: requisicaoAtual.id,
-        cod_barras_amostra: codBarras
+        cod_barras_amostra: codBarras,
+        etapa: 'TRIAGEM3'
       })
     });
     
@@ -1560,11 +1637,22 @@ async function confirmarAdicionarAmostra() {
       // Recarregar amostras
       await carregarAmostrasEtapa3();
     } else {
-      mostrarAlerta(result.message || 'Erro ao adicionar amostra.');
+      // Mostrar erro no modal
+      if (erroAdicionarAmostra && erroAdicionarAmostraMsg) {
+        erroAdicionarAmostraMsg.textContent = result.message || 'Erro ao adicionar amostra.';
+        erroAdicionarAmostra.style.display = 'block';
+      } else {
+        mostrarAlerta(result.message || 'Erro ao adicionar amostra.');
+      }
     }
   } catch (error) {
     console.error('Erro ao adicionar amostra:', error);
-    mostrarAlerta('Erro ao adicionar amostra.');
+    if (erroAdicionarAmostra && erroAdicionarAmostraMsg) {
+      erroAdicionarAmostraMsg.textContent = 'Erro ao adicionar amostra.';
+      erroAdicionarAmostra.style.display = 'block';
+    } else {
+      mostrarAlerta('Erro ao adicionar amostra.');
+    }
   }
 }
 
@@ -1595,37 +1683,127 @@ function aplicarMascaraCPF(e) {
 }
 
 /**
+ * Valida campos obrigatórios da Etapa 3
+ * Retorna array de pendências identificadas
+ */
+function validarCamposEtapa3() {
+  const pendencias = [];
+  
+  const problemaCpfMarcado = checkProblemaCpf && checkProblemaCpf.checked;
+  const problemaMedicoMarcado = checkProblemaMedico && checkProblemaMedico.checked;
+  
+  // Validar CPF (obrigatório, exceto se checkbox marcado)
+  const cpfValor = cpfPaciente ? cpfPaciente.value.replace(/\D/g, '') : '';
+  if (!cpfValor && !problemaCpfMarcado) {
+    pendencias.push({ tipo: 'CPF', mensagem: 'CPF do paciente não informado' });
+  }
+  
+  // Validar Nome Paciente (obrigatório, exceto se checkbox CPF marcado)
+  const nomeValor = nomePaciente ? nomePaciente.value.trim() : '';
+  if (!nomeValor && !problemaCpfMarcado) {
+    pendencias.push({ tipo: 'CPF', mensagem: 'Nome do paciente não informado' });
+  }
+  
+  // Validar CRM (obrigatório, exceto se checkbox médico marcado)
+  const crmValor = crmMedico ? crmMedico.value.trim() : '';
+  if (!crmValor && !problemaMedicoMarcado) {
+    pendencias.push({ tipo: 'MEDICO', mensagem: 'CRM não informado' });
+  }
+  
+  // Validar UF-CRM (obrigatório, exceto se checkbox médico marcado)
+  const ufCrmValor = ufCrm ? ufCrm.value.trim().toUpperCase() : '';
+  if (!ufCrmValor && !problemaMedicoMarcado) {
+    pendencias.push({ tipo: 'MEDICO', mensagem: 'UF do CRM não informada' });
+  }
+  
+  // Validar Nome Médico (obrigatório, exceto se checkbox médico marcado)
+  const nomeMedicoValor = nomeMedico ? nomeMedico.value.trim() : '';
+  if (!nomeMedicoValor && !problemaMedicoMarcado) {
+    pendencias.push({ tipo: 'MEDICO', mensagem: 'Nome do médico não informado' });
+  }
+  
+  // Validar Endereço Médico (obrigatório, exceto se checkbox médico marcado)
+  const enderecoValor = enderecoMedico ? enderecoMedico.value.trim() : '';
+  if (!enderecoValor && !problemaMedicoMarcado) {
+    pendencias.push({ tipo: 'MEDICO', mensagem: 'Endereço do médico não informado' });
+  }
+  
+  // Validar Destino (obrigatório, exceto se checkbox médico marcado)
+  const destinoValor = destinoMedico ? destinoMedico.value.trim() : '';
+  if (!destinoValor && !problemaMedicoMarcado) {
+    pendencias.push({ tipo: 'MEDICO', mensagem: 'Destino não informado' });
+  }
+  
+  return pendencias;
+}
+
+/**
  * Salva Etapa 3 - Seguir para Cadastro
  */
 async function salvarEtapa3() {
-  // Verificar impeditivos
-  const impeditivos = [];
+  // Verificar se há checkboxes de problema marcados (gera pendência)
+  const problemaCpfMarcado = checkProblemaCpf && checkProblemaCpf.checked;
+  const problemaMedicoMarcado = checkProblemaMedico && checkProblemaMedico.checked;
   
-  if (checkProblemaCpf && checkProblemaCpf.checked) {
-    impeditivos.push('Problema com CPF');
-  }
+  // Validar campos obrigatórios
+  const pendenciasValidacao = validarCamposEtapa3();
   
-  if (checkProblemaMedico && checkProblemaMedico.checked) {
-    impeditivos.push('Problema com dados do médico');
-  }
-  
-  if (impeditivos.length > 0) {
-    mostrarAlerta(`Não é possível seguir para cadastro. Impeditivos: ${impeditivos.join(', ')}`);
+  // Se há pendências de validação (campos não preenchidos e checkbox não marcado)
+  if (pendenciasValidacao.length > 0) {
+    // Mostrar alerta com campos faltantes
+    const mensagens = pendenciasValidacao.map(p => p.mensagem).join(', ');
+    mostrarAlerta(`Campos obrigatórios não preenchidos: ${mensagens}`);
     return;
   }
   
+  // Se checkbox de problema está marcado, mostrar modal de aviso
+  if (problemaCpfMarcado || problemaMedicoMarcado) {
+    pendenciasIdentificadas = [];
+    
+    if (problemaCpfMarcado) {
+      pendenciasIdentificadas.push({ tipo: 'CPF', mensagem: 'Problema com CPF do paciente' });
+    }
+    if (problemaMedicoMarcado) {
+      pendenciasIdentificadas.push({ tipo: 'MEDICO', mensagem: 'Problema com dados do médico' });
+    }
+    
+    // Popular lista de pendências no modal
+    if (listaPendenciasModal) {
+      listaPendenciasModal.innerHTML = '';
+      pendenciasIdentificadas.forEach(p => {
+        listaPendenciasModal.innerHTML += `<li>${p.mensagem}</li>`;
+      });
+    }
+    
+    // Mostrar modal de aviso
+    if (modalAvisoPendencias) {
+      modalAvisoPendencias.style.display = 'flex';
+    }
+    return;
+  }
+  
+  // Sem pendências - cadastrar normalmente
+  await enviarCadastroEtapa3(false);
+}
+
+/**
+ * Envia cadastro da Etapa 3 para o backend
+ * @param {boolean} comPendencia - Se true, envia para fila de pendências
+ */
+async function enviarCadastroEtapa3(comPendencia = false) {
   // Coletar dados do formulário
   const dados = {
     requisicao_id: requisicaoAtual.id,
     cpf_paciente: cpfPaciente ? cpfPaciente.value.replace(/\D/g, '') : '',
-    nome_paciente: nomePaciente ? nomePaciente.value : '',
-    crm: crmMedico ? crmMedico.value : '',
-    uf_crm: ufCrm ? ufCrm.value : '',
-    nome_medico: nomeMedico ? nomeMedico.value : '',
-    end_medico: enderecoMedico ? enderecoMedico.value : '',
-    dest_medico: destinoMedico ? destinoMedico.value : '',
+    nome_paciente: nomePaciente ? nomePaciente.value.trim() : '',
+    crm: crmMedico ? crmMedico.value.trim() : '',
+    uf_crm: ufCrm ? ufCrm.value.trim().toUpperCase() : '',
+    nome_medico: nomeMedico ? nomeMedico.value.trim() : '',
+    end_medico: enderecoMedico ? enderecoMedico.value.trim() : '',
+    dest_medico: destinoMedico ? destinoMedico.value.trim() : '',
     flag_problema_cpf: checkProblemaCpf ? checkProblemaCpf.checked : false,
-    flag_problema_medico: checkProblemaMedico ? checkProblemaMedico.checked : false
+    flag_problema_medico: checkProblemaMedico ? checkProblemaMedico.checked : false,
+    enviar_para_pendencia: comPendencia
   };
   
   try {
@@ -1644,7 +1822,10 @@ async function salvarEtapa3() {
     const result = await response.json();
     
     if (result.status === 'success') {
-      mostrarMensagemSucesso(result.message || 'Requisição cadastrada com sucesso!');
+      const mensagem = comPendencia 
+        ? 'Requisição enviada para fila de pendências!' 
+        : 'Requisição cadastrada com sucesso!';
+      mostrarMensagemSucesso(result.message || mensagem);
       
       // Limpar formulário e voltar para busca
       setTimeout(() => {
@@ -1663,6 +1844,25 @@ async function salvarEtapa3() {
     btnSeguirCadastro.disabled = false;
     btnSeguirCadastro.textContent = 'SEGUIR PARA CADASTRO';
   }
+}
+
+/**
+ * Fecha modal de pendências e volta para corrigir
+ */
+function voltarCorrigirPendencias() {
+  if (modalAvisoPendencias) {
+    modalAvisoPendencias.style.display = 'none';
+  }
+}
+
+/**
+ * Confirma envio para fila de pendências
+ */
+async function confirmarEnviarPendencia() {
+  if (modalAvisoPendencias) {
+    modalAvisoPendencias.style.display = 'none';
+  }
+  await enviarCadastroEtapa3(true);
 }
 
 // ============================================
@@ -1775,23 +1975,221 @@ if (cpfPaciente) {
   cpfPaciente.addEventListener('input', aplicarMascaraCPF);
 }
 
-// Botão Upload - abrir seletor de arquivos
-const btnUploadImagem = document.getElementById('btn-upload-imagem');
-const inputUploadImagem = document.getElementById('upload-imagem-e3');
-const inputNomeArquivo = document.getElementById('upload-nome-arquivo');
+// Modal Aviso Pendências - Botões
+const btnVoltarCorrigir = document.getElementById('btn-voltar-corrigir');
+const btnConfirmarPendencia = document.getElementById('btn-confirmar-pendencia');
 
-if (btnUploadImagem && inputUploadImagem) {
-  btnUploadImagem.addEventListener('click', () => {
-    inputUploadImagem.click();
+if (btnVoltarCorrigir) {
+  btnVoltarCorrigir.addEventListener('click', voltarCorrigirPendencias);
+}
+
+if (btnConfirmarPendencia) {
+  btnConfirmarPendencia.addEventListener('click', confirmarEnviarPendencia);
+}
+
+// Botão Upload Etapa 3 - abrir seletor de arquivos
+const btnCarregarImagemE3 = document.getElementById('btn-carregar-imagem-e3');
+const inputUploadImagemE3 = document.getElementById('input-upload-imagem-e3');
+const uploadFilesContainerE3 = document.getElementById('upload-files-container-e3');
+
+// Array para armazenar arquivos enviados na Etapa 3
+let arquivosUploadE3 = [];
+
+if (btnCarregarImagemE3 && inputUploadImagemE3) {
+  btnCarregarImagemE3.addEventListener('click', () => {
+    inputUploadImagemE3.click();
   });
   
-  inputUploadImagem.addEventListener('change', (e) => {
+  inputUploadImagemE3.addEventListener('change', async (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      inputNomeArquivo.value = e.target.files[0].name;
-    } else {
-      inputNomeArquivo.value = '';
+      await processarUploadImagensE3(e.target.files);
+      // Limpar input para permitir selecionar os mesmos arquivos novamente
+      inputUploadImagemE3.value = '';
     }
   });
+}
+
+/**
+ * Processa upload de múltiplas imagens na Etapa 3
+ */
+async function processarUploadImagensE3(files) {
+  if (!requisicaoAtual) {
+    mostrarAlerta('Nenhuma requisição selecionada.');
+    return;
+  }
+  
+  for (const file of files) {
+    // Validar tipo de arquivo (apenas imagens)
+    if (!file.type.startsWith('image/')) {
+      mostrarAlerta(`Arquivo "${file.name}" não é uma imagem válida.`);
+      continue;
+    }
+    
+    try {
+      // Mostrar indicador de progresso
+      adicionarArquivoUploadE3(file.name, 'uploading');
+      
+      // 1. Obter signed URL
+      const signedUrlResponse = await fetch(`/operacao/upload/signed-url/?requisicao_id=${requisicaoAtual.id}&content_type=${encodeURIComponent(file.type)}`, {
+        method: 'GET',
+        headers: {
+          'X-CSRFToken': getCsrfToken()
+        }
+      });
+      
+      const signedUrlData = await signedUrlResponse.json();
+      
+      if (signedUrlData.status !== 'success') {
+        atualizarStatusArquivoE3(file.name, 'error');
+        mostrarAlerta(`Erro ao preparar upload: ${signedUrlData.message}`);
+        continue;
+      }
+      
+      // 2. Upload para S3
+      const uploadResponse = await fetch(signedUrlData.signed_url, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+      
+      if (!uploadResponse.ok) {
+        atualizarStatusArquivoE3(file.name, 'error');
+        mostrarAlerta(`Erro ao enviar arquivo "${file.name}".`);
+        continue;
+      }
+      
+      // 3. Confirmar upload no backend (tipo OUTROS = código 2)
+      const confirmarResponse = await fetch('/operacao/upload/confirmar/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+          requisicao_id: requisicaoAtual.id,
+          file_key: signedUrlData.file_key,
+          filename: file.name,
+          tipo_arquivo_codigo: 2  // OUTROS
+        })
+      });
+      
+      const confirmarData = await confirmarResponse.json();
+      
+      if (confirmarData.status === 'success') {
+        atualizarStatusArquivoE3(file.name, 'success', confirmarData.arquivo.id);
+        arquivosUploadE3.push(confirmarData.arquivo);
+      } else {
+        atualizarStatusArquivoE3(file.name, 'error');
+        mostrarAlerta(`Erro ao registrar arquivo: ${confirmarData.message}`);
+      }
+      
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      atualizarStatusArquivoE3(file.name, 'error');
+      mostrarAlerta(`Erro ao enviar arquivo "${file.name}".`);
+    }
+  }
+}
+
+/**
+ * Adiciona item de arquivo na lista de uploads da Etapa 3
+ */
+function adicionarArquivoUploadE3(filename, status) {
+  if (!uploadFilesContainerE3) return;
+  
+  const fileId = `upload-file-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  
+  // Verificar se já existe
+  if (document.getElementById(fileId)) {
+    return;
+  }
+  
+  const fileItem = document.createElement('div');
+  fileItem.id = fileId;
+  fileItem.className = 'scanner-file-item';
+  fileItem.dataset.filename = filename;
+  
+  let statusIcon = '⏳';
+  if (status === 'success') statusIcon = '✅';
+  if (status === 'error') statusIcon = '❌';
+  
+  fileItem.innerHTML = `
+    <span class="file-status">${statusIcon}</span>
+    <span class="file-name">${filename}</span>
+    <button type="button" class="btn-remove-file" data-filename="${filename}" title="Remover">✕</button>
+  `;
+  
+  uploadFilesContainerE3.appendChild(fileItem);
+  
+  // Adicionar event listener para remover
+  fileItem.querySelector('.btn-remove-file').addEventListener('click', () => {
+    removerArquivoUploadE3(filename);
+  });
+}
+
+/**
+ * Atualiza status de um arquivo na lista
+ */
+function atualizarStatusArquivoE3(filename, status, arquivoId = null) {
+  const fileId = `upload-file-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const fileItem = document.getElementById(fileId);
+  
+  if (!fileItem) return;
+  
+  let statusIcon = '⏳';
+  if (status === 'success') statusIcon = '✅';
+  if (status === 'error') statusIcon = '❌';
+  
+  fileItem.querySelector('.file-status').textContent = statusIcon;
+  
+  if (arquivoId) {
+    fileItem.dataset.arquivoId = arquivoId;
+  }
+}
+
+/**
+ * Remove arquivo da lista de uploads
+ */
+async function removerArquivoUploadE3(filename) {
+  const fileId = `upload-file-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const fileItem = document.getElementById(fileId);
+  
+  if (!fileItem) return;
+  
+  const arquivoId = fileItem.dataset.arquivoId;
+  
+  // Se tem ID, excluir do backend
+  if (arquivoId) {
+    try {
+      const response = await fetch('/operacao/upload/deletar/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({ arquivo_id: arquivoId })
+      });
+      
+      const result = await response.json();
+      
+      if (result.status !== 'success') {
+        mostrarAlerta('Erro ao excluir arquivo.');
+        return;
+      }
+    } catch (error) {
+      console.error('Erro ao excluir arquivo:', error);
+      mostrarAlerta('Erro ao excluir arquivo.');
+      return;
+    }
+  }
+  
+  // Remover da lista visual
+  fileItem.remove();
+  
+  // Remover do array
+  arquivosUploadE3 = arquivosUploadE3.filter(a => a.nome !== filename);
 }
 
 // ============================================

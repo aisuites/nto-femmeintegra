@@ -52,6 +52,11 @@ urlpatterns = [
     ),
     # Triagem Etapa 3
     path(
+        'triagem/motivos-exclusao-amostra/',
+        triagem_views.ListarMotivosExclusaoAmostraView.as_view(),
+        name='triagem-motivos-exclusao-amostra',
+    ),
+    path(
         'triagem/tipos-amostra/',
         triagem_views.ListarTiposAmostraView.as_view(),
         name='triagem-tipos-amostra',

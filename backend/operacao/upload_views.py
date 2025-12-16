@@ -242,11 +242,12 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
                     status=404
                 )
             
-            # Obter tipo de arquivo REQUISICAO (codigo=1)
+            # Obter tipo de arquivo (padrão: REQUISICAO codigo=1, ou OUTROS codigo=2)
+            tipo_arquivo_codigo = data.get('tipo_arquivo_codigo', 1)
             try:
-                tipo_arquivo = TipoArquivo.objects.get(codigo=1, ativo=True)
+                tipo_arquivo = TipoArquivo.objects.get(codigo=tipo_arquivo_codigo, ativo=True)
             except TipoArquivo.DoesNotExist:
-                logger.error("Tipo de arquivo REQUISICAO (codigo=1) não encontrado")
+                logger.error(f"Tipo de arquivo (codigo={tipo_arquivo_codigo}) não encontrado")
                 return JsonResponse(
                     {'status': 'error', 'message': 'Tipo de arquivo não configurado.'},
                     status=500
@@ -267,7 +268,7 @@ class ConfirmarUploadView(LoginRequiredMixin, View):
                 requisicao=requisicao,
                 cod_req=requisicao.cod_req,
                 tipo_arquivo=tipo_arquivo,
-                cod_tipo_arquivo=1,  # REQUISICAO
+                cod_tipo_arquivo=tipo_arquivo_codigo,
                 nome_arquivo=filename,
                 url_arquivo=file_url,
                 created_by=request.user,

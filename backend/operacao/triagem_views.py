@@ -16,7 +16,9 @@ from django_ratelimit.decorators import ratelimit
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
+    LogAlteracaoAmostra,
     MotivoArmazenamentoInadequado,
+    MotivoExclusaoAmostra,
     RequisicaoAmostra,
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
@@ -736,6 +738,34 @@ class FinalizarTriagemView(LoginRequiredMixin, View):
 # ============================================
 
 @method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
+class ListarMotivosExclusaoAmostraView(LoginRequiredMixin, View):
+    """
+    Lista motivos de exclusão de amostra ativos.
+    
+    GET /operacao/triagem/motivos-exclusao-amostra/
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request):
+        try:
+            motivos = MotivoExclusaoAmostra.objects.filter(
+                ativo=True
+            ).values('id', 'codigo', 'descricao').order_by('codigo')
+            
+            return JsonResponse({
+                'status': 'success',
+                'motivos': list(motivos)
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao listar motivos de exclusão: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao listar motivos de exclusão.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
 class ListarTiposAmostraView(LoginRequiredMixin, View):
     """
     Lista tipos de amostra ativos para a Etapa 3 da triagem.
@@ -831,9 +861,15 @@ class AtualizarTipoAmostraView(LoginRequiredMixin, View):
 @method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='dispatch')
 class ExcluirAmostraView(LoginRequiredMixin, View):
     """
-    Exclui uma amostra da requisição.
+    Exclui uma amostra da requisição com registro de auditoria.
     
     POST /operacao/triagem/amostras/excluir/
+    Body:
+        {
+            "amostra_id": 123,
+            "motivo_exclusao_id": 1,
+            "etapa": "TRIAGEM3"
+        }
     """
     login_url = 'admin:login'
     
@@ -841,6 +877,8 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
         try:
             data = json.loads(request.body)
             amostra_id = data.get('amostra_id')
+            motivo_exclusao_id = data.get('motivo_exclusao_id')
+            etapa = data.get('etapa', 'TRIAGEM3')
             
             if not amostra_id:
                 return JsonResponse(
@@ -848,16 +886,38 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
                     status=400
                 )
             
+            if not motivo_exclusao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Motivo da exclusão é obrigatório.'},
+                    status=400
+                )
+            
+            # Buscar motivo de exclusão
+            motivo = MotivoExclusaoAmostra.objects.get(id=motivo_exclusao_id, ativo=True)
+            
             amostra = RequisicaoAmostra.objects.select_related('requisicao').get(id=amostra_id)
-            cod_barras = amostra.cod_barras_amostra
-            requisicao_id = amostra.requisicao_id
+            cod_barras_amostra = amostra.cod_barras_amostra
+            requisicao = amostra.requisicao
+            
+            # Registrar log de auditoria ANTES de excluir
+            LogAlteracaoAmostra.objects.create(
+                requisicao=requisicao,
+                cod_barras_requisicao=requisicao.cod_barras_req,
+                cod_barras_amostra=cod_barras_amostra,
+                tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.EXCLUSAO,
+                etapa=etapa,
+                usuario=request.user,
+                motivo_exclusao=motivo,
+                observacao=f'Motivo: {motivo.descricao}'
+            )
             
             # Excluir amostra
             amostra.delete()
             
             logger.info(
-                f"Amostra excluída - Código: {cod_barras}, "
-                f"Requisição ID: {requisicao_id} por {request.user.username}"
+                f"Amostra excluída - Código: {cod_barras_amostra}, "
+                f"Requisição: {requisicao.cod_req}, Motivo: {motivo.descricao}, "
+                f"Etapa: {etapa} por {request.user.username}"
             )
             
             return JsonResponse({
@@ -865,6 +925,11 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
                 'message': 'Amostra excluída com sucesso.'
             })
             
+        except MotivoExclusaoAmostra.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Motivo de exclusão não encontrado.'},
+                status=404
+            )
         except RequisicaoAmostra.DoesNotExist:
             return JsonResponse(
                 {'status': 'error', 'message': 'Amostra não encontrada.'},
@@ -886,9 +951,16 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
 @method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='dispatch')
 class AdicionarAmostraView(LoginRequiredMixin, View):
     """
-    Adiciona uma nova amostra à requisição.
+    Adiciona uma nova amostra à requisição com registro de auditoria.
+    REGRA DE NEGÓCIO: O código de barras da amostra DEVE ser igual ao código de barras da requisição.
     
     POST /operacao/triagem/amostras/adicionar/
+    Body:
+        {
+            "requisicao_id": 123,
+            "cod_barras_amostra": "ABC123",
+            "etapa": "TRIAGEM3"
+        }
     """
     login_url = 'admin:login'
     
@@ -897,6 +969,7 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
             data = json.loads(request.body)
             requisicao_id = data.get('requisicao_id')
             cod_barras_amostra = data.get('cod_barras_amostra', '').strip()
+            etapa = data.get('etapa', 'TRIAGEM3')
             
             if not requisicao_id:
                 return JsonResponse(
@@ -912,13 +985,15 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
             
             requisicao = DadosRequisicao.objects.get(id=requisicao_id)
             
-            # Verificar se código de barras já existe nesta requisição
-            if RequisicaoAmostra.objects.filter(
-                requisicao=requisicao,
-                cod_barras_amostra=cod_barras_amostra
-            ).exists():
+            # REGRA DE NEGÓCIO: Código de barras da amostra DEVE ser igual ao da requisição
+            if cod_barras_amostra != requisicao.cod_barras_req:
                 return JsonResponse(
-                    {'status': 'error', 'message': 'Este código de barras já existe nesta requisição.'},
+                    {
+                        'status': 'error',
+                        'message': f'O código de barras da amostra deve ser igual ao código de barras da requisição ({requisicao.cod_barras_req}).',
+                        'codigo_esperado': requisicao.cod_barras_req,
+                        'codigo_informado': cod_barras_amostra
+                    },
                     status=400
                 )
             
@@ -933,14 +1008,24 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
                 cod_barras_amostra=cod_barras_amostra,
                 data_hora_bipagem=timezone.now(),
                 ordem=ultima_ordem + 1,
-                created_by=request.user,
-                updated_by=request.user
+                triagem1_validada=True,  # Já validada pois está na etapa 3
+            )
+            
+            # Registrar log de auditoria
+            LogAlteracaoAmostra.objects.create(
+                requisicao=requisicao,
+                cod_barras_requisicao=requisicao.cod_barras_req,
+                cod_barras_amostra=cod_barras_amostra,
+                tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.ADICAO,
+                etapa=etapa,
+                usuario=request.user,
+                observacao=f'Amostra adicionada manualmente na {etapa}'
             )
             
             logger.info(
                 f"Amostra adicionada - Código: {cod_barras_amostra}, "
-                f"Requisição: {requisicao.cod_req}, Ordem: {nova_amostra.ordem} "
-                f"por {request.user.username}"
+                f"Requisição: {requisicao.cod_req}, Ordem: {nova_amostra.ordem}, "
+                f"Etapa: {etapa} por {request.user.username}"
             )
             
             return JsonResponse({
@@ -974,9 +1059,23 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
 @method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='dispatch')
 class CadastrarRequisicaoView(LoginRequiredMixin, View):
     """
-    Finaliza a Etapa 3 - Cadastra a requisição.
+    Finaliza a Etapa 3 - Cadastra a requisição ou envia para pendências.
     
     POST /operacao/triagem/cadastrar/
+    Body:
+        {
+            "requisicao_id": 123,
+            "cpf_paciente": "12345678901",
+            "nome_paciente": "Nome",
+            "crm": "12345",
+            "uf_crm": "SP",
+            "nome_medico": "Dr. Nome",
+            "end_medico": "Endereço",
+            "dest_medico": "INTERNET",
+            "flag_problema_cpf": false,
+            "flag_problema_medico": false,
+            "enviar_para_pendencia": false
+        }
     """
     login_url = 'admin:login'
     
@@ -1000,13 +1099,15 @@ class CadastrarRequisicaoView(LoginRequiredMixin, View):
                     status=400
                 )
             
-            # Verificar impeditivos
+            # Verificar flags de problema
             flag_problema_cpf = data.get('flag_problema_cpf', False)
             flag_problema_medico = data.get('flag_problema_medico', False)
+            enviar_para_pendencia = data.get('enviar_para_pendencia', False)
             
-            if flag_problema_cpf or flag_problema_medico:
+            # Se há problemas mas não foi confirmado envio para pendência
+            if (flag_problema_cpf or flag_problema_medico) and not enviar_para_pendencia:
                 return JsonResponse(
-                    {'status': 'error', 'message': 'Não é possível cadastrar com problemas pendentes.'},
+                    {'status': 'error', 'message': 'Confirme o envio para fila de pendências.'},
                     status=400
                 )
             
@@ -1023,30 +1124,72 @@ class CadastrarRequisicaoView(LoginRequiredMixin, View):
             requisicao.flag_problema_cpf = flag_problema_cpf
             requisicao.flag_problema_medico = flag_problema_medico
             
-            # Atualizar status para CADASTRADA (código 12)
-            novo_status = StatusRequisicao.objects.get(codigo='12')
+            # Determinar novo status
+            if flag_problema_cpf or flag_problema_medico:
+                # Enviar para PENDÊNCIA (código 6)
+                novo_status = StatusRequisicao.objects.get(codigo='6')
+                mensagem = 'Requisição enviada para fila de pendências!'
+                
+                # Criar registros de pendência
+                if flag_problema_cpf:
+                    tipo_pend_cpf = TipoPendencia.objects.get(codigo=17)  # CPF em branco ou inválido
+                    RequisicaoPendencia.objects.get_or_create(
+                        requisicao=requisicao,
+                        tipo_pendencia=tipo_pend_cpf,
+                        defaults={
+                            'codigo_barras': requisicao.cod_barras_req,
+                            'usuario': request.user,
+                            'status': 'PENDENTE'
+                        }
+                    )
+                
+                if flag_problema_medico:
+                    tipo_pend_medico = TipoPendencia.objects.get(codigo=18)  # Dados médico incompletos
+                    RequisicaoPendencia.objects.get_or_create(
+                        requisicao=requisicao,
+                        tipo_pendencia=tipo_pend_medico,
+                        defaults={
+                            'codigo_barras': requisicao.cod_barras_req,
+                            'usuario': request.user,
+                            'status': 'PENDENTE'
+                        }
+                    )
+            else:
+                # Cadastrar normalmente - CADASTRADA (código 12)
+                novo_status = StatusRequisicao.objects.get(codigo='12')
+                mensagem = 'Requisição cadastrada com sucesso!'
+            
             requisicao.status = novo_status
             requisicao.updated_by = request.user
             requisicao.save()
             
             # Registrar no histórico
+            observacao = 'Requisição cadastrada na etapa 3.'
+            if flag_problema_cpf or flag_problema_medico:
+                pendencias = []
+                if flag_problema_cpf:
+                    pendencias.append('CPF')
+                if flag_problema_medico:
+                    pendencias.append('Dados médico')
+                observacao = f'Requisição enviada para pendências: {", ".join(pendencias)}.'
+            
             RequisicaoStatusHistorico.objects.create(
                 requisicao=requisicao,
                 cod_req=requisicao.cod_req,
                 status=novo_status,
                 usuario=request.user,
-                observacao=f'Requisição cadastrada na etapa 3. Status anterior: {status_anterior.descricao}'
+                observacao=f'{observacao} Status anterior: {status_anterior.descricao}'
             )
             
             logger.info(
-                f"Requisição cadastrada - {requisicao.cod_req}: "
+                f"Requisição processada - {requisicao.cod_req}: "
                 f"{status_anterior.descricao} → {novo_status.descricao} "
                 f"por {request.user.username}"
             )
             
             return JsonResponse({
                 'status': 'success',
-                'message': 'Requisição cadastrada com sucesso!',
+                'message': mensagem,
                 'novo_status': novo_status.descricao
             })
             
