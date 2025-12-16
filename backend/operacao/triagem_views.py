@@ -21,6 +21,7 @@ from .models import (
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
+    TipoAmostra,
     TipoPendencia,
 )
 
@@ -727,5 +728,347 @@ class FinalizarTriagemView(LoginRequiredMixin, View):
             logger.error(f"Erro ao finalizar triagem: {str(e)}", exc_info=True)
             return JsonResponse(
                 {'status': 'error', 'message': 'Erro ao finalizar triagem.'},
+                status=500
+            )
+
+
+# ============================================
+# TRIAGEM ETAPA 3 - CADASTRO
+# ============================================
+
+@method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
+class ListarTiposAmostraView(LoginRequiredMixin, View):
+    """
+    Lista tipos de amostra ativos para a Etapa 3 da triagem.
+    
+    GET /operacao/triagem/tipos-amostra/
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request):
+        try:
+            tipos = TipoAmostra.objects.filter(
+                ativo=True
+            ).values('id', 'descricao').order_by('descricao')
+            
+            return JsonResponse({
+                'status': 'success',
+                'tipos': list(tipos)
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao listar tipos de amostra: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao listar tipos de amostra.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='dispatch')
+class AtualizarTipoAmostraView(LoginRequiredMixin, View):
+    """
+    Atualiza o tipo de amostra de uma amostra específica.
+    
+    POST /operacao/triagem/amostras/atualizar/
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            amostra_id = data.get('amostra_id')
+            tipo_amostra_id = data.get('tipo_amostra_id')
+            
+            if not amostra_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da amostra não informado.'},
+                    status=400
+                )
+            
+            amostra = RequisicaoAmostra.objects.get(id=amostra_id)
+            
+            if tipo_amostra_id:
+                tipo = TipoAmostra.objects.get(id=tipo_amostra_id)
+                amostra.tipo_amostra = tipo
+            else:
+                amostra.tipo_amostra = None
+            
+            amostra.updated_by = request.user
+            amostra.save()
+            
+            logger.info(
+                f"Tipo de amostra atualizado - Amostra {amostra.cod_barras_amostra}: "
+                f"tipo_amostra_id={tipo_amostra_id} por {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Tipo de amostra atualizado.'
+            })
+            
+        except RequisicaoAmostra.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Amostra não encontrada.'},
+                status=404
+            )
+        except TipoAmostra.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Tipo de amostra não encontrado.'},
+                status=404
+            )
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Dados inválidos.'},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Erro ao atualizar tipo de amostra: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao atualizar tipo de amostra.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='dispatch')
+class ExcluirAmostraView(LoginRequiredMixin, View):
+    """
+    Exclui uma amostra da requisição.
+    
+    POST /operacao/triagem/amostras/excluir/
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            amostra_id = data.get('amostra_id')
+            
+            if not amostra_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da amostra não informado.'},
+                    status=400
+                )
+            
+            amostra = RequisicaoAmostra.objects.select_related('requisicao').get(id=amostra_id)
+            cod_barras = amostra.cod_barras_amostra
+            requisicao_id = amostra.requisicao_id
+            
+            # Excluir amostra
+            amostra.delete()
+            
+            logger.info(
+                f"Amostra excluída - Código: {cod_barras}, "
+                f"Requisição ID: {requisicao_id} por {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Amostra excluída com sucesso.'
+            })
+            
+        except RequisicaoAmostra.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Amostra não encontrada.'},
+                status=404
+            )
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Dados inválidos.'},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Erro ao excluir amostra: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao excluir amostra.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='dispatch')
+class AdicionarAmostraView(LoginRequiredMixin, View):
+    """
+    Adiciona uma nova amostra à requisição.
+    
+    POST /operacao/triagem/amostras/adicionar/
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            requisicao_id = data.get('requisicao_id')
+            cod_barras_amostra = data.get('cod_barras_amostra', '').strip()
+            
+            if not requisicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da requisição não informado.'},
+                    status=400
+                )
+            
+            if not cod_barras_amostra:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Código de barras da amostra não informado.'},
+                    status=400
+                )
+            
+            requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+            
+            # Verificar se código de barras já existe nesta requisição
+            if RequisicaoAmostra.objects.filter(
+                requisicao=requisicao,
+                cod_barras_amostra=cod_barras_amostra
+            ).exists():
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Este código de barras já existe nesta requisição.'},
+                    status=400
+                )
+            
+            # Determinar próxima ordem
+            ultima_ordem = RequisicaoAmostra.objects.filter(
+                requisicao=requisicao
+            ).order_by('-ordem').values_list('ordem', flat=True).first() or 0
+            
+            # Criar nova amostra
+            nova_amostra = RequisicaoAmostra.objects.create(
+                requisicao=requisicao,
+                cod_barras_amostra=cod_barras_amostra,
+                data_hora_bipagem=timezone.now(),
+                ordem=ultima_ordem + 1,
+                created_by=request.user,
+                updated_by=request.user
+            )
+            
+            logger.info(
+                f"Amostra adicionada - Código: {cod_barras_amostra}, "
+                f"Requisição: {requisicao.cod_req}, Ordem: {nova_amostra.ordem} "
+                f"por {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Amostra adicionada com sucesso.',
+                'amostra': {
+                    'id': nova_amostra.id,
+                    'cod_barras_amostra': nova_amostra.cod_barras_amostra,
+                    'ordem': nova_amostra.ordem
+                }
+            })
+            
+        except DadosRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Dados inválidos.'},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Erro ao adicionar amostra: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao adicionar amostra.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='20/m', method='POST'), name='dispatch')
+class CadastrarRequisicaoView(LoginRequiredMixin, View):
+    """
+    Finaliza a Etapa 3 - Cadastra a requisição.
+    
+    POST /operacao/triagem/cadastrar/
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            requisicao_id = data.get('requisicao_id')
+            
+            if not requisicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da requisição não informado.'},
+                    status=400
+                )
+            
+            requisicao = DadosRequisicao.objects.select_related('status').get(id=requisicao_id)
+            
+            # Verificar se está no status correto (TRIAGEM2-OK = código 8)
+            if requisicao.status.codigo != '8':
+                return JsonResponse(
+                    {'status': 'error', 'message': f'Requisição não está apta para cadastro. Status atual: {requisicao.status.descricao}'},
+                    status=400
+                )
+            
+            # Verificar impeditivos
+            flag_problema_cpf = data.get('flag_problema_cpf', False)
+            flag_problema_medico = data.get('flag_problema_medico', False)
+            
+            if flag_problema_cpf or flag_problema_medico:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Não é possível cadastrar com problemas pendentes.'},
+                    status=400
+                )
+            
+            status_anterior = requisicao.status
+            
+            # Atualizar dados da requisição
+            requisicao.cpf_paciente = data.get('cpf_paciente', '')
+            requisicao.nome_paciente = data.get('nome_paciente', '')
+            requisicao.crm = data.get('crm', '')
+            requisicao.uf_crm = data.get('uf_crm', '')
+            requisicao.nome_medico = data.get('nome_medico', '')
+            requisicao.end_medico = data.get('end_medico', '')
+            requisicao.dest_medico = data.get('dest_medico', '')
+            requisicao.flag_problema_cpf = flag_problema_cpf
+            requisicao.flag_problema_medico = flag_problema_medico
+            
+            # Atualizar status para CADASTRADA (código 12)
+            novo_status = StatusRequisicao.objects.get(codigo='12')
+            requisicao.status = novo_status
+            requisicao.updated_by = request.user
+            requisicao.save()
+            
+            # Registrar no histórico
+            RequisicaoStatusHistorico.objects.create(
+                requisicao=requisicao,
+                cod_req=requisicao.cod_req,
+                status=novo_status,
+                usuario=request.user,
+                observacao=f'Requisição cadastrada na etapa 3. Status anterior: {status_anterior.descricao}'
+            )
+            
+            logger.info(
+                f"Requisição cadastrada - {requisicao.cod_req}: "
+                f"{status_anterior.descricao} → {novo_status.descricao} "
+                f"por {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Requisição cadastrada com sucesso!',
+                'novo_status': novo_status.descricao
+            })
+            
+        except DadosRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        except StatusRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Status CADASTRADA não encontrado. Verifique a configuração do sistema.'},
+                status=500
+            )
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Dados inválidos.'},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Erro ao cadastrar requisição: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao cadastrar requisição.'},
                 status=500
             )

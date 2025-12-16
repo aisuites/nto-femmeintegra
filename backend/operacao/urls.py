@@ -50,6 +50,32 @@ urlpatterns = [
         triagem_views.FinalizarTriagemView.as_view(),
         name='triagem-finalizar',
     ),
+    # Triagem Etapa 3
+    path(
+        'triagem/tipos-amostra/',
+        triagem_views.ListarTiposAmostraView.as_view(),
+        name='triagem-tipos-amostra',
+    ),
+    path(
+        'triagem/amostras/atualizar/',
+        triagem_views.AtualizarTipoAmostraView.as_view(),
+        name='triagem-amostras-atualizar',
+    ),
+    path(
+        'triagem/amostras/excluir/',
+        triagem_views.ExcluirAmostraView.as_view(),
+        name='triagem-amostras-excluir',
+    ),
+    path(
+        'triagem/amostras/adicionar/',
+        triagem_views.AdicionarAmostraView.as_view(),
+        name='triagem-amostras-adicionar',
+    ),
+    path(
+        'triagem/cadastrar/',
+        triagem_views.CadastrarRequisicaoView.as_view(),
+        name='triagem-cadastrar',
+    ),
     # Upload de arquivos
     path(
         'upload/signed-url/',

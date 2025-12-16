@@ -57,6 +57,28 @@ const pendenciasCheckboxes = document.getElementById('pendencias-checkboxes');
 const btnCancelarE2 = document.getElementById('btn-cancelar-triagem2');
 const btnFinalizarE2 = document.getElementById('btn-finalizar-triagem2');
 
+// Campos da Etapa 3
+const step3Container = document.getElementById('triagem-step3-container');
+const reqCodigoDisplayE3 = document.getElementById('req-codigo-display-e3');
+const reqBarrasDisplayE3 = document.getElementById('req-barras-display-e3');
+const cpfPaciente = document.getElementById('cpf-paciente');
+const nomePaciente = document.getElementById('nome-paciente');
+const crmMedico = document.getElementById('crm-medico');
+const ufCrm = document.getElementById('uf-crm');
+const nomeMedico = document.getElementById('nome-medico');
+const enderecoMedico = document.getElementById('endereco-medico');
+const destinoMedico = document.getElementById('destino-medico');
+const checkProblemaCpf = document.getElementById('check-problema-cpf');
+const checkProblemaMedico = document.getElementById('check-problema-medico');
+const amostrasGridE3 = document.getElementById('amostras-grid-e3');
+const btnCancelarE3 = document.getElementById('btn-cancelar-triagem3');
+const btnSeguirCadastro = document.getElementById('btn-seguir-cadastro');
+const btnAdicionarFrasco = document.getElementById('btn-adicionar-frasco');
+
+// Modais Etapa 3
+const modalExcluirAmostra = document.getElementById('modal-excluir-amostra');
+const modalAdicionarAmostra = document.getElementById('modal-adicionar-amostra');
+
 // ============================================
 // ESTADO GLOBAL
 // ============================================
@@ -64,6 +86,8 @@ const btnFinalizarE2 = document.getElementById('btn-finalizar-triagem2');
 let requisicaoAtual = null;
 let amostrasAtual = [];
 let tiposPendencia = [];
+let tiposAmostra = [];
+let amostraParaExcluir = null;
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -153,6 +177,21 @@ function limparFormulario() {
   if (reqCodigoDisplayE2) reqCodigoDisplayE2.textContent = '#---';
   if (reqBarrasDisplayE2) reqBarrasDisplayE2.textContent = '---';
   if (pendenciasCheckboxes) pendenciasCheckboxes.innerHTML = '';
+  
+  // Limpar campos Etapa 3
+  if (step3Container) step3Container.style.display = 'none';
+  if (reqCodigoDisplayE3) reqCodigoDisplayE3.textContent = '#---';
+  if (reqBarrasDisplayE3) reqBarrasDisplayE3.textContent = '---';
+  if (cpfPaciente) cpfPaciente.value = '';
+  if (nomePaciente) nomePaciente.value = '';
+  if (crmMedico) crmMedico.value = '';
+  if (ufCrm) ufCrm.value = '';
+  if (nomeMedico) nomeMedico.value = '';
+  if (enderecoMedico) enderecoMedico.value = '';
+  if (destinoMedico) destinoMedico.value = '';
+  if (checkProblemaCpf) checkProblemaCpf.checked = false;
+  if (checkProblemaMedico) checkProblemaMedico.checked = false;
+  if (amostrasGridE3) amostrasGridE3.innerHTML = '';
 }
 
 /**
@@ -1115,13 +1154,23 @@ async function salvarEtapa2() {
     const result = await response.json();
     
     if (result.status === 'success') {
-      mostrarMensagemSucesso(result.message || 'Triagem finalizada com sucesso!');
-      
-      // Limpar formulário e voltar para busca
-      setTimeout(() => {
-        limparFormulario();
-        inputCodBarras.focus();
-      }, 2000);
+      // Verificar se tem pendências - se não tiver, carregar Etapa 3
+      if (result.pendencias_count === 0) {
+        mostrarMensagemSucesso('✅ Etapa 2 concluída! Carregando etapa 3...');
+        
+        // Aguardar 1.5 segundos e carregar Etapa 3
+        setTimeout(() => {
+          carregarEtapa3(requisicaoAtual);
+        }, 1500);
+      } else {
+        // Tem pendências - finalizar triagem
+        mostrarMensagemSucesso(result.message || 'Triagem finalizada com pendências.');
+        
+        setTimeout(() => {
+          limparFormulario();
+          inputCodBarras.focus();
+        }, 2000);
+      }
       
     } else {
       mostrarAlerta(result.message || 'Erro ao finalizar triagem.');
@@ -1188,6 +1237,405 @@ function getCsrfToken() {
 }
 
 // ============================================
+// ETAPA 3 - CADASTRO
+// ============================================
+
+/**
+ * Carrega Etapa 3 - Cadastro
+ */
+async function carregarEtapa3(dados) {
+  // Esconder Etapas 1 e 2
+  stepContainer.style.display = 'none';
+  step2Container.style.display = 'none';
+  
+  // Guardar dados da requisição
+  if (dados) {
+    requisicaoAtual = dados;
+  }
+  
+  // Preencher campos informativos
+  if (reqCodigoDisplayE3) reqCodigoDisplayE3.textContent = '#' + (requisicaoAtual.cod_req || '---');
+  if (reqBarrasDisplayE3) reqBarrasDisplayE3.textContent = requisicaoAtual.cod_barras_req || '---';
+  
+  // Preencher campos existentes da requisição (se houver)
+  if (cpfPaciente && requisicaoAtual.cpf_paciente) {
+    cpfPaciente.value = formatarCPF(requisicaoAtual.cpf_paciente);
+  }
+  if (nomePaciente && requisicaoAtual.nome_paciente) {
+    nomePaciente.value = requisicaoAtual.nome_paciente;
+  }
+  if (crmMedico && requisicaoAtual.crm) {
+    crmMedico.value = requisicaoAtual.crm;
+  }
+  if (ufCrm && requisicaoAtual.uf_crm) {
+    ufCrm.value = requisicaoAtual.uf_crm;
+  }
+  if (nomeMedico && requisicaoAtual.nome_medico) {
+    nomeMedico.value = requisicaoAtual.nome_medico;
+  }
+  if (enderecoMedico && requisicaoAtual.end_medico) {
+    enderecoMedico.value = requisicaoAtual.end_medico;
+  }
+  if (destinoMedico && requisicaoAtual.dest_medico) {
+    destinoMedico.value = requisicaoAtual.dest_medico;
+  }
+  
+  // Carregar tipos de amostra se ainda não carregados
+  if (tiposAmostra.length === 0) {
+    await carregarTiposAmostra();
+  }
+  
+  // Carregar amostras da requisição
+  await carregarAmostrasEtapa3();
+  
+  // Mostrar Etapa 3
+  step3Container.style.display = 'block';
+  
+  // Scroll suave para a seção
+  step3Container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/**
+ * Carrega tipos de amostra do backend
+ */
+async function carregarTiposAmostra() {
+  try {
+    const response = await fetch('/operacao/triagem/tipos-amostra/', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      tiposAmostra = data.tipos;
+    } else {
+      console.error('Erro ao carregar tipos de amostra:', data.message);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar tipos de amostra:', error);
+  }
+}
+
+/**
+ * Carrega amostras da requisição para Etapa 3
+ */
+async function carregarAmostrasEtapa3() {
+  if (!requisicaoAtual || !amostrasGridE3) return;
+  
+  try {
+    const response = await fetch(`/operacao/triagem/amostras/?requisicao_id=${requisicaoAtual.id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      amostrasAtual = data.amostras;
+      renderizarAmostrasEtapa3();
+    } else {
+      console.error('Erro ao carregar amostras:', data.message);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar amostras:', error);
+  }
+}
+
+/**
+ * Renderiza grid de amostras na Etapa 3
+ */
+function renderizarAmostrasEtapa3() {
+  if (!amostrasGridE3) return;
+  
+  amostrasGridE3.innerHTML = '';
+  
+  amostrasAtual.forEach((amostra, index) => {
+    const card = document.createElement('div');
+    card.className = 'amostra-card';
+    card.dataset.amostraId = amostra.id;
+    
+    // Criar options do select de tipo de amostra
+    let optionsHtml = '<option value="">Selecione o tipo...</option>';
+    tiposAmostra.forEach(tipo => {
+      const selected = amostra.tipo_amostra_id === tipo.id ? 'selected' : '';
+      optionsHtml += `<option value="${tipo.id}" ${selected}>${tipo.descricao}</option>`;
+    });
+    
+    card.innerHTML = `
+      <div class="amostra-info">
+        <span class="amostra-codigo">${amostra.cod_barras_amostra}</span>
+        <span class="amostra-ordem">Frasco ${amostra.ordem}</span>
+      </div>
+      <select class="select-tipo-amostra" data-amostra-id="${amostra.id}">
+        ${optionsHtml}
+      </select>
+      <button type="button" class="btn-excluir-amostra" data-amostra-id="${amostra.id}" data-cod-barras="${amostra.cod_barras_amostra}" title="Excluir amostra">
+        🗑️
+      </button>
+    `;
+    
+    amostrasGridE3.appendChild(card);
+  });
+  
+  // Adicionar event listeners para selects e botões de excluir
+  amostrasGridE3.querySelectorAll('.select-tipo-amostra').forEach(select => {
+    select.addEventListener('change', onTipoAmostraChange);
+  });
+  
+  amostrasGridE3.querySelectorAll('.btn-excluir-amostra').forEach(btn => {
+    btn.addEventListener('click', onExcluirAmostraClick);
+  });
+}
+
+/**
+ * Handler para mudança de tipo de amostra
+ */
+async function onTipoAmostraChange(e) {
+  const amostraId = e.target.dataset.amostraId;
+  const tipoAmostraId = e.target.value;
+  
+  try {
+    const response = await fetch('/operacao/triagem/amostras/atualizar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        amostra_id: amostraId,
+        tipo_amostra_id: tipoAmostraId || null
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status !== 'success') {
+      mostrarAlerta(result.message || 'Erro ao atualizar tipo de amostra.');
+      // Reverter seleção
+      await carregarAmostrasEtapa3();
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar tipo de amostra:', error);
+    mostrarAlerta('Erro ao atualizar tipo de amostra.');
+  }
+}
+
+/**
+ * Handler para clique no botão excluir amostra
+ */
+function onExcluirAmostraClick(e) {
+  const btn = e.target.closest('.btn-excluir-amostra');
+  const amostraId = btn.dataset.amostraId;
+  const codBarras = btn.dataset.codBarras;
+  
+  amostraParaExcluir = { id: amostraId, codBarras: codBarras };
+  
+  // Atualizar modal com info da amostra
+  document.getElementById('amostra-excluir-info').textContent = `Código: ${codBarras}`;
+  
+  // Mostrar modal
+  modalExcluirAmostra.style.display = 'flex';
+}
+
+/**
+ * Confirma exclusão de amostra
+ */
+async function confirmarExcluirAmostra() {
+  if (!amostraParaExcluir) return;
+  
+  try {
+    const response = await fetch('/operacao/triagem/amostras/excluir/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        amostra_id: amostraParaExcluir.id
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      mostrarMensagemSucesso('Amostra excluída com sucesso!');
+      modalExcluirAmostra.style.display = 'none';
+      amostraParaExcluir = null;
+      
+      // Recarregar amostras
+      await carregarAmostrasEtapa3();
+    } else {
+      mostrarAlerta(result.message || 'Erro ao excluir amostra.');
+    }
+  } catch (error) {
+    console.error('Erro ao excluir amostra:', error);
+    mostrarAlerta('Erro ao excluir amostra.');
+  }
+}
+
+/**
+ * Cancela exclusão de amostra
+ */
+function cancelarExcluirAmostra() {
+  modalExcluirAmostra.style.display = 'none';
+  amostraParaExcluir = null;
+}
+
+/**
+ * Abre modal para adicionar nova amostra
+ */
+function abrirModalAdicionarAmostra() {
+  document.getElementById('nova-amostra-cod-barras').value = '';
+  modalAdicionarAmostra.style.display = 'flex';
+  document.getElementById('nova-amostra-cod-barras').focus();
+}
+
+/**
+ * Confirma adição de nova amostra
+ */
+async function confirmarAdicionarAmostra() {
+  const codBarras = document.getElementById('nova-amostra-cod-barras').value.trim();
+  
+  if (!codBarras) {
+    mostrarAlerta('Informe o código de barras da nova amostra.');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/operacao/triagem/amostras/adicionar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        cod_barras_amostra: codBarras
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      mostrarMensagemSucesso('Amostra adicionada com sucesso!');
+      modalAdicionarAmostra.style.display = 'none';
+      
+      // Recarregar amostras
+      await carregarAmostrasEtapa3();
+    } else {
+      mostrarAlerta(result.message || 'Erro ao adicionar amostra.');
+    }
+  } catch (error) {
+    console.error('Erro ao adicionar amostra:', error);
+    mostrarAlerta('Erro ao adicionar amostra.');
+  }
+}
+
+/**
+ * Cancela adição de amostra
+ */
+function cancelarAdicionarAmostra() {
+  modalAdicionarAmostra.style.display = 'none';
+}
+
+/**
+ * Formata CPF com máscara
+ */
+function formatarCPF(cpf) {
+  if (!cpf) return '';
+  cpf = cpf.replace(/\D/g, '');
+  if (cpf.length <= 3) return cpf;
+  if (cpf.length <= 6) return cpf.replace(/(\d{3})(\d+)/, '$1.$2');
+  if (cpf.length <= 9) return cpf.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
+  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1.$2.$3-$4').substring(0, 14);
+}
+
+/**
+ * Aplica máscara de CPF ao digitar
+ */
+function aplicarMascaraCPF(e) {
+  e.target.value = formatarCPF(e.target.value);
+}
+
+/**
+ * Salva Etapa 3 - Seguir para Cadastro
+ */
+async function salvarEtapa3() {
+  // Verificar impeditivos
+  const impeditivos = [];
+  
+  if (checkProblemaCpf && checkProblemaCpf.checked) {
+    impeditivos.push('Problema com CPF');
+  }
+  
+  if (checkProblemaMedico && checkProblemaMedico.checked) {
+    impeditivos.push('Problema com dados do médico');
+  }
+  
+  if (impeditivos.length > 0) {
+    mostrarAlerta(`Não é possível seguir para cadastro. Impeditivos: ${impeditivos.join(', ')}`);
+    return;
+  }
+  
+  // Coletar dados do formulário
+  const dados = {
+    requisicao_id: requisicaoAtual.id,
+    cpf_paciente: cpfPaciente ? cpfPaciente.value.replace(/\D/g, '') : '',
+    nome_paciente: nomePaciente ? nomePaciente.value : '',
+    crm: crmMedico ? crmMedico.value : '',
+    uf_crm: ufCrm ? ufCrm.value : '',
+    nome_medico: nomeMedico ? nomeMedico.value : '',
+    end_medico: enderecoMedico ? enderecoMedico.value : '',
+    dest_medico: destinoMedico ? destinoMedico.value : '',
+    flag_problema_cpf: checkProblemaCpf ? checkProblemaCpf.checked : false,
+    flag_problema_medico: checkProblemaMedico ? checkProblemaMedico.checked : false
+  };
+  
+  try {
+    btnSeguirCadastro.disabled = true;
+    btnSeguirCadastro.textContent = '⏳ Processando...';
+    
+    const response = await fetch('/operacao/triagem/cadastrar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify(dados)
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      mostrarMensagemSucesso(result.message || 'Requisição cadastrada com sucesso!');
+      
+      // Limpar formulário e voltar para busca
+      setTimeout(() => {
+        limparFormulario();
+        inputCodBarras.focus();
+      }, 2000);
+      
+    } else {
+      mostrarAlerta(result.message || 'Erro ao cadastrar requisição.');
+    }
+    
+  } catch (error) {
+    console.error('Erro ao cadastrar requisição:', error);
+    mostrarAlerta('Erro ao cadastrar requisição. Tente novamente.');
+  } finally {
+    btnSeguirCadastro.disabled = false;
+    btnSeguirCadastro.textContent = 'SEGUIR PARA CADASTRO';
+  }
+}
+
+// ============================================
 // EVENT LISTENERS - TRIAGEM ETAPA 1
 // ============================================
 
@@ -1242,6 +1690,59 @@ if (btnCancelarE2) {
 // Botão Finalizar Etapa 2
 if (btnFinalizarE2) {
   btnFinalizarE2.addEventListener('click', salvarEtapa2);
+}
+
+// ============================================
+// EVENT LISTENERS - TRIAGEM ETAPA 3
+// ============================================
+
+// Botão Cancelar Etapa 3
+if (btnCancelarE3) {
+  btnCancelarE3.addEventListener('click', () => {
+    if (confirm('Deseja cancelar o cadastro desta requisição?')) {
+      limparFormulario();
+      inputCodBarras.focus();
+    }
+  });
+}
+
+// Botão Seguir para Cadastro
+if (btnSeguirCadastro) {
+  btnSeguirCadastro.addEventListener('click', salvarEtapa3);
+}
+
+// Botão Adicionar Frasco
+if (btnAdicionarFrasco) {
+  btnAdicionarFrasco.addEventListener('click', abrirModalAdicionarAmostra);
+}
+
+// Modal Excluir Amostra - Botões
+const btnConfirmarExcluir = document.getElementById('btn-confirmar-excluir-amostra');
+const btnCancelarExcluir = document.getElementById('btn-cancelar-excluir-amostra');
+
+if (btnConfirmarExcluir) {
+  btnConfirmarExcluir.addEventListener('click', confirmarExcluirAmostra);
+}
+
+if (btnCancelarExcluir) {
+  btnCancelarExcluir.addEventListener('click', cancelarExcluirAmostra);
+}
+
+// Modal Adicionar Amostra - Botões
+const btnConfirmarAdicionar = document.getElementById('btn-confirmar-adicionar-amostra');
+const btnCancelarAdicionar = document.getElementById('btn-cancelar-adicionar-amostra');
+
+if (btnConfirmarAdicionar) {
+  btnConfirmarAdicionar.addEventListener('click', confirmarAdicionarAmostra);
+}
+
+if (btnCancelarAdicionar) {
+  btnCancelarAdicionar.addEventListener('click', cancelarAdicionarAmostra);
+}
+
+// Máscara de CPF
+if (cpfPaciente) {
+  cpfPaciente.addEventListener('input', aplicarMascaraCPF);
 }
 
 // ============================================
