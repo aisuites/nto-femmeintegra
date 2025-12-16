@@ -3,6 +3,7 @@ from django.core.cache import cache
 
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
+    LogAlteracaoAmostra,
     LogRecebimento,
     MotivoArmazenamentoInadequado,
     MotivoAlteracaoAmostra,
@@ -371,3 +372,23 @@ class MotivoAlteracaoAmostraAdmin(admin.ModelAdmin):
     search_fields = ('codigo', 'descricao')
     list_editable = ('ativo',)
     ordering = ('tipo', 'codigo')
+
+
+@admin.register(LogAlteracaoAmostra)
+class LogAlteracaoAmostraAdmin(admin.ModelAdmin):
+    """Admin para logs de alteração de amostra (auditoria)."""
+    list_display = ('created_at', 'tipo_alteracao', 'cod_barras_requisicao', 'cod_barras_amostra', 'etapa', 'usuario', 'motivo')
+    list_filter = ('tipo_alteracao', 'etapa', 'created_at')
+    search_fields = ('cod_barras_requisicao', 'cod_barras_amostra', 'usuario__username')
+    readonly_fields = ('created_at', 'updated_at', 'requisicao', 'cod_barras_requisicao', 'cod_barras_amostra', 'tipo_alteracao', 'etapa', 'usuario', 'motivo', 'observacao')
+    ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
