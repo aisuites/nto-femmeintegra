@@ -367,7 +367,7 @@ class DadosRequisicao(AuditModel):
 
     data_envio_representante = models.DateField(null=True, blank=True)
     data_cadastro_representante = models.DateField(null=True, blank=True)
-    data_recebimento_nto = models.DateField(null=True, blank=True)
+    data_recebimento_nto = models.DateTimeField(null=True, blank=True)
     data_um = models.DateField(null=True, blank=True)
 
     nome_paciente = models.CharField(max_length=200, blank=True)
