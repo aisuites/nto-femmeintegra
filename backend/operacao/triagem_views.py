@@ -18,7 +18,7 @@ from .models import (
     DadosRequisicao,
     LogAlteracaoAmostra,
     MotivoArmazenamentoInadequado,
-    MotivoExclusaoAmostra,
+    MotivoAlteracaoAmostra,
     RequisicaoAmostra,
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
@@ -748,7 +748,9 @@ class ListarMotivosExclusaoAmostraView(LoginRequiredMixin, View):
     
     def get(self, request):
         try:
-            motivos = MotivoExclusaoAmostra.objects.filter(
+            tipo = request.GET.get('tipo', 'EXCLUSAO')
+            motivos = MotivoAlteracaoAmostra.objects.filter(
+                tipo=tipo,
                 ativo=True
             ).values('id', 'codigo', 'descricao').order_by('codigo')
             
@@ -758,9 +760,9 @@ class ListarMotivosExclusaoAmostraView(LoginRequiredMixin, View):
             })
             
         except Exception as e:
-            logger.error(f"Erro ao listar motivos de exclusão: {str(e)}", exc_info=True)
+            logger.error(f"Erro ao listar motivos de alteração: {str(e)}", exc_info=True)
             return JsonResponse(
-                {'status': 'error', 'message': 'Erro ao listar motivos de exclusão.'},
+                {'status': 'error', 'message': 'Erro ao listar motivos.'},
                 status=500
             )
 
@@ -893,7 +895,7 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
                 )
             
             # Buscar motivo de exclusão
-            motivo = MotivoExclusaoAmostra.objects.get(id=motivo_exclusao_id, ativo=True)
+            motivo = MotivoAlteracaoAmostra.objects.get(id=motivo_exclusao_id, tipo='EXCLUSAO', ativo=True)
             
             amostra = RequisicaoAmostra.objects.select_related('requisicao').get(id=amostra_id)
             cod_barras_amostra = amostra.cod_barras_amostra
@@ -907,7 +909,7 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
                 tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.EXCLUSAO,
                 etapa=etapa,
                 usuario=request.user,
-                motivo_exclusao=motivo,
+                motivo=motivo,
                 observacao=f'Motivo: {motivo.descricao}'
             )
             
@@ -925,7 +927,7 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
                 'message': 'Amostra excluída com sucesso.'
             })
             
-        except MotivoExclusaoAmostra.DoesNotExist:
+        except MotivoAlteracaoAmostra.DoesNotExist:
             return JsonResponse(
                 {'status': 'error', 'message': 'Motivo de exclusão não encontrado.'},
                 status=404
@@ -959,6 +961,7 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
         {
             "requisicao_id": 123,
             "cod_barras_amostra": "ABC123",
+            "motivo_adicao_id": 1,
             "etapa": "TRIAGEM3"
         }
     """
@@ -969,6 +972,7 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
             data = json.loads(request.body)
             requisicao_id = data.get('requisicao_id')
             cod_barras_amostra = data.get('cod_barras_amostra', '').strip()
+            motivo_adicao_id = data.get('motivo_adicao_id')
             etapa = data.get('etapa', 'TRIAGEM3')
             
             if not requisicao_id:
@@ -982,6 +986,15 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
                     {'status': 'error', 'message': 'Código de barras da amostra não informado.'},
                     status=400
                 )
+            
+            if not motivo_adicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Motivo da adição é obrigatório.'},
+                    status=400
+                )
+            
+            # Buscar motivo de adição
+            motivo = MotivoAlteracaoAmostra.objects.get(id=motivo_adicao_id, tipo='ADICAO', ativo=True)
             
             requisicao = DadosRequisicao.objects.get(id=requisicao_id)
             
@@ -1019,13 +1032,14 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
                 tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.ADICAO,
                 etapa=etapa,
                 usuario=request.user,
-                observacao=f'Amostra adicionada manualmente na {etapa}'
+                motivo=motivo,
+                observacao=f'Motivo: {motivo.descricao}'
             )
             
             logger.info(
                 f"Amostra adicionada - Código: {cod_barras_amostra}, "
                 f"Requisição: {requisicao.cod_req}, Ordem: {nova_amostra.ordem}, "
-                f"Etapa: {etapa} por {request.user.username}"
+                f"Motivo: {motivo.descricao}, Etapa: {etapa} por {request.user.username}"
             )
             
             return JsonResponse({
@@ -1038,6 +1052,11 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
                 }
             })
             
+        except MotivoAlteracaoAmostra.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Motivo de adição não encontrado.'},
+                status=404
+            )
         except DadosRequisicao.DoesNotExist:
             return JsonResponse(
                 {'status': 'error', 'message': 'Requisição não encontrada.'},

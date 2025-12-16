@@ -80,6 +80,7 @@ const modalExcluirAmostra = document.getElementById('modal-excluir-amostra');
 const modalAdicionarAmostra = document.getElementById('modal-adicionar-amostra');
 const modalAvisoPendencias = document.getElementById('modal-aviso-pendencias');
 const selectMotivoExclusao = document.getElementById('motivo-exclusao-amostra');
+const selectMotivoAdicao = document.getElementById('motivo-adicao-amostra');
 const inputNovaAmostraCodBarras = document.getElementById('nova-amostra-cod-barras');
 const erroAdicionarAmostra = document.getElementById('erro-adicionar-amostra');
 const erroAdicionarAmostraMsg = document.getElementById('erro-adicionar-amostra-msg');
@@ -94,6 +95,7 @@ let amostrasAtual = [];
 let tiposPendencia = [];
 let tiposAmostra = [];
 let motivosExclusaoAmostra = [];
+let motivosAdicaoAmostra = [];
 let amostraParaExcluir = null;
 let pendenciasIdentificadas = [];
 
@@ -1295,6 +1297,11 @@ async function carregarEtapa3(dados) {
     await carregarMotivosExclusaoAmostra();
   }
   
+  // Carregar motivos de adição de amostra se ainda não carregados
+  if (motivosAdicaoAmostra.length === 0) {
+    await carregarMotivosAdicaoAmostra();
+  }
+  
   // Carregar amostras da requisição
   await carregarAmostrasEtapa3();
   
@@ -1606,6 +1613,39 @@ async function carregarMotivosExclusaoAmostra() {
 }
 
 /**
+ * Carrega motivos de adição de amostra do backend
+ */
+async function carregarMotivosAdicaoAmostra() {
+  try {
+    const response = await fetch('/operacao/triagem/motivos-exclusao-amostra/?tipo=ADICAO', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      motivosAdicaoAmostra = data.motivos;
+      
+      // Popular select de motivos
+      if (selectMotivoAdicao) {
+        selectMotivoAdicao.innerHTML = '<option value="">Selecione o motivo...</option>';
+        motivosAdicaoAmostra.forEach(motivo => {
+          selectMotivoAdicao.innerHTML += `<option value="${motivo.id}">${motivo.descricao}</option>`;
+        });
+      }
+    } else {
+      console.error('Erro ao carregar motivos de adição:', data.message);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar motivos de adição:', error);
+  }
+}
+
+/**
  * Handler para clique no botão excluir amostra
  */
 function onExcluirAmostraClick(e) {
@@ -1688,6 +1728,11 @@ function abrirModalAdicionarAmostra() {
     inputNovaAmostraCodBarras.value = '';
   }
   
+  // Resetar select de motivo
+  if (selectMotivoAdicao) {
+    selectMotivoAdicao.value = '';
+  }
+  
   // Esconder erro anterior
   if (erroAdicionarAmostra) {
     erroAdicionarAmostra.style.display = 'none';
@@ -1695,19 +1740,36 @@ function abrirModalAdicionarAmostra() {
   
   modalAdicionarAmostra.style.display = 'flex';
   
-  if (inputNovaAmostraCodBarras) {
-    inputNovaAmostraCodBarras.focus();
+  if (selectMotivoAdicao) {
+    selectMotivoAdicao.focus();
   }
 }
 
 /**
- * Confirma adição de nova amostra (com validação de código de barras)
+ * Confirma adição de nova amostra (com validação de código de barras e motivo obrigatório)
  */
 async function confirmarAdicionarAmostra() {
+  const motivoId = selectMotivoAdicao ? selectMotivoAdicao.value : '';
   const codBarras = inputNovaAmostraCodBarras ? inputNovaAmostraCodBarras.value.trim() : '';
   
+  // Validar motivo obrigatório
+  if (!motivoId) {
+    if (erroAdicionarAmostra && erroAdicionarAmostraMsg) {
+      erroAdicionarAmostraMsg.textContent = 'Selecione o motivo da adição.';
+      erroAdicionarAmostra.style.display = 'block';
+    } else {
+      mostrarAlerta('Selecione o motivo da adição.');
+    }
+    return;
+  }
+  
   if (!codBarras) {
-    mostrarAlerta('Informe o código de barras da nova amostra.');
+    if (erroAdicionarAmostra && erroAdicionarAmostraMsg) {
+      erroAdicionarAmostraMsg.textContent = 'Informe o código de barras da nova amostra.';
+      erroAdicionarAmostra.style.display = 'block';
+    } else {
+      mostrarAlerta('Informe o código de barras da nova amostra.');
+    }
     return;
   }
   
@@ -1726,6 +1788,7 @@ async function confirmarAdicionarAmostra() {
       body: JSON.stringify({
         requisicao_id: requisicaoAtual.id,
         cod_barras_amostra: codBarras,
+        motivo_adicao_id: motivoId,
         etapa: 'TRIAGEM3'
       })
     });

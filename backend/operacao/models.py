@@ -593,21 +593,32 @@ class RequisicaoAmostra(AuditModel):
         return f'{self.requisicao.cod_req} - Amostra {self.ordem}'
 
 
-class MotivoExclusaoAmostra(TimeStampedModel):
+class MotivoAlteracaoAmostra(TimeStampedModel):
     """
-    Motivos pré-definidos para exclusão de amostras.
-    Usado para rastrear problemas e manter histórico de exclusões.
+    Motivos pré-definidos para alteração de amostras (adição/exclusão).
+    Usado para rastrear problemas e manter histórico de alterações.
     """
+    class TipoMotivo(models.TextChoices):
+        ADICAO = 'ADICAO', 'Adição'
+        EXCLUSAO = 'EXCLUSAO', 'Exclusão'
+
+    tipo = models.CharField(
+        'Tipo',
+        max_length=10,
+        choices=TipoMotivo.choices,
+        default=TipoMotivo.EXCLUSAO,
+        db_index=True,
+        help_text='Tipo de alteração (adição ou exclusão)'
+    )
     codigo = models.PositiveSmallIntegerField(
         'Código',
-        unique=True,
         db_index=True,
-        help_text='Código único do motivo de exclusão'
+        help_text='Código do motivo (único por tipo)'
     )
     descricao = models.CharField(
         'Descrição',
         max_length=200,
-        help_text='Descrição do motivo de exclusão'
+        help_text='Descrição do motivo'
     )
     ativo = models.BooleanField(
         'Ativo',
@@ -617,13 +628,18 @@ class MotivoExclusaoAmostra(TimeStampedModel):
     )
 
     class Meta:
-        db_table = 'motivo_exclusao_amostra'
-        ordering = ('codigo',)
-        verbose_name = 'Motivo de Exclusão de Amostra'
-        verbose_name_plural = 'Motivos de Exclusão de Amostra'
+        db_table = 'motivo_alteracao_amostra'
+        ordering = ('tipo', 'codigo')
+        verbose_name = 'Motivo de Alteração de Amostra'
+        verbose_name_plural = 'Motivos de Alteração de Amostra'
+        unique_together = [['tipo', 'codigo']]
 
     def __str__(self) -> str:
-        return f'{self.codigo} - {self.descricao}'
+        return f'{self.get_tipo_display()} - {self.codigo} - {self.descricao}'
+
+
+# Alias para compatibilidade com código existente
+MotivoExclusaoAmostra = MotivoAlteracaoAmostra
 
 
 class LogAlteracaoAmostra(TimeStampedModel):
@@ -674,14 +690,14 @@ class LogAlteracaoAmostra(TimeStampedModel):
         verbose_name='Usuário',
         help_text='Usuário que realizou a alteração'
     )
-    motivo_exclusao = models.ForeignKey(
-        'MotivoExclusaoAmostra',
+    motivo = models.ForeignKey(
+        'MotivoAlteracaoAmostra',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        related_name='logs_exclusao',
-        verbose_name='Motivo de exclusão',
-        help_text='Motivo da exclusão (apenas para exclusões)'
+        related_name='logs_alteracao',
+        verbose_name='Motivo',
+        help_text='Motivo da alteração (adição ou exclusão)'
     )
     observacao = models.TextField(
         'Observação',

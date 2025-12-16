@@ -5,7 +5,7 @@ from .models import (
     AmostraMotivoArmazenamentoInadequado,
     LogRecebimento,
     MotivoArmazenamentoInadequado,
-    MotivoExclusaoAmostra,
+    MotivoAlteracaoAmostra,
     MotivoPreenchimento,
     MotivoStatusManual,
     Notificacao,
@@ -363,11 +363,11 @@ class TipoAmostraAdmin(admin.ModelAdmin):
     ordering = ('descricao',)
 
 
-@admin.register(MotivoExclusaoAmostra)
-class MotivoExclusaoAmostraAdmin(admin.ModelAdmin):
-    """Admin para motivos de exclusão de amostra."""
-    list_display = ('codigo', 'descricao', 'ativo')
-    list_filter = ('ativo',)
+@admin.register(MotivoAlteracaoAmostra)
+class MotivoAlteracaoAmostraAdmin(admin.ModelAdmin):
+    """Admin para motivos de alteração de amostra (adição/exclusão)."""
+    list_display = ('tipo', 'codigo', 'descricao', 'ativo')
+    list_filter = ('tipo', 'ativo')
     search_fields = ('codigo', 'descricao')
     list_editable = ('ativo',)
-    ordering = ('codigo',)
+    ordering = ('tipo', 'codigo')
