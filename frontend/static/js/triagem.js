@@ -1363,16 +1363,6 @@ function renderizarAmostrasEtapa3() {
   
   amostrasGridE3.innerHTML = '';
   
-  // Criar datalist único para todos os inputs de tipo de amostra
-  let datalistHtml = '<datalist id="tipos-amostra-list">';
-  tiposAmostra.forEach(tipo => {
-    datalistHtml += `<option value="${tipo.descricao}" data-id="${tipo.id}">`;
-  });
-  datalistHtml += '</datalist>';
-  
-  // Adicionar datalist ao grid (apenas uma vez)
-  amostrasGridE3.insertAdjacentHTML('beforeend', datalistHtml);
-  
   // Encontrar o tipo padrão "Citologia em meio liquido"
   const tipoPadrao = tiposAmostra.find(t => t.descricao.toLowerCase() === 'citologia em meio liquido');
   
@@ -1395,14 +1385,24 @@ function renderizarAmostrasEtapa3() {
       tipoAmostraId = tipoPadrao.id;
     }
     
+    // Criar lista de opções para dropdown customizado
+    let opcoesHtml = '';
+    tiposAmostra.forEach(tipo => {
+      const selected = tipo.id === tipoAmostraId ? 'selected' : '';
+      opcoesHtml += `<div class="custom-dropdown-item ${selected}" data-id="${tipo.id}" data-value="${tipo.descricao}">${tipo.descricao}</div>`;
+    });
+    
     card.innerHTML = `
       <div class="amostra-info">
         <span class="amostra-codigo">${amostra.cod_barras_amostra}</span>
         <span class="amostra-ordem">Frasco ${amostra.ordem}</span>
       </div>
-      <input type="text" class="input-tipo-amostra" list="tipos-amostra-list" 
-             data-amostra-id="${amostra.id}" data-tipo-id="${tipoAmostraId || ''}"
-             value="${valorTipoAmostra}" placeholder="Digite para filtrar..." autocomplete="off" />
+      <div class="custom-dropdown-wrapper">
+        <input type="text" class="input-tipo-amostra" 
+               data-amostra-id="${amostra.id}" data-tipo-id="${tipoAmostraId || ''}"
+               value="${valorTipoAmostra}" placeholder="Clique para selecionar..." autocomplete="off" readonly />
+        <div class="custom-dropdown-list">${opcoesHtml}</div>
+      </div>
       <button type="button" class="btn-excluir-amostra" data-amostra-id="${amostra.id}" data-cod-barras="${amostra.cod_barras_amostra}" title="Excluir amostra">
         🗑️
       </button>
@@ -1411,22 +1411,49 @@ function renderizarAmostrasEtapa3() {
     amostrasGridE3.appendChild(card);
   });
   
-  // Adicionar event listeners para inputs e botões de excluir
-  amostrasGridE3.querySelectorAll('.input-tipo-amostra').forEach(input => {
-    input.addEventListener('change', onTipoAmostraChange);
+  // Adicionar event listeners para dropdowns customizados
+  amostrasGridE3.querySelectorAll('.custom-dropdown-wrapper').forEach(wrapper => {
+    const input = wrapper.querySelector('.input-tipo-amostra');
+    const dropdown = wrapper.querySelector('.custom-dropdown-list');
     
-    // Ao focar, limpar o valor para mostrar todas as opções do datalist
-    input.addEventListener('focus', function() {
-      this.dataset.valorAnterior = this.value;
-      this.value = '';
-      this.placeholder = 'Digite para filtrar...';
+    // Abrir/fechar dropdown ao clicar no input
+    input.addEventListener('click', function(e) {
+      e.stopPropagation();
+      // Fechar outros dropdowns abertos
+      document.querySelectorAll('.custom-dropdown-list.show').forEach(d => {
+        if (d !== dropdown) d.classList.remove('show');
+      });
+      dropdown.classList.toggle('show');
     });
     
-    // Ao perder foco, restaurar valor anterior se não selecionou nada
-    input.addEventListener('blur', function() {
-      if (!this.value && this.dataset.valorAnterior) {
-        this.value = this.dataset.valorAnterior;
-      }
+    // Selecionar item do dropdown
+    dropdown.querySelectorAll('.custom-dropdown-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const tipoId = this.dataset.id;
+        const tipoValue = this.dataset.value;
+        
+        // Atualizar input
+        input.value = tipoValue;
+        input.dataset.tipoId = tipoId;
+        
+        // Marcar como selecionado
+        dropdown.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
+        this.classList.add('selected');
+        
+        // Fechar dropdown
+        dropdown.classList.remove('show');
+        
+        // Disparar evento de mudança
+        onTipoAmostraChangeCustom(input.dataset.amostraId, tipoId);
+      });
+    });
+  });
+  
+  // Fechar dropdown ao clicar fora
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.custom-dropdown-list.show').forEach(d => {
+      d.classList.remove('show');
     });
   });
   
@@ -1476,6 +1503,35 @@ async function onTipoAmostraChange(e) {
     if (result.status !== 'success') {
       mostrarAlerta(result.message || 'Erro ao atualizar tipo de amostra.');
       // Reverter seleção
+      await carregarAmostrasEtapa3();
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar tipo de amostra:', error);
+    mostrarAlerta('Erro ao atualizar tipo de amostra.');
+  }
+}
+
+/**
+ * Handler para mudança de tipo de amostra (dropdown customizado)
+ */
+async function onTipoAmostraChangeCustom(amostraId, tipoAmostraId) {
+  try {
+    const response = await fetch('/operacao/triagem/amostras/atualizar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        amostra_id: amostraId,
+        tipo_amostra_id: tipoAmostraId
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status !== 'success') {
+      mostrarAlerta(result.message || 'Erro ao atualizar tipo de amostra.');
       await carregarAmostrasEtapa3();
     }
   } catch (error) {
@@ -1999,6 +2055,32 @@ if (btnVoltarCorrigir) {
 
 if (btnConfirmarPendencia) {
   btnConfirmarPendencia.addEventListener('click', confirmarEnviarPendencia);
+}
+
+// Dropdown customizado UF-CRM
+const ufCrmInput = document.getElementById('uf-crm');
+const ufCrmDropdown = document.getElementById('uf-crm-dropdown');
+
+if (ufCrmInput && ufCrmDropdown) {
+  // Abrir/fechar dropdown ao clicar no input
+  ufCrmInput.addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.querySelectorAll('.custom-dropdown-list.show').forEach(d => {
+      if (d !== ufCrmDropdown) d.classList.remove('show');
+    });
+    ufCrmDropdown.classList.toggle('show');
+  });
+  
+  // Selecionar item do dropdown
+  ufCrmDropdown.querySelectorAll('.custom-dropdown-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      ufCrmInput.value = this.dataset.value;
+      ufCrmDropdown.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
+      this.classList.add('selected');
+      ufCrmDropdown.classList.remove('show');
+    });
+  });
 }
 
 // Botão Upload Etapa 3 - abrir seletor de arquivos
