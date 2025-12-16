@@ -726,8 +726,17 @@ input[readonly] {
   color: var(--femme-gray);
 }
 
-.amostra-card select {
+.amostra-card select,
+.amostra-card .input-tipo-amostra {
   font-size: 12px;
+}
+
+.amostra-card .input-tipo-amostra {
+  padding: 8px 10px;
+  border: 1px solid rgba(122, 61, 138, 0.2);
+  border-radius: 6px;
+  width: 100%;
+  max-width: 200px;
 }
 
 .amostra-card .btn-excluir-amostra {

@@ -239,9 +239,6 @@ function carregarRequisicao(dados) {
   
   // Carregar amostras para triagem etapa 1
   carregarAmostrasTriagem(dados.id);
-  
-  // Scroll suave para a seção
-  stepContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ============================================
@@ -1065,9 +1062,6 @@ async function carregarEtapa2(dados) {
   
   // Mostrar Etapa 2
   step2Container.style.display = 'block';
-  
-  // Scroll suave para a seção
-  step2Container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
@@ -1293,9 +1287,6 @@ async function carregarEtapa3(dados) {
   
   // Mostrar Etapa 3
   step3Container.style.display = 'block';
-  
-  // Scroll suave para a seção
-  step3Container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /**
@@ -1359,26 +1350,46 @@ function renderizarAmostrasEtapa3() {
   
   amostrasGridE3.innerHTML = '';
   
+  // Criar datalist único para todos os inputs de tipo de amostra
+  let datalistHtml = '<datalist id="tipos-amostra-list">';
+  tiposAmostra.forEach(tipo => {
+    datalistHtml += `<option value="${tipo.descricao}" data-id="${tipo.id}">`;
+  });
+  datalistHtml += '</datalist>';
+  
+  // Adicionar datalist ao grid (apenas uma vez)
+  amostrasGridE3.insertAdjacentHTML('beforeend', datalistHtml);
+  
+  // Encontrar o tipo padrão "Citologia em meio liquido"
+  const tipoPadrao = tiposAmostra.find(t => t.descricao.toLowerCase() === 'citologia em meio liquido');
+  
   amostrasAtual.forEach((amostra, index) => {
     const card = document.createElement('div');
     card.className = 'amostra-card';
     card.dataset.amostraId = amostra.id;
     
-    // Criar options do select de tipo de amostra
-    let optionsHtml = '<option value="">Selecione o tipo...</option>';
-    tiposAmostra.forEach(tipo => {
-      const selected = amostra.tipo_amostra_id === tipo.id ? 'selected' : '';
-      optionsHtml += `<option value="${tipo.id}" ${selected}>${tipo.descricao}</option>`;
-    });
+    // Determinar valor atual do tipo de amostra
+    let valorTipoAmostra = '';
+    let tipoAmostraId = amostra.tipo_amostra_id;
+    
+    if (tipoAmostraId) {
+      // Amostra já tem tipo definido
+      const tipoAtual = tiposAmostra.find(t => t.id === tipoAmostraId);
+      valorTipoAmostra = tipoAtual ? tipoAtual.descricao : '';
+    } else if (tipoPadrao) {
+      // Usar tipo padrão
+      valorTipoAmostra = tipoPadrao.descricao;
+      tipoAmostraId = tipoPadrao.id;
+    }
     
     card.innerHTML = `
       <div class="amostra-info">
         <span class="amostra-codigo">${amostra.cod_barras_amostra}</span>
         <span class="amostra-ordem">Frasco ${amostra.ordem}</span>
       </div>
-      <select class="select-tipo-amostra" data-amostra-id="${amostra.id}">
-        ${optionsHtml}
-      </select>
+      <input type="text" class="input-tipo-amostra" list="tipos-amostra-list" 
+             data-amostra-id="${amostra.id}" data-tipo-id="${tipoAmostraId || ''}"
+             value="${valorTipoAmostra}" placeholder="Digite para filtrar..." autocomplete="off" />
       <button type="button" class="btn-excluir-amostra" data-amostra-id="${amostra.id}" data-cod-barras="${amostra.cod_barras_amostra}" title="Excluir amostra">
         🗑️
       </button>
@@ -1387,9 +1398,9 @@ function renderizarAmostrasEtapa3() {
     amostrasGridE3.appendChild(card);
   });
   
-  // Adicionar event listeners para selects e botões de excluir
-  amostrasGridE3.querySelectorAll('.select-tipo-amostra').forEach(select => {
-    select.addEventListener('change', onTipoAmostraChange);
+  // Adicionar event listeners para inputs e botões de excluir
+  amostrasGridE3.querySelectorAll('.input-tipo-amostra').forEach(input => {
+    input.addEventListener('change', onTipoAmostraChange);
   });
   
   amostrasGridE3.querySelectorAll('.btn-excluir-amostra').forEach(btn => {
@@ -1402,7 +1413,23 @@ function renderizarAmostrasEtapa3() {
  */
 async function onTipoAmostraChange(e) {
   const amostraId = e.target.dataset.amostraId;
-  const tipoAmostraId = e.target.value;
+  const valorDigitado = e.target.value.trim();
+  
+  // Buscar o ID do tipo de amostra pelo texto digitado
+  const tipoEncontrado = tiposAmostra.find(t => 
+    t.descricao.toLowerCase() === valorDigitado.toLowerCase()
+  );
+  
+  const tipoAmostraId = tipoEncontrado ? tipoEncontrado.id : null;
+  
+  // Atualizar o data-tipo-id do input
+  e.target.dataset.tipoId = tipoAmostraId || '';
+  
+  // Se digitou algo que não existe na lista, avisar
+  if (valorDigitado && !tipoEncontrado) {
+    mostrarAlerta('Tipo de amostra não encontrado. Selecione um item da lista.');
+    return;
+  }
   
   try {
     const response = await fetch('/operacao/triagem/amostras/atualizar/', {
@@ -1413,7 +1440,7 @@ async function onTipoAmostraChange(e) {
       },
       body: JSON.stringify({
         amostra_id: amostraId,
-        tipo_amostra_id: tipoAmostraId || null
+        tipo_amostra_id: tipoAmostraId
       })
     });
     
@@ -1746,6 +1773,25 @@ if (btnCancelarAdicionar) {
 // Máscara de CPF
 if (cpfPaciente) {
   cpfPaciente.addEventListener('input', aplicarMascaraCPF);
+}
+
+// Botão Upload - abrir seletor de arquivos
+const btnUploadImagem = document.getElementById('btn-upload-imagem');
+const inputUploadImagem = document.getElementById('upload-imagem-e3');
+const inputNomeArquivo = document.getElementById('upload-nome-arquivo');
+
+if (btnUploadImagem && inputUploadImagem) {
+  btnUploadImagem.addEventListener('click', () => {
+    inputUploadImagem.click();
+  });
+  
+  inputUploadImagem.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      inputNomeArquivo.value = e.target.files[0].name;
+    } else {
+      inputNomeArquivo.value = '';
+    }
+  });
 }
 
 // ============================================

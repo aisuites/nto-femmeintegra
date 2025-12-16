@@ -248,6 +248,22 @@
       </div>
     </div>
 
+    <!-- SEÇÃO DE FRASCOS/AMOSTRAS -->
+    <div class="amostras-section">
+      <div class="amostras-header">
+        <h4>Frascos / Amostras vinculadas</h4>
+        <button class="btn btn-outline btn-sm" type="button" id="btn-adicionar-frasco">
+          + Adicionar frasco
+        </button>
+      </div>
+
+      <div class="amostras-grid" id="amostras-grid-e3">
+        <!-- Amostras serão carregadas dinamicamente via JS -->
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
     <!-- CPF + AÇÕES + CHECKBOX -->
     <div class="cpf-actions">
       <div class="field">
@@ -282,36 +298,36 @@
 
       <div class="field">
         <label class="label-strong">UF-CRM</label>
-        <select id="uf-crm">
-          <option value="">Selecione...</option>
-          <option value="AC">AC</option>
-          <option value="AL">AL</option>
-          <option value="AP">AP</option>
-          <option value="AM">AM</option>
-          <option value="BA">BA</option>
-          <option value="CE">CE</option>
-          <option value="DF">DF</option>
-          <option value="ES">ES</option>
-          <option value="GO">GO</option>
-          <option value="MA">MA</option>
-          <option value="MT">MT</option>
-          <option value="MS">MS</option>
-          <option value="MG">MG</option>
-          <option value="PA">PA</option>
-          <option value="PB">PB</option>
-          <option value="PR">PR</option>
-          <option value="PE">PE</option>
-          <option value="PI">PI</option>
-          <option value="RJ">RJ</option>
-          <option value="RN">RN</option>
-          <option value="RS">RS</option>
-          <option value="RO">RO</option>
-          <option value="RR">RR</option>
-          <option value="SC">SC</option>
-          <option value="SP">SP</option>
-          <option value="SE">SE</option>
-          <option value="TO">TO</option>
-        </select>
+        <input type="text" id="uf-crm" list="uf-crm-list" placeholder="Digite a UF..." maxlength="2" style="text-transform: uppercase;" autocomplete="off" />
+        <datalist id="uf-crm-list">
+          <option value="AC">
+          <option value="AL">
+          <option value="AM">
+          <option value="AP">
+          <option value="BA">
+          <option value="CE">
+          <option value="DF">
+          <option value="ES">
+          <option value="GO">
+          <option value="MA">
+          <option value="MG">
+          <option value="MS">
+          <option value="MT">
+          <option value="PA">
+          <option value="PB">
+          <option value="PE">
+          <option value="PI">
+          <option value="PR">
+          <option value="RJ">
+          <option value="RN">
+          <option value="RO">
+          <option value="RR">
+          <option value="RS">
+          <option value="SC">
+          <option value="SE">
+          <option value="SP">
+          <option value="TO">
+        </datalist>
       </div>
 
       <div class="field field-actions">
@@ -340,11 +356,7 @@
 
       <div class="field">
         <label class="label-strong">Destino</label>
-        <select id="destino-medico" disabled>
-          <option value="">Aguardando validação...</option>
-          <option value="INTERNET">INTERNET</option>
-          <option value="ROTEIRO MÉDICO">ROTEIRO MÉDICO</option>
-        </select>
+        <input type="text" id="destino-medico" readonly placeholder="Preenchido via API Valida Médico" />
       </div>
     </div>
 
@@ -360,22 +372,6 @@
         <div class="uploaded-files-list" id="lista-arquivos-e3">
           <!-- Arquivos enviados aparecerão aqui -->
         </div>
-      </div>
-    </div>
-
-    <div class="divider"></div>
-
-    <!-- SEÇÃO DE FRASCOS/AMOSTRAS -->
-    <div class="amostras-section">
-      <div class="amostras-header">
-        <h4>Frascos / Amostras vinculadas</h4>
-        <button class="btn btn-outline btn-sm" type="button" id="btn-adicionar-frasco">
-          + Adicionar frasco
-        </button>
-      </div>
-
-      <div class="amostras-grid" id="amostras-grid-e3">
-        <!-- Amostras serão carregadas dinamicamente via JS -->
       </div>
     </div>
 
