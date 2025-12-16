@@ -2385,7 +2385,7 @@ async function processarUploadImagensE3(files) {
       const confirmarData = await confirmarResponse.json();
       
       if (confirmarData.status === 'success') {
-        atualizarStatusArquivoE3(file.name, 'success', confirmarData.arquivo.id);
+        atualizarStatusArquivoE3(file.name, 'success', confirmarData.arquivo.id, confirmarData.arquivo.url);
         arquivosUploadE3.push(confirmarData.arquivo);
       } else {
         atualizarStatusArquivoE3(file.name, 'error');
@@ -2418,12 +2418,13 @@ function adicionarArquivoUploadE3(filename, status) {
   fileItem.className = 'scanner-file-item';
   fileItem.dataset.filename = filename;
   
-  let statusIcon = '⏳';
-  if (status === 'success') statusIcon = '✅';
-  if (status === 'error') statusIcon = '❌';
+  // Usar spinner para status de upload em andamento
+  let statusHtml = '<span class="upload-spinner"></span>';
+  if (status === 'success') statusHtml = '<span class="file-status">✅</span>';
+  if (status === 'error') statusHtml = '<span class="file-status">❌</span>';
   
   fileItem.innerHTML = `
-    <span class="file-status">${statusIcon}</span>
+    <span class="file-status-container">${statusHtml}</span>
     <span class="file-name">${filename}</span>
     <button type="button" class="btn-remove-file" data-filename="${filename}" title="Remover">✕</button>
   `;
@@ -2439,17 +2440,29 @@ function adicionarArquivoUploadE3(filename, status) {
 /**
  * Atualiza status de um arquivo na lista
  */
-function atualizarStatusArquivoE3(filename, status, arquivoId = null) {
+function atualizarStatusArquivoE3(filename, status, arquivoId = null, fileUrl = null) {
   const fileId = `upload-file-${filename.replace(/[^a-zA-Z0-9]/g, '_')}`;
   const fileItem = document.getElementById(fileId);
   
   if (!fileItem) return;
   
-  let statusIcon = '⏳';
-  if (status === 'success') statusIcon = '✅';
-  if (status === 'error') statusIcon = '❌';
+  const statusContainer = fileItem.querySelector('.file-status-container');
+  const fileNameSpan = fileItem.querySelector('.file-name');
   
-  fileItem.querySelector('.file-status').textContent = statusIcon;
+  // Atualizar ícone de status
+  if (status === 'success') {
+    statusContainer.innerHTML = '<span class="file-status">✅</span>';
+  } else if (status === 'error') {
+    statusContainer.innerHTML = '<span class="file-status">❌</span>';
+  } else {
+    statusContainer.innerHTML = '<span class="upload-spinner"></span>';
+  }
+  
+  // Se sucesso e tem URL, transformar nome em link
+  if (status === 'success' && fileUrl) {
+    fileNameSpan.innerHTML = `<a href="${fileUrl}" target="_blank" title="Clique para visualizar">${filename}</a>`;
+    fileItem.dataset.fileUrl = fileUrl;
+  }
   
   if (arquivoId) {
     fileItem.dataset.arquivoId = arquivoId;

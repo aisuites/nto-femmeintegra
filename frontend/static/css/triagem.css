@@ -936,6 +936,44 @@ input[readonly] {
   font-style: italic;
 }
 
+/* ============================================
+   UPLOAD SPINNER E ESTILOS DE ARQUIVO
+   ============================================ */
+
+.file-status-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.upload-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e0e0e0;
+  border-top-color: #8e44ad;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.scanner-file-item .file-name a {
+  color: #8e44ad;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.scanner-file-item .file-name a:hover {
+  color: #6c3483;
+  text-decoration: underline;
+}
+
 /* RESPONSIVIDADE */
 @media (max-width: 720px) {
   .fields-grid-2col {
