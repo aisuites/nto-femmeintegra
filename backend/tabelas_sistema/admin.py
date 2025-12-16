@@ -54,8 +54,10 @@ class ReadOnlyAdmin(admin.ModelAdmin):
                     val = getattr(obj, _field.name)
                     
                     # Formatação de Data
-                    if isinstance(_field, (models.DateTimeField, models.DateField)) and val:
+                    if isinstance(_field, models.DateTimeField) and val:
                         return val.strftime('%d/%m/%Y %H:%M:%S')
+                    elif isinstance(_field, models.DateField) and val:
+                        return val.strftime('%d/%m/%Y')
                     
                     return val
                 
