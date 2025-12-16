@@ -155,7 +155,7 @@ class ListarAmostrasRequisicaoView(LoginRequiredMixin, View):
             # Buscar amostras
             amostras = RequisicaoAmostra.objects.filter(
                 requisicao_id=requisicao_id
-            ).select_related('requisicao', 'motivo_inadequado').order_by('ordem')
+            ).select_related('requisicao', 'tipo_amostra').order_by('ordem')
             
             amostras_data = []
             for amostra in amostras:
@@ -163,7 +163,7 @@ class ListarAmostrasRequisicaoView(LoginRequiredMixin, View):
                     'id': amostra.id,
                     'ordem': amostra.ordem,
                     'cod_barras_amostra': amostra.cod_barras_amostra,
-                    'tipos_amostra_id': amostra.tipos_amostra_id,
+                    'tipo_amostra_id': amostra.tipo_amostra_id,
                     'data_coleta': amostra.data_coleta.isoformat() if amostra.data_coleta else None,
                     'data_validade': amostra.data_validade.isoformat() if amostra.data_validade else None,
                     'triagem1_validada': amostra.triagem1_validada,
@@ -175,7 +175,6 @@ class ListarAmostrasRequisicaoView(LoginRequiredMixin, View):
                         'frasco_trocado': amostra.flag_frasco_trocado_tipo_coleta,
                         'material_nao_analisado': amostra.flag_material_nao_analisado,
                     },
-                    'motivo_inadequado_id': amostra.motivo_inadequado_id,
                     'descricao': amostra.descricao or '',
                 })
             

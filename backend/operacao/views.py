@@ -82,10 +82,11 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
             # Verificar se está no status correto para triagem
             # Status 2 = RECEBIDO (apto para triagem etapa 1)
             # Status 7 = TRIAGEM1-OK (apto para triagem etapa 2)
+            # Status 8 = TRIAGEM2-OK (apto para triagem etapa 3)
             status_codigo = requisicao.status.codigo
             status_atual = requisicao.status.descricao
             
-            if status_codigo not in ['2', '7']:
+            if status_codigo not in ['2', '7', '8']:
                 # Montar mensagem explicativa baseada no status atual
                 
                 # Mensagens específicas por status
@@ -93,6 +94,8 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
                     msg = f'Requisição ainda não foi recebida no NTO. Status atual: {status_atual}'
                 elif status_codigo in ['4', '5']:
                     msg = f'Requisição já passou pela triagem. Status atual: {status_atual}'
+                elif status_codigo == '12':
+                    msg = f'Requisição já foi cadastrada. Status atual: {status_atual}'
                 elif status_codigo == '99':
                     msg = f'Requisição foi rejeitada. Status atual: {status_atual}'
                 else:
@@ -111,7 +114,12 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
                 )
             
             # Determinar qual etapa carregar
-            etapa = 1 if status_codigo == '2' else 2  # Status 7 = TRIAGEM1-OK = Etapa 2
+            if status_codigo == '2':
+                etapa = 1  # RECEBIDO = Etapa 1
+            elif status_codigo == '7':
+                etapa = 2  # TRIAGEM1-OK = Etapa 2
+            else:
+                etapa = 3  # TRIAGEM2-OK = Etapa 3
             
             # Buscar amostras vinculadas
             amostras = RequisicaoAmostra.objects.filter(

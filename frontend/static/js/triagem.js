@@ -280,11 +280,14 @@ btnLocalizar.addEventListener('click', async () => {
       ocultarMensagemErroLocalizacao();
       
       // Verificar qual etapa carregar
-      if (data.etapa === 2) {
-        // Carregar Etapa 2 diretamente
+      if (data.etapa === 3) {
+        // Carregar Etapa 3 diretamente (status TRIAGEM2-OK)
+        carregarEtapa3(data.requisicao);
+      } else if (data.etapa === 2) {
+        // Carregar Etapa 2 diretamente (status TRIAGEM1-OK)
         carregarEtapa2(data.requisicao);
       } else {
-        // Carregar Etapa 1 (padrão)
+        // Carregar Etapa 1 (padrão - status RECEBIDO)
         carregarRequisicao(data.requisicao);
       }
     } else if (data.status === 'not_found') {
