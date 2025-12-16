@@ -1400,7 +1400,7 @@ function renderizarAmostrasEtapa3() {
       <div class="custom-dropdown-wrapper">
         <input type="text" class="input-tipo-amostra" 
                data-amostra-id="${amostra.id}" data-tipo-id="${tipoAmostraId || ''}"
-               value="${valorTipoAmostra}" placeholder="Clique para selecionar..." autocomplete="off" readonly />
+               value="${valorTipoAmostra}" placeholder="Digite para filtrar..." autocomplete="off" />
         <div class="custom-dropdown-list">${opcoesHtml}</div>
       </div>
       <button type="button" class="btn-excluir-amostra" data-amostra-id="${amostra.id}" data-cod-barras="${amostra.cod_barras_amostra}" title="Excluir amostra">
@@ -1415,19 +1415,47 @@ function renderizarAmostrasEtapa3() {
   amostrasGridE3.querySelectorAll('.custom-dropdown-wrapper').forEach(wrapper => {
     const input = wrapper.querySelector('.input-tipo-amostra');
     const dropdown = wrapper.querySelector('.custom-dropdown-list');
+    const items = dropdown.querySelectorAll('.custom-dropdown-item');
     
-    // Abrir/fechar dropdown ao clicar no input
-    input.addEventListener('click', function(e) {
-      e.stopPropagation();
+    // Abrir dropdown ao focar/clicar no input
+    input.addEventListener('focus', function(e) {
       // Fechar outros dropdowns abertos
-      document.querySelectorAll('.custom-dropdown-list.show').forEach(d => {
-        if (d !== dropdown) d.classList.remove('show');
+      document.querySelectorAll('.custom-dropdown-wrapper.open').forEach(w => {
+        if (w !== wrapper) {
+          w.classList.remove('open');
+          w.querySelector('.custom-dropdown-list').classList.remove('show');
+        }
       });
-      dropdown.classList.toggle('show');
+      wrapper.classList.add('open');
+      dropdown.classList.add('show');
+      // Mostrar todos os itens ao abrir
+      items.forEach(item => item.classList.remove('hidden'));
+    });
+    
+    // Filtrar itens ao digitar
+    input.addEventListener('input', function(e) {
+      const filtro = this.value.toLowerCase().trim();
+      let temResultado = false;
+      
+      items.forEach(item => {
+        const texto = item.dataset.value.toLowerCase();
+        if (texto.includes(filtro)) {
+          item.classList.remove('hidden');
+          temResultado = true;
+        } else {
+          item.classList.add('hidden');
+        }
+      });
+      
+      // Mostrar dropdown se não estiver visível
+      if (!dropdown.classList.contains('show')) {
+        wrapper.classList.add('open');
+        dropdown.classList.add('show');
+      }
     });
     
     // Selecionar item do dropdown
-    dropdown.querySelectorAll('.custom-dropdown-item').forEach(item => {
+    items.forEach(item => {
       item.addEventListener('click', function(e) {
         e.stopPropagation();
         const tipoId = this.dataset.id;
@@ -1438,10 +1466,11 @@ function renderizarAmostrasEtapa3() {
         input.dataset.tipoId = tipoId;
         
         // Marcar como selecionado
-        dropdown.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
+        items.forEach(i => i.classList.remove('selected'));
         this.classList.add('selected');
         
         // Fechar dropdown
+        wrapper.classList.remove('open');
         dropdown.classList.remove('show');
         
         // Disparar evento de mudança
@@ -1451,10 +1480,13 @@ function renderizarAmostrasEtapa3() {
   });
   
   // Fechar dropdown ao clicar fora
-  document.addEventListener('click', function() {
-    document.querySelectorAll('.custom-dropdown-list.show').forEach(d => {
-      d.classList.remove('show');
-    });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.custom-dropdown-wrapper')) {
+      document.querySelectorAll('.custom-dropdown-wrapper.open').forEach(w => {
+        w.classList.remove('open');
+        w.querySelector('.custom-dropdown-list').classList.remove('show');
+      });
+    }
   });
   
   amostrasGridE3.querySelectorAll('.btn-excluir-amostra').forEach(btn => {
@@ -2058,26 +2090,57 @@ if (btnConfirmarPendencia) {
 }
 
 // Dropdown customizado UF-CRM
+const ufCrmWrapper = document.getElementById('uf-crm-wrapper');
 const ufCrmInput = document.getElementById('uf-crm');
 const ufCrmDropdown = document.getElementById('uf-crm-dropdown');
 
-if (ufCrmInput && ufCrmDropdown) {
-  // Abrir/fechar dropdown ao clicar no input
-  ufCrmInput.addEventListener('click', function(e) {
-    e.stopPropagation();
-    document.querySelectorAll('.custom-dropdown-list.show').forEach(d => {
-      if (d !== ufCrmDropdown) d.classList.remove('show');
+if (ufCrmWrapper && ufCrmInput && ufCrmDropdown) {
+  const ufCrmItems = ufCrmDropdown.querySelectorAll('.custom-dropdown-item');
+  
+  // Abrir dropdown ao focar no input
+  ufCrmInput.addEventListener('focus', function(e) {
+    // Fechar outros dropdowns abertos
+    document.querySelectorAll('.custom-dropdown-wrapper.open').forEach(w => {
+      if (w !== ufCrmWrapper) {
+        w.classList.remove('open');
+        const dd = w.querySelector('.custom-dropdown-list');
+        if (dd) dd.classList.remove('show');
+      }
     });
-    ufCrmDropdown.classList.toggle('show');
+    ufCrmWrapper.classList.add('open');
+    ufCrmDropdown.classList.add('show');
+    // Mostrar todos os itens ao abrir
+    ufCrmItems.forEach(item => item.classList.remove('hidden'));
+  });
+  
+  // Filtrar itens ao digitar
+  ufCrmInput.addEventListener('input', function(e) {
+    const filtro = this.value.toUpperCase().trim();
+    
+    ufCrmItems.forEach(item => {
+      const texto = item.dataset.value.toUpperCase();
+      if (texto.includes(filtro)) {
+        item.classList.remove('hidden');
+      } else {
+        item.classList.add('hidden');
+      }
+    });
+    
+    // Mostrar dropdown se não estiver visível
+    if (!ufCrmDropdown.classList.contains('show')) {
+      ufCrmWrapper.classList.add('open');
+      ufCrmDropdown.classList.add('show');
+    }
   });
   
   // Selecionar item do dropdown
-  ufCrmDropdown.querySelectorAll('.custom-dropdown-item').forEach(item => {
+  ufCrmItems.forEach(item => {
     item.addEventListener('click', function(e) {
       e.stopPropagation();
       ufCrmInput.value = this.dataset.value;
-      ufCrmDropdown.querySelectorAll('.custom-dropdown-item').forEach(i => i.classList.remove('selected'));
+      ufCrmItems.forEach(i => i.classList.remove('selected'));
       this.classList.add('selected');
+      ufCrmWrapper.classList.remove('open');
       ufCrmDropdown.classList.remove('show');
     });
   });

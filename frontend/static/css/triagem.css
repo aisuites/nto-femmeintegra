@@ -859,7 +859,24 @@ input[readonly] {
 
 .custom-dropdown-wrapper input {
   width: 100%;
-  cursor: pointer;
+  cursor: text;
+  padding-right: 30px;
+}
+
+.custom-dropdown-wrapper::after {
+  content: '▼';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  color: var(--femme-purple);
+  pointer-events: none;
+  transition: transform 0.2s;
+}
+
+.custom-dropdown-wrapper.open::after {
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .custom-dropdown-list {
@@ -905,6 +922,18 @@ input[readonly] {
 .custom-dropdown-item.selected {
   background: var(--femme-purple-soft);
   font-weight: 600;
+}
+
+.custom-dropdown-item.hidden {
+  display: none;
+}
+
+.custom-dropdown-empty {
+  padding: 12px;
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  font-style: italic;
 }
 
 /* RESPONSIVIDADE */
