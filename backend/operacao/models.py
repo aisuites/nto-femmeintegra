@@ -229,6 +229,33 @@ class TipoPendencia(TimeStampedModel):
         return f'{self.codigo} - {self.descricao}'
 
 
+class TipoAmostra(TimeStampedModel):
+    """
+    Tipos de amostras que podem ser associadas às requisições.
+    Ex: Biópsia, Citologia, Papanicolau, etc.
+    """
+    descricao = models.CharField(
+        'Descrição',
+        max_length=100,
+        help_text='Descrição do tipo de amostra'
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        db_index=True,
+        help_text='Indica se o tipo de amostra está disponível para uso'
+    )
+
+    class Meta:
+        db_table = 'tipo_amostra'
+        ordering = ('descricao',)
+        verbose_name = 'Tipo de Amostra'
+        verbose_name_plural = 'Tipos de Amostra'
+
+    def __str__(self) -> str:
+        return self.descricao
+
+
 class RequisicaoPendencia(TimeStampedModel):
     """
     Pendências registradas para requisições.
@@ -362,6 +389,18 @@ class DadosRequisicao(AuditModel):
     flag_carimbo_medico = models.BooleanField(default=False)
     flag_ocr = models.BooleanField(default=False)
     flag_erro_preenchimento = models.BooleanField(default=False)
+    
+    # Flags da Etapa 3 - Cadastro
+    flag_problema_cpf = models.BooleanField(
+        'Problema com CPF',
+        default=False,
+        help_text='Indica problema identificado no CPF do paciente'
+    )
+    flag_problema_medico = models.BooleanField(
+        'Problema com dados do médico',
+        default=False,
+        help_text='Indica problema identificado nos dados do médico'
+    )
 
     motivo_preenchimento = models.ForeignKey(
         MotivoPreenchimento,
@@ -477,11 +516,14 @@ class RequisicaoAmostra(AuditModel):
     )
     
     # Campos de triagem (novos)
-    tipos_amostra_id = models.IntegerField(
-        'ID do tipo de amostra',
+    tipo_amostra = models.ForeignKey(
+        'TipoAmostra',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text='Referência ao tipo de amostra (ex: sangue, urina, etc)',
+        related_name='amostras',
+        verbose_name='Tipo de amostra',
+        help_text='Tipo de amostra (ex: Biópsia, Citologia, etc)',
     )
     data_coleta = models.DateField(
         'Data da coleta',
