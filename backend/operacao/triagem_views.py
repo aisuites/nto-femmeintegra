@@ -899,6 +899,7 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
             
             amostra = RequisicaoAmostra.objects.select_related('requisicao').get(id=amostra_id)
             cod_barras_amostra = amostra.cod_barras_amostra
+            ordem_amostra = amostra.ordem
             requisicao = amostra.requisicao
             
             # Registrar log de auditoria ANTES de excluir
@@ -906,18 +907,19 @@ class ExcluirAmostraView(LoginRequiredMixin, View):
                 requisicao=requisicao,
                 cod_barras_requisicao=requisicao.cod_barras_req,
                 cod_barras_amostra=cod_barras_amostra,
+                ordem_amostra=ordem_amostra,
                 tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.EXCLUSAO,
                 etapa=etapa,
                 usuario=request.user,
                 motivo=motivo,
-                observacao=f'Motivo: {motivo.descricao}'
+                observacao=f'Frasco {ordem_amostra} - Motivo: {motivo.descricao}'
             )
             
             # Excluir amostra
             amostra.delete()
             
             logger.info(
-                f"Amostra excluída - Código: {cod_barras_amostra}, "
+                f"Amostra excluída - Código: {cod_barras_amostra}, Frasco: {ordem_amostra}, "
                 f"Requisição: {requisicao.cod_req}, Motivo: {motivo.descricao}, "
                 f"Etapa: {etapa} por {request.user.username}"
             )
@@ -1029,11 +1031,12 @@ class AdicionarAmostraView(LoginRequiredMixin, View):
                 requisicao=requisicao,
                 cod_barras_requisicao=requisicao.cod_barras_req,
                 cod_barras_amostra=cod_barras_amostra,
+                ordem_amostra=nova_amostra.ordem,
                 tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.ADICAO,
                 etapa=etapa,
                 usuario=request.user,
                 motivo=motivo,
-                observacao=f'Motivo: {motivo.descricao}'
+                observacao=f'Frasco {nova_amostra.ordem} - Motivo: {motivo.descricao}'
             )
             
             logger.info(

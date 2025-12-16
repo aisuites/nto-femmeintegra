@@ -377,10 +377,10 @@ class MotivoAlteracaoAmostraAdmin(admin.ModelAdmin):
 @admin.register(LogAlteracaoAmostra)
 class LogAlteracaoAmostraAdmin(admin.ModelAdmin):
     """Admin para logs de alteração de amostra (auditoria)."""
-    list_display = ('created_at', 'tipo_alteracao', 'cod_barras_requisicao', 'cod_barras_amostra', 'etapa', 'usuario', 'motivo')
+    list_display = ('created_at', 'tipo_alteracao', 'cod_barras_requisicao', 'ordem_amostra', 'etapa', 'usuario', 'motivo')
     list_filter = ('tipo_alteracao', 'etapa', 'created_at')
     search_fields = ('cod_barras_requisicao', 'cod_barras_amostra', 'usuario__username')
-    readonly_fields = ('created_at', 'updated_at', 'requisicao', 'cod_barras_requisicao', 'cod_barras_amostra', 'tipo_alteracao', 'etapa', 'usuario', 'motivo', 'observacao')
+    readonly_fields = ('created_at', 'updated_at', 'requisicao', 'cod_barras_requisicao', 'cod_barras_amostra', 'ordem_amostra', 'tipo_alteracao', 'etapa', 'usuario', 'motivo', 'observacao')
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
     

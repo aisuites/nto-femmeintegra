@@ -670,6 +670,12 @@ class LogAlteracaoAmostra(TimeStampedModel):
         db_index=True,
         help_text='Código de barras da amostra alterada'
     )
+    ordem_amostra = models.PositiveSmallIntegerField(
+        'Ordem/Frasco',
+        null=True,
+        blank=True,
+        help_text='Número do frasco/ordem da amostra na requisição'
+    )
     tipo_alteracao = models.CharField(
         'Tipo de alteração',
         max_length=10,
