@@ -107,6 +107,11 @@ urlpatterns = [
         upload_views.ListarArquivosRequisicaoView.as_view(),
         name='upload-listar',
     ),
+    path(
+        'upload/tipos-permitidos/',
+        upload_views.ObterTiposArquivoPermitidosView.as_view(),
+        name='upload-tipos-permitidos',
+    ),
     path('recebimento/', views.RecebimentoView.as_view(), name='recebimento'),
     path(
         'recebimento/localizar/',

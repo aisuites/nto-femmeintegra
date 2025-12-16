@@ -98,6 +98,7 @@ let motivosExclusaoAmostra = [];
 let motivosAdicaoAmostra = [];
 let amostraParaExcluir = null;
 let pendenciasIdentificadas = [];
+let configTiposArquivoE3 = null; // Configuração de tipos de arquivo permitidos na Etapa 3
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -1302,6 +1303,11 @@ async function carregarEtapa3(dados) {
     await carregarMotivosAdicaoAmostra();
   }
   
+  // Carregar configuração de tipos de arquivo permitidos
+  if (!configTiposArquivoE3) {
+    await carregarConfigTiposArquivoE3();
+  }
+  
   // Carregar amostras da requisição
   await carregarAmostrasEtapa3();
   
@@ -1643,6 +1649,77 @@ async function carregarMotivosAdicaoAmostra() {
   } catch (error) {
     console.error('Erro ao carregar motivos de adição:', error);
   }
+}
+
+/**
+ * Carrega configuração de tipos de arquivo permitidos para Etapa 3
+ */
+async function carregarConfigTiposArquivoE3() {
+  try {
+    const response = await fetch('/operacao/upload/tipos-permitidos/?contexto=TRIAGEM_IMAGEM', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      configTiposArquivoE3 = data.config;
+      
+      // Atualizar atributo accept do input de upload
+      const inputUpload = document.getElementById('input-upload-imagem-e3');
+      if (inputUpload && configTiposArquivoE3.accept) {
+        inputUpload.setAttribute('accept', configTiposArquivoE3.accept);
+      }
+      
+      // Atualizar texto informativo
+      const infoFormatos = document.getElementById('info-formatos-aceitos-e3');
+      if (infoFormatos && configTiposArquivoE3.description) {
+        infoFormatos.textContent = `Selecione um ou mais arquivos. Formatos aceitos: ${configTiposArquivoE3.description}.`;
+      }
+    } else {
+      console.error('Erro ao carregar config de tipos de arquivo:', data.message);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar config de tipos de arquivo:', error);
+  }
+}
+
+/**
+ * Valida se um arquivo é permitido para upload na Etapa 3
+ */
+function validarArquivoPermitidoE3(file) {
+  if (!configTiposArquivoE3) {
+    // Fallback: aceitar PDF e imagens
+    const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png'];
+    return tiposPermitidos.includes(file.type);
+  }
+  
+  // Validar MIME type
+  if (configTiposArquivoE3.mime_types && !configTiposArquivoE3.mime_types.includes(file.type)) {
+    return false;
+  }
+  
+  // Validar extensão
+  if (configTiposArquivoE3.extensions) {
+    const ext = '.' + file.name.split('.').pop().toLowerCase();
+    if (!configTiposArquivoE3.extensions.includes(ext)) {
+      return false;
+    }
+  }
+  
+  // Validar tamanho
+  if (configTiposArquivoE3.max_size_mb) {
+    const maxBytes = configTiposArquivoE3.max_size_mb * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 /**
@@ -2232,7 +2309,7 @@ if (btnCarregarImagemE3 && inputUploadImagemE3) {
 }
 
 /**
- * Processa upload de múltiplas imagens na Etapa 3
+ * Processa upload de múltiplos arquivos na Etapa 3
  */
 async function processarUploadImagensE3(files) {
   if (!requisicaoAtual) {
@@ -2240,10 +2317,18 @@ async function processarUploadImagensE3(files) {
     return;
   }
   
+  const descricaoPermitidos = configTiposArquivoE3?.description || 'PDF, JPEG, JPG ou PNG';
+  const maxSizeMb = configTiposArquivoE3?.max_size_mb || 10;
+  
   for (const file of files) {
-    // Validar tipo de arquivo (apenas imagens)
-    if (!file.type.startsWith('image/')) {
-      mostrarAlerta(`Arquivo "${file.name}" não é uma imagem válida.`);
+    // Validar tipo de arquivo usando configuração dinâmica
+    if (!validarArquivoPermitidoE3(file)) {
+      // Verificar se é problema de tamanho
+      if (configTiposArquivoE3?.max_size_mb && file.size > configTiposArquivoE3.max_size_mb * 1024 * 1024) {
+        mostrarAlerta(`Arquivo "${file.name}" excede o tamanho máximo de ${maxSizeMb}MB.`);
+      } else {
+        mostrarAlerta(`Arquivo "${file.name}" não é permitido. Tipos aceitos: ${descricaoPermitidos}.`);
+      }
       continue;
     }
     

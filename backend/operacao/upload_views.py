@@ -11,9 +11,11 @@ Processo em 2 etapas:
 
 import json
 import logging
+import os
 import uuid
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
@@ -506,3 +508,104 @@ class ListarArquivosRequisicaoView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro ao listar arquivos.'},
                 status=500
             )
+
+
+class ObterTiposArquivoPermitidosView(LoginRequiredMixin, View):
+    """
+    Retorna os tipos de arquivo permitidos para um contexto específico.
+    
+    GET /operacao/upload/tipos-permitidos/?contexto=TRIAGEM_IMAGEM
+    
+    Contextos disponíveis (configurados em settings.ALLOWED_FILE_TYPES):
+        - SCANNER: PDF apenas (digitalização de requisição)
+        - TRIAGEM_IMAGEM: PDF, JPEG, JPG, PNG (carregar imagem na etapa 3)
+    
+    Response:
+        {
+            "status": "success",
+            "contexto": "TRIAGEM_IMAGEM",
+            "config": {
+                "extensions": [".pdf", ".jpg", ".jpeg", ".png"],
+                "mime_types": ["application/pdf", "image/jpeg", "image/png"],
+                "accept": ".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png",
+                "max_size_mb": 10,
+                "description": "PDF, JPEG, JPG ou PNG"
+            }
+        }
+    """
+    
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        contexto = request.GET.get('contexto', '').upper()
+        
+        if not contexto:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Contexto não informado.'},
+                status=400
+            )
+        
+        allowed_file_types = getattr(settings, 'ALLOWED_FILE_TYPES', {})
+        
+        if contexto not in allowed_file_types:
+            return JsonResponse(
+                {'status': 'error', 'message': f'Contexto "{contexto}" não configurado.'},
+                status=404
+            )
+        
+        config = allowed_file_types[contexto]
+        
+        return JsonResponse({
+            'status': 'success',
+            'contexto': contexto,
+            'config': config
+        })
+
+
+def validar_tipo_arquivo(filename: str, content_type: str, contexto: str) -> tuple[bool, str]:
+    """
+    Valida se um arquivo é permitido para o contexto especificado.
+    
+    Args:
+        filename: Nome do arquivo
+        content_type: MIME type do arquivo
+        contexto: Contexto/etapa do sistema (ex: SCANNER, TRIAGEM_IMAGEM)
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    allowed_file_types = getattr(settings, 'ALLOWED_FILE_TYPES', {})
+    
+    if contexto not in allowed_file_types:
+        return False, f'Contexto "{contexto}" não configurado.'
+    
+    config = allowed_file_types[contexto]
+    
+    # Validar extensão
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in config['extensions']:
+        return False, f'Extensão "{ext}" não permitida. Tipos aceitos: {config["description"]}'
+    
+    # Validar MIME type
+    if content_type not in config['mime_types']:
+        return False, f'Tipo de arquivo "{content_type}" não permitido. Tipos aceitos: {config["description"]}'
+    
+    return True, ''
+
+
+def get_max_file_size(contexto: str) -> int:
+    """
+    Retorna o tamanho máximo de arquivo em bytes para o contexto.
+    
+    Args:
+        contexto: Contexto/etapa do sistema
+    
+    Returns:
+        int: Tamanho máximo em bytes (padrão: 10MB)
+    """
+    allowed_file_types = getattr(settings, 'ALLOWED_FILE_TYPES', {})
+    
+    if contexto not in allowed_file_types:
+        return 10 * 1024 * 1024  # 10MB padrão
+    
+    return allowed_file_types[contexto].get('max_size_mb', 10) * 1024 * 1024

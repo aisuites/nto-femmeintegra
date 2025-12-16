@@ -209,6 +209,48 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'accounts.User'
 
+# =============================================================================
+# CONFIGURAÇÃO DE TIPOS DE ARQUIVO PERMITIDOS POR CONTEXTO
+# =============================================================================
+# Cada contexto/etapa do sistema pode ter tipos de arquivo diferentes.
+# Para adicionar um novo contexto, basta criar uma nova chave no dicionário.
+#
+# Estrutura:
+#   'CONTEXTO': {
+#       'extensions': ['.ext1', '.ext2'],  # Extensões permitidas (com ponto)
+#       'mime_types': ['type/subtype'],     # MIME types permitidos
+#       'accept': 'string para input',      # String para atributo accept do HTML
+#       'max_size_mb': 10,                  # Tamanho máximo em MB
+#       'description': 'Descrição'          # Descrição para mensagens de erro
+#   }
+# =============================================================================
+ALLOWED_FILE_TYPES = {
+    # Scanner - Etapa 1 (digitalização de requisição)
+    'SCANNER': {
+        'extensions': ['.pdf'],
+        'mime_types': ['application/pdf'],
+        'accept': 'application/pdf',
+        'max_size_mb': 20,
+        'description': 'PDF',
+    },
+    # Carregar Imagem - Etapa 3 (triagem)
+    'TRIAGEM_IMAGEM': {
+        'extensions': ['.pdf', '.jpg', '.jpeg', '.png'],
+        'mime_types': ['application/pdf', 'image/jpeg', 'image/png'],
+        'accept': '.pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png',
+        'max_size_mb': 10,
+        'description': 'PDF, JPEG, JPG ou PNG',
+    },
+    # Exemplo para futuras etapas (documentos gerais)
+    # 'DOCUMENTOS': {
+    #     'extensions': ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'],
+    #     'mime_types': ['application/pdf', 'image/jpeg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    #     'accept': '.pdf,.jpg,.jpeg,.png,.doc,.docx',
+    #     'max_size_mb': 15,
+    #     'description': 'PDF, imagens ou documentos Word',
+    # },
+}
+
 # Logging configuration
 LOGGING = {
     'version': 1,
