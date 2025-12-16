@@ -81,6 +81,11 @@ urlpatterns = [
         triagem_views.CadastrarRequisicaoView.as_view(),
         name='triagem-cadastrar',
     ),
+    path(
+        'triagem/consultar-cpf-korus/',
+        triagem_views.ConsultarCPFKorusView.as_view(),
+        name='triagem-consultar-cpf-korus',
+    ),
     # Upload de arquivos
     path(
         'upload/signed-url/',

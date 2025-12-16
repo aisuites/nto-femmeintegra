@@ -74,6 +74,7 @@ const amostrasGridE3 = document.getElementById('amostras-grid-e3');
 const btnCancelarE3 = document.getElementById('btn-cancelar-triagem3');
 const btnSeguirCadastro = document.getElementById('btn-seguir-cadastro');
 const btnAdicionarFrasco = document.getElementById('btn-adicionar-frasco');
+const btnCpfKorus = document.getElementById('btn-cpf-korus');
 
 // Modais Etapa 3
 const modalExcluirAmostra = document.getElementById('modal-excluir-amostra');
@@ -1723,6 +1724,76 @@ function validarArquivoPermitidoE3(file) {
 }
 
 /**
+ * Consulta CPF na API Korus e preenche dados do paciente
+ */
+async function consultarCpfKorus() {
+  const cpf = cpfPaciente ? cpfPaciente.value.trim() : '';
+  
+  if (!cpf) {
+    mostrarAlerta('Informe o CPF do paciente.');
+    if (cpfPaciente) cpfPaciente.focus();
+    return;
+  }
+  
+  // Limpar CPF (apenas números)
+  const cpfLimpo = cpf.replace(/\D/g, '');
+  
+  if (cpfLimpo.length !== 11) {
+    mostrarAlerta('CPF inválido. Informe 11 dígitos.');
+    if (cpfPaciente) cpfPaciente.focus();
+    return;
+  }
+  
+  if (!requisicaoAtual) {
+    mostrarAlerta('Nenhuma requisição selecionada.');
+    return;
+  }
+  
+  // Desabilitar botão e mostrar loading
+  if (btnCpfKorus) {
+    btnCpfKorus.disabled = true;
+    btnCpfKorus.innerHTML = '<span class="upload-spinner" style="width:14px;height:14px;border-width:2px;"></span> Consultando...';
+  }
+  
+  try {
+    const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${cpfLimpo}&requisicao_id=${requisicaoAtual.id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success' && data.paciente) {
+      // Preencher campos com dados retornados
+      if (data.paciente.nome && nomePaciente) {
+        nomePaciente.value = data.paciente.nome;
+      }
+      
+      mostrarMensagemSucesso('Dados do paciente carregados com sucesso!');
+      
+      // Log dos dados recebidos para debug
+      console.log('Dados do paciente Korus:', data.paciente);
+      
+    } else {
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+    }
+    
+  } catch (error) {
+    console.error('Erro ao consultar CPF Korus:', error);
+    mostrarAlerta('Erro ao consultar CPF. Tente novamente.');
+  } finally {
+    // Restaurar botão
+    if (btnCpfKorus) {
+      btnCpfKorus.disabled = false;
+      btnCpfKorus.textContent = 'CPF Korus';
+    }
+  }
+}
+
+/**
  * Handler para clique no botão excluir amostra
  */
 function onExcluirAmostraClick(e) {
@@ -2186,6 +2257,11 @@ if (btnSeguirCadastro) {
 // Botão Adicionar Frasco
 if (btnAdicionarFrasco) {
   btnAdicionarFrasco.addEventListener('click', abrirModalAdicionarAmostra);
+}
+
+// Botão CPF Korus
+if (btnCpfKorus) {
+  btnCpfKorus.addEventListener('click', consultarCpfKorus);
 }
 
 // Modal Excluir Amostra - Botões

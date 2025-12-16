@@ -376,6 +376,26 @@ class DadosRequisicao(AuditModel):
     sexo_paciente = models.CharField(max_length=10, blank=True)
     telefone_paciente = models.CharField(max_length=20, blank=True)
     email_paciente = models.EmailField(blank=True)
+    
+    # Dados do paciente vindos da API Korus
+    matricula_paciente = models.CharField(
+        'Matrícula',
+        max_length=50,
+        blank=True,
+        help_text='Matrícula do paciente no convênio (API Korus)'
+    )
+    convenio_paciente = models.CharField(
+        'Convênio',
+        max_length=100,
+        blank=True,
+        help_text='Nome do convênio do paciente (API Korus)'
+    )
+    plano_paciente = models.CharField(
+        'Plano',
+        max_length=100,
+        blank=True,
+        help_text='Nome do plano do paciente (API Korus)'
+    )
 
     crm = models.CharField('CRM', max_length=20, blank=True)
     uf_crm = models.CharField('UF CRM', max_length=2, blank=True)

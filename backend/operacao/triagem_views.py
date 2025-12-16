@@ -13,6 +13,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django_ratelimit.decorators import ratelimit
 
+from core.services.external_api import get_korus_client
+
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
@@ -1236,3 +1238,127 @@ class CadastrarRequisicaoView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro ao cadastrar requisição.'},
                 status=500
             )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='GET'), name='dispatch')
+class ConsultarCPFKorusView(LoginRequiredMixin, View):
+    """
+    Consulta dados de paciente por CPF na API Korus.
+    
+    GET /operacao/triagem/consultar-cpf-korus/?cpf=12345678900&requisicao_id=123
+    
+    Response (sucesso):
+        {
+            "status": "success",
+            "paciente": {
+                "nome": "MARIA DA SILVA",
+                "data_nascimento": "1990-01-15",
+                "email": "maria@email.com",
+                "sexo": "F",
+                "matricula": "123456",
+                "convenio": "UNIMED",
+                "plano": "NACIONAL"
+            }
+        }
+    
+    Response (erro):
+        {
+            "status": "error",
+            "message": "CPF não encontrado na base FEMME."
+        }
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        cpf = request.GET.get('cpf', '').strip()
+        requisicao_id = request.GET.get('requisicao_id')
+        
+        if not cpf:
+            return JsonResponse(
+                {'status': 'error', 'message': 'CPF não informado.'},
+                status=400
+            )
+        
+        # Consultar API Korus
+        korus_client = get_korus_client()
+        response = korus_client.buscar_paciente_por_cpf(cpf)
+        
+        if not response.success:
+            return JsonResponse(
+                {'status': 'error', 'message': response.error or 'Erro ao consultar CPF.'},
+                status=404 if 'não encontrado' in (response.error or '').lower() else 500
+            )
+        
+        # Extrair dados do paciente da resposta
+        # A estrutura pode variar, então tratamos diferentes formatos
+        dados_api = response.data
+        
+        # Se for lista, pegar primeiro item
+        if isinstance(dados_api, list) and len(dados_api) > 0:
+            dados_api = dados_api[0]
+        
+        # Mapear campos da API para nosso formato
+        # Ajustar conforme estrutura real da API Korus
+        paciente = {
+            'nome': dados_api.get('nome', '') or dados_api.get('nomePaciente', '') or '',
+            'data_nascimento': dados_api.get('data_nascimento', '') or dados_api.get('dataNascimento', '') or '',
+            'email': dados_api.get('email', '') or dados_api.get('emailPaciente', '') or '',
+            'sexo': dados_api.get('sexo', '') or dados_api.get('sexoPaciente', '') or '',
+            'matricula': dados_api.get('matricula', '') or dados_api.get('numeroCarteira', '') or '',
+            'convenio': dados_api.get('convenio', '') or dados_api.get('nomeConvenio', '') or '',
+            'plano': dados_api.get('plano', '') or dados_api.get('nomePlano', '') or '',
+        }
+        
+        # Se requisicao_id foi informado, salvar dados na requisição
+        if requisicao_id:
+            try:
+                requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+                
+                # Atualizar campos do paciente
+                if paciente['nome']:
+                    requisicao.nome_paciente = paciente['nome']
+                if paciente['data_nascimento']:
+                    # Converter data se necessário
+                    try:
+                        from datetime import datetime
+                        if isinstance(paciente['data_nascimento'], str):
+                            # Tentar diferentes formatos
+                            for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%Y-%m-%dT%H:%M:%S']:
+                                try:
+                                    requisicao.data_nasc_paciente = datetime.strptime(
+                                        paciente['data_nascimento'].split('T')[0], 
+                                        fmt.split('T')[0]
+                                    ).date()
+                                    break
+                                except ValueError:
+                                    continue
+                    except Exception as e:
+                        logger.warning(f"Erro ao converter data de nascimento: {e}")
+                if paciente['email']:
+                    requisicao.email_paciente = paciente['email']
+                if paciente['sexo']:
+                    requisicao.sexo_paciente = paciente['sexo']
+                if paciente['matricula']:
+                    requisicao.matricula_paciente = paciente['matricula']
+                if paciente['convenio']:
+                    requisicao.convenio_paciente = paciente['convenio']
+                if paciente['plano']:
+                    requisicao.plano_paciente = paciente['plano']
+                
+                requisicao.updated_by = request.user
+                requisicao.save()
+                
+                logger.info(
+                    f"Dados do paciente atualizados via Korus - Requisição: {requisicao.cod_req}, "
+                    f"CPF: {cpf[:3]}***{cpf[-2:]}, Usuário: {request.user.username}"
+                )
+                
+            except DadosRequisicao.DoesNotExist:
+                logger.warning(f"Requisição {requisicao_id} não encontrada para atualização")
+            except Exception as e:
+                logger.error(f"Erro ao salvar dados do paciente: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            'status': 'success',
+            'paciente': paciente
+        })
