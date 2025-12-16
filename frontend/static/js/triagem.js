@@ -1414,6 +1414,20 @@ function renderizarAmostrasEtapa3() {
   // Adicionar event listeners para inputs e botões de excluir
   amostrasGridE3.querySelectorAll('.input-tipo-amostra').forEach(input => {
     input.addEventListener('change', onTipoAmostraChange);
+    
+    // Ao focar, limpar o valor para mostrar todas as opções do datalist
+    input.addEventListener('focus', function() {
+      this.dataset.valorAnterior = this.value;
+      this.value = '';
+      this.placeholder = 'Digite para filtrar...';
+    });
+    
+    // Ao perder foco, restaurar valor anterior se não selecionou nada
+    input.addEventListener('blur', function() {
+      if (!this.value && this.dataset.valorAnterior) {
+        this.value = this.dataset.valorAnterior;
+      }
+    });
   });
   
   amostrasGridE3.querySelectorAll('.btn-excluir-amostra').forEach(btn => {

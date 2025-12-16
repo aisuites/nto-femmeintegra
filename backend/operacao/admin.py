@@ -5,6 +5,7 @@ from .models import (
     AmostraMotivoArmazenamentoInadequado,
     LogRecebimento,
     MotivoArmazenamentoInadequado,
+    MotivoExclusaoAmostra,
     MotivoPreenchimento,
     MotivoStatusManual,
     Notificacao,
@@ -16,6 +17,7 @@ from .models import (
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
+    TipoAmostra,
     TipoArquivo,
     TipoPendencia,
     Unidade,
@@ -349,3 +351,23 @@ class RequisicaoPendenciaAdmin(admin.ModelAdmin):
             return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
         return '-'
     created_at_formatted.short_description = 'Registrado em'
+
+
+@admin.register(TipoAmostra)
+class TipoAmostraAdmin(admin.ModelAdmin):
+    """Admin para tipos de amostra."""
+    list_display = ('id', 'descricao', 'ativo')
+    list_filter = ('ativo',)
+    search_fields = ('descricao',)
+    list_editable = ('ativo',)
+    ordering = ('descricao',)
+
+
+@admin.register(MotivoExclusaoAmostra)
+class MotivoExclusaoAmostraAdmin(admin.ModelAdmin):
+    """Admin para motivos de exclusão de amostra."""
+    list_display = ('codigo', 'descricao', 'ativo')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'descricao')
+    list_editable = ('ativo',)
+    ordering = ('codigo',)
