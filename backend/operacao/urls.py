@@ -39,6 +39,17 @@ urlpatterns = [
         triagem_views.RejeitarRequisicaoView.as_view(),
         name='triagem-rejeitar-requisicao',
     ),
+    # Triagem Etapa 2
+    path(
+        'triagem/tipos-pendencia/',
+        triagem_views.ListarTiposPendenciaView.as_view(),
+        name='triagem-tipos-pendencia',
+    ),
+    path(
+        'triagem/finalizar/',
+        triagem_views.FinalizarTriagemView.as_view(),
+        name='triagem-finalizar',
+    ),
     # Upload de arquivos
     path(
         'upload/signed-url/',

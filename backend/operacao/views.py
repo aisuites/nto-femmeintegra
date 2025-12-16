@@ -79,18 +79,20 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
                     status=404
                 )
             
-            # Verificar se está no status correto para triagem etapa 1
+            # Verificar se está no status correto para triagem
             # Status 2 = RECEBIDO (apto para triagem etapa 1)
-            if requisicao.status.codigo != '2':
+            # Status 7 = TRIAGEM1-OK (apto para triagem etapa 2)
+            status_codigo = requisicao.status.codigo
+            status_atual = requisicao.status.descricao
+            
+            if status_codigo not in ['2', '7']:
                 # Montar mensagem explicativa baseada no status atual
-                status_atual = requisicao.status.descricao
-                status_codigo = requisicao.status.codigo
                 
                 # Mensagens específicas por status
                 if status_codigo == '1':
                     msg = f'Requisição ainda não foi recebida no NTO. Status atual: {status_atual}'
-                elif status_codigo in ['3', '4', '5']:
-                    msg = f'Requisição já passou pela triagem etapa 1. Status atual: {status_atual}'
+                elif status_codigo in ['4', '5']:
+                    msg = f'Requisição já passou pela triagem. Status atual: {status_atual}'
                 elif status_codigo == '99':
                     msg = f'Requisição foi rejeitada. Status atual: {status_atual}'
                 else:
@@ -108,6 +110,9 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
                     status=200  # 200 pois a requisição existe, só não está apta
                 )
             
+            # Determinar qual etapa carregar
+            etapa = 1 if status_codigo == '2' else 2  # Status 7 = TRIAGEM1-OK = Etapa 2
+            
             # Buscar amostras vinculadas
             amostras = RequisicaoAmostra.objects.filter(
                 requisicao=requisicao
@@ -116,13 +121,14 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
             # Montar resposta
             return JsonResponse({
                 'status': 'success',
+                'etapa': etapa,
                 'requisicao': {
                     'id': requisicao.id,
                     'cod_req': requisicao.cod_req,
                     'cod_barras_req': requisicao.cod_barras_req,
                     'data_recebimento_nto': requisicao.data_recebimento_nto.strftime('%Y-%m-%d') if requisicao.data_recebimento_nto else None,
-                    'status_codigo': requisicao.status.codigo,
-                    'status_descricao': requisicao.status.descricao,
+                    'status_codigo': status_codigo,
+                    'status_descricao': status_atual,
                     'amostras': [
                         {
                             'id': amostra.id,

@@ -178,6 +178,63 @@
   </div>
 </section>
 
+<!-- ÁREA DINÂMICA - ETAPA 2 DA TRIAGEM (INICIALMENTE OCULTA) -->
+<section class="card" id="triagem-step2-container" style="display: none;">
+  <div class="triagem-step">
+
+    <div class="step-header">
+      <div>
+        <span class="step-badge step-badge-etapa2">Etapa 2 · Conferência de pendências</span>
+      </div>
+      <div style="font-size:11px; color:var(--femme-gray);">
+        Requisição <strong id="req-codigo-display-e2">#---</strong> · Cód. barras <strong id="req-barras-display-e2">---</strong>
+      </div>
+    </div>
+
+    <!-- CAMPOS INFORMATIVOS -->
+    <div class="fields-grid-2col">
+      <div class="field">
+        <label>Id da requisição</label>
+        <input type="text" id="req-id-e2" readonly />
+      </div>
+
+      <div class="field">
+        <label>Código de barras bipado</label>
+        <input type="text" id="req-cod-barras-e2" readonly />
+      </div>
+
+      <div class="field">
+        <label>Data de recebimento</label>
+        <input type="date" id="req-data-recebimento-e2" readonly />
+      </div>
+    </div>
+
+    <!-- TÍTULO DA SEÇÃO DE PENDÊNCIAS -->
+    <div class="pendencias-header">
+      <h4>Marque as pendências encontradas na requisição:</h4>
+      <p class="info-inline">Se não houver pendências, deixe todos os campos desmarcados e clique em Finalizar.</p>
+    </div>
+
+    <!-- CHECKBOXES DE PENDÊNCIAS EM GRID 2 COLUNAS -->
+    <div class="pendencias-grid" id="pendencias-checkboxes">
+      <!-- Checkboxes serão carregados dinamicamente via JS -->
+    </div>
+
+    <!-- ÁREA DE ERRO -->
+    <div class="alert alert-validacao" id="triagem2_alert_validacao" role="alert" aria-live="assertive">
+      <strong>Atenção!</strong>
+      <span id="triagem2_alert_validacao_message"></span>
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="step-actions">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-triagem2">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="btn-finalizar-triagem2">FINALIZAR TRIAGEM</button>
+    </div>
+
+  </div>
+</section>
+
 <!-- MODAL DE SCANNER - LAYOUT ELEGANTE FEMME -->
 <div class="scanner-overlay" id="modal-scanner-teste" style="display: none;">
   <div class="scanner-modal">

@@ -18,8 +18,10 @@ from .models import (
     DadosRequisicao,
     MotivoArmazenamentoInadequado,
     RequisicaoAmostra,
+    RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
+    TipoPendencia,
 )
 
 logger = logging.getLogger(__name__)
@@ -553,5 +555,177 @@ class RejeitarRequisicaoView(LoginRequiredMixin, View):
             logger.error(f"Erro ao rejeitar requisição: {str(e)}", exc_info=True)
             return JsonResponse(
                 {'status': 'error', 'message': 'Erro ao rejeitar requisição.'},
+                status=500
+            )
+
+
+# ============================================
+# TRIAGEM ETAPA 2 - CONFERÊNCIA DE PENDÊNCIAS
+# ============================================
+
+@method_decorator(ratelimit(key='user', rate='60/m', method='GET'), name='dispatch')
+class ListarTiposPendenciaView(LoginRequiredMixin, View):
+    """
+    Lista tipos de pendência ativos para a Etapa 2 da triagem.
+    
+    GET /operacao/triagem/tipos-pendencia/
+    
+    Response:
+        {
+            "status": "success",
+            "tipos": [
+                {"id": 1, "codigo": 1, "descricao": "CPF EM BRANCO"},
+                ...
+            ]
+        }
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request):
+        try:
+            tipos = TipoPendencia.objects.filter(
+                ativo=True
+            ).values('id', 'codigo', 'descricao').order_by('codigo')
+            
+            return JsonResponse({
+                'status': 'success',
+                'tipos': list(tipos)
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro ao listar tipos de pendência: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao listar tipos de pendência.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='dispatch')
+class FinalizarTriagemView(LoginRequiredMixin, View):
+    """
+    Finaliza a triagem (Etapa 2) registrando pendências e atualizando status.
+    
+    POST /operacao/triagem/finalizar/
+    
+    Request:
+        {
+            "requisicao_id": 123,
+            "pendencias": [
+                {"tipo_pendencia_id": 1, "codigo": 1},
+                {"tipo_pendencia_id": 2, "codigo": 2}
+            ]
+        }
+    
+    Response:
+        {
+            "status": "success",
+            "message": "Triagem finalizada com sucesso!",
+            "novo_status": "TRIAGEM2-OK" ou "PENDENTE"
+        }
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            requisicao_id = data.get('requisicao_id')
+            pendencias = data.get('pendencias', [])
+            
+            if not requisicao_id:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'ID da requisição não informado.'},
+                    status=400
+                )
+            
+            # Buscar requisição
+            requisicao = DadosRequisicao.objects.select_related('status').get(id=requisicao_id)
+            
+            # Verificar se está no status correto (TRIAGEM1-OK = código 7)
+            if requisicao.status.codigo != '7':
+                return JsonResponse(
+                    {'status': 'error', 'message': f'Requisição não está apta para etapa 2. Status atual: {requisicao.status.descricao}'},
+                    status=400
+                )
+            
+            status_anterior = requisicao.status
+            
+            # Determinar novo status baseado nas pendências
+            if pendencias:
+                # Tem pendências - status PENDÊNCIA (código 6)
+                novo_status = StatusRequisicao.objects.get(codigo='6')
+                status_msg = 'Triagem finalizada com pendências registradas.'
+            else:
+                # Sem pendências - status TRIAGEM2-OK (código 8)
+                novo_status = StatusRequisicao.objects.get(codigo='8')
+                status_msg = 'Triagem finalizada com sucesso!'
+            
+            # Registrar pendências (se houver)
+            for pend in pendencias:
+                tipo_pendencia_id = pend.get('tipo_pendencia_id')
+                if tipo_pendencia_id:
+                    tipo = TipoPendencia.objects.get(id=tipo_pendencia_id)
+                    RequisicaoPendencia.objects.create(
+                        requisicao=requisicao,
+                        codigo_barras=requisicao.cod_barras_req,
+                        tipo_pendencia=tipo,
+                        usuario=request.user,
+                        status='PENDENTE'
+                    )
+            
+            # Atualizar status da requisição
+            requisicao.status = novo_status
+            requisicao.updated_by = request.user
+            requisicao.save()
+            
+            # Registrar no histórico
+            observacao = f'Triagem etapa 2 finalizada. Status anterior: {status_anterior.descricao}'
+            if pendencias:
+                observacao += f'. Pendências registradas: {len(pendencias)}'
+            
+            RequisicaoStatusHistorico.objects.create(
+                requisicao=requisicao,
+                cod_req=requisicao.cod_req,
+                status=novo_status,
+                usuario=request.user,
+                observacao=observacao
+            )
+            
+            logger.info(
+                f"Triagem etapa 2 finalizada - Requisição {requisicao.cod_req}: "
+                f"{status_anterior.descricao} → {novo_status.descricao} "
+                f"({len(pendencias)} pendências) por {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': status_msg,
+                'novo_status': novo_status.descricao,
+                'pendencias_count': len(pendencias)
+            })
+            
+        except DadosRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        except StatusRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Status de destino não encontrado. Verifique a configuração do sistema.'},
+                status=500
+            )
+        except TipoPendencia.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Tipo de pendência não encontrado.'},
+                status=400
+            )
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Dados inválidos.'},
+                status=400
+            )
+        except Exception as e:
+            logger.error(f"Erro ao finalizar triagem: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao finalizar triagem.'},
                 status=500
             )

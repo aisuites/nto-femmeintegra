@@ -15,7 +15,7 @@
 const inputCodBarras = document.getElementById('input-cod-barras-triagem');
 const btnLocalizar = document.getElementById('btn-localizar-triagem');
 const stepContainer = document.getElementById('triagem-step-container');
-
+const step2Container = document.getElementById('triagem-step2-container');
 
 // Campos da etapa 1
 const reqId = document.getElementById('req-id');
@@ -41,11 +41,21 @@ const multiselectOptions = multiselectMotivo.querySelector('.multiselect-options
 const checkFrascoTrocado = document.getElementById('check-frasco-trocado');
 const checkMaterialNaoAnalisado = document.getElementById('check-material-nao-analisado');
 
-// Botões
+// Botões Etapa 1
 const btnCancelar = document.getElementById('btn-cancelar-triagem');
 const btnSeguir = document.getElementById('btn-seguir-triagem');
 const btnScanner = document.getElementById('btn-scanner');
 const scannerFilesContainer = document.getElementById('scanner-files-container');
+
+// Campos da Etapa 2
+const reqIdE2 = document.getElementById('req-id-e2');
+const reqCodBarrasE2 = document.getElementById('req-cod-barras-e2');
+const reqDataRecebimentoE2 = document.getElementById('req-data-recebimento-e2');
+const reqCodigoDisplayE2 = document.getElementById('req-codigo-display-e2');
+const reqBarrasDisplayE2 = document.getElementById('req-barras-display-e2');
+const pendenciasCheckboxes = document.getElementById('pendencias-checkboxes');
+const btnCancelarE2 = document.getElementById('btn-cancelar-triagem2');
+const btnFinalizarE2 = document.getElementById('btn-finalizar-triagem2');
 
 // ============================================
 // ESTADO GLOBAL
@@ -53,6 +63,7 @@ const scannerFilesContainer = document.getElementById('scanner-files-container')
 
 let requisicaoAtual = null;
 let amostrasAtual = [];
+let tiposPendencia = [];
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -100,15 +111,16 @@ function ocultarMensagemErroLocalizacao() {
 }
 
 /**
- * Limpa o formulário
+ * Limpa o formulário (Etapa 1 e Etapa 2)
  */
 function limparFormulario() {
   inputCodBarras.value = '';
   stepContainer.style.display = 'none';
+  step2Container.style.display = 'none';
   requisicaoAtual = null;
   amostrasAtual = [];
   
-  // Limpar campos
+  // Limpar campos Etapa 1
   reqId.value = '';
   reqCodBarras.value = '';
   reqDataRecebimento.value = '';
@@ -122,7 +134,7 @@ function limparFormulario() {
   amostraDataColeta.value = '';
   amostraDataValidade.value = '';
   
-  // Desmarcar checkboxes
+  // Desmarcar checkboxes Etapa 1
   checkDataRasurada.checked = false;
   checkSemValidade.checked = false;
   checkSemIdentificacao.checked = false;
@@ -133,6 +145,14 @@ function limparFormulario() {
   // Desabilitar dropdown de motivo
   selectMotivoArmazenamento.disabled = true;
   selectMotivoArmazenamento.value = '';
+  
+  // Limpar campos Etapa 2
+  if (reqIdE2) reqIdE2.value = '';
+  if (reqCodBarrasE2) reqCodBarrasE2.value = '';
+  if (reqDataRecebimentoE2) reqDataRecebimentoE2.value = '';
+  if (reqCodigoDisplayE2) reqCodigoDisplayE2.textContent = '#---';
+  if (reqBarrasDisplayE2) reqBarrasDisplayE2.textContent = '---';
+  if (pendenciasCheckboxes) pendenciasCheckboxes.innerHTML = '';
 }
 
 /**
@@ -219,7 +239,15 @@ btnLocalizar.addEventListener('click', async () => {
     
     if (data.status === 'success') {
       ocultarMensagemErroLocalizacao();
-      carregarRequisicao(data.requisicao);
+      
+      // Verificar qual etapa carregar
+      if (data.etapa === 2) {
+        // Carregar Etapa 2 diretamente
+        carregarEtapa2(data.requisicao);
+      } else {
+        // Carregar Etapa 1 (padrão)
+        carregarRequisicao(data.requisicao);
+      }
     } else if (data.status === 'not_found') {
       mostrarMensagemErroLocalizacao(data.message || 'Requisição não encontrada no sistema.');
       limparFormulario();
@@ -862,14 +890,13 @@ async function salvarAmostraTriagem() {
       // Validada com sucesso
       
       if (result.todas_validadas) {
-        // TODAS AMOSTRAS VALIDADAS - Requisição completa!
-        mostrarMensagemSucesso('✅ Requisição validada com sucesso! Status atualizado para TRIAGEM1-OK.');
+        // TODAS AMOSTRAS VALIDADAS - Carregar Etapa 2!
+        mostrarMensagemSucesso('✅ Etapa 1 concluída! Carregando etapa 2...');
         
-        // Aguardar 2 segundos e limpar formulário
+        // Aguardar 1.5 segundos e carregar Etapa 2
         setTimeout(() => {
-          limparFormulario();
-          inputCodBarras.focus();
-        }, 2000);
+          carregarEtapa2(result.requisicao || requisicaoAtual);
+        }, 1500);
         
       } else {
         // Ainda há amostras pendentes
@@ -959,18 +986,154 @@ function cancelarRejeicao() {
 }
 
 /**
- * Carrega Etapa 2 (placeholder)
+ * Carrega Etapa 2 - Conferência de Pendências
  */
-function carregarEtapa2() {
-  stepContainer.innerHTML = `
-    <div style="padding: 40px; text-align: center;">
-      <h2 style="color: var(--femme-purple);">🎉 Etapa 1 Concluída!</h2>
-      <p>Etapa 2 será implementada em breve.</p>
-      <button class="btn btn-primary" onclick="limparFormulario(); inputCodBarras.focus();">
-        Nova Triagem
-      </button>
-    </div>
-  `;
+async function carregarEtapa2(dados) {
+  // Esconder Etapa 1
+  stepContainer.style.display = 'none';
+  
+  // Guardar dados da requisição
+  if (dados) {
+    requisicaoAtual = dados;
+  }
+  
+  // Preencher campos informativos
+  if (reqIdE2) reqIdE2.value = requisicaoAtual.id || '';
+  if (reqCodBarrasE2) reqCodBarrasE2.value = requisicaoAtual.cod_barras_req || '';
+  if (reqCodigoDisplayE2) reqCodigoDisplayE2.textContent = '#' + (requisicaoAtual.cod_req || '---');
+  if (reqBarrasDisplayE2) reqBarrasDisplayE2.textContent = requisicaoAtual.cod_barras_req || '---';
+  
+  // Data de recebimento
+  if (reqDataRecebimentoE2) {
+    if (requisicaoAtual.data_recebimento_nto) {
+      reqDataRecebimentoE2.value = requisicaoAtual.data_recebimento_nto;
+    } else {
+      const hoje = new Date().toISOString().split('T')[0];
+      reqDataRecebimentoE2.value = hoje;
+    }
+  }
+  
+  // Carregar tipos de pendência se ainda não carregados
+  if (tiposPendencia.length === 0) {
+    await carregarTiposPendencia();
+  }
+  
+  // Renderizar checkboxes de pendências
+  renderizarCheckboxesPendencias();
+  
+  // Mostrar Etapa 2
+  step2Container.style.display = 'block';
+  
+  // Scroll suave para a seção
+  step2Container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/**
+ * Carrega tipos de pendência do backend
+ */
+async function carregarTiposPendencia() {
+  try {
+    const response = await fetch('/operacao/triagem/tipos-pendencia/', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      tiposPendencia = data.tipos;
+    } else {
+      console.error('Erro ao carregar tipos de pendência:', data.message);
+    }
+  } catch (error) {
+    console.error('Erro ao carregar tipos de pendência:', error);
+  }
+}
+
+/**
+ * Renderiza checkboxes de pendências
+ */
+function renderizarCheckboxesPendencias() {
+  if (!pendenciasCheckboxes) return;
+  
+  pendenciasCheckboxes.innerHTML = '';
+  
+  tiposPendencia.forEach(tipo => {
+    const label = document.createElement('label');
+    label.className = 'pendencia-item';
+    label.innerHTML = `
+      <input type="checkbox" name="pendencia" value="${tipo.codigo}" data-id="${tipo.id}" />
+      <span>${tipo.descricao}</span>
+    `;
+    
+    // Toggle classe checked ao clicar
+    const checkbox = label.querySelector('input[type="checkbox"]');
+    checkbox.addEventListener('change', () => {
+      label.classList.toggle('checked', checkbox.checked);
+    });
+    
+    pendenciasCheckboxes.appendChild(label);
+  });
+}
+
+/**
+ * Coleta pendências selecionadas
+ */
+function coletarPendenciasSelecionadas() {
+  const checkboxes = pendenciasCheckboxes.querySelectorAll('input[type="checkbox"]:checked');
+  return Array.from(checkboxes).map(cb => ({
+    tipo_pendencia_id: parseInt(cb.dataset.id),
+    codigo: parseInt(cb.value)
+  }));
+}
+
+/**
+ * Salva Etapa 2 - Finaliza triagem
+ */
+async function salvarEtapa2() {
+  const pendencias = coletarPendenciasSelecionadas();
+  
+  try {
+    btnFinalizarE2.disabled = true;
+    btnFinalizarE2.textContent = '⏳ Finalizando...';
+    
+    const response = await fetch('/operacao/triagem/finalizar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        pendencias: pendencias
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      mostrarMensagemSucesso(result.message || 'Triagem finalizada com sucesso!');
+      
+      // Limpar formulário e voltar para busca
+      setTimeout(() => {
+        limparFormulario();
+        inputCodBarras.focus();
+      }, 2000);
+      
+    } else {
+      mostrarAlerta(result.message || 'Erro ao finalizar triagem.');
+    }
+    
+  } catch (error) {
+    console.error('Erro ao finalizar triagem:', error);
+    mostrarAlerta('Erro ao finalizar triagem. Tente novamente.');
+  } finally {
+    btnFinalizarE2.disabled = false;
+    btnFinalizarE2.textContent = 'FINALIZAR TRIAGEM';
+  }
 }
 
 /**
@@ -1061,6 +1224,25 @@ btnSeguir.addEventListener('click', salvarAmostraTriagem);
 // Botões do modal de rejeição
 document.getElementById('btn-confirmar-rejeicao').addEventListener('click', confirmarRejeicao);
 document.getElementById('btn-cancelar-rejeicao').addEventListener('click', cancelarRejeicao);
+
+// ============================================
+// EVENT LISTENERS - TRIAGEM ETAPA 2
+// ============================================
+
+// Botão Cancelar Etapa 2
+if (btnCancelarE2) {
+  btnCancelarE2.addEventListener('click', () => {
+    if (confirm('Deseja cancelar a triagem desta requisição?')) {
+      limparFormulario();
+      inputCodBarras.focus();
+    }
+  });
+}
+
+// Botão Finalizar Etapa 2
+if (btnFinalizarE2) {
+  btnFinalizarE2.addEventListener('click', salvarEtapa2);
+}
 
 // ============================================
 // INICIALIZAÇÃO
