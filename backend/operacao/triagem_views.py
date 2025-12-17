@@ -1688,6 +1688,8 @@ class SalvarMedicoView(LoginRequiredMixin, View):
             requisicao = DadosRequisicao.objects.get(id=requisicao_id)
             
             # Atualizar campos do médico
+            requisicao.crm = crm
+            requisicao.uf_crm = uf_crm
             requisicao.nome_medico = nome_medico
             requisicao.end_medico = endereco_medico
             requisicao.dest_medico = destino_medico
