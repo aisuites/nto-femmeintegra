@@ -803,9 +803,25 @@ function limparCamposAmostra() {
 let alertTimeout = null;
 
 function mostrarAlerta(mensagem) {
-  // Usar área de validação fixa acima dos botões
-  const alert = document.getElementById('triagem_alert_validacao');
-  const alertMessage = document.getElementById('triagem_alert_validacao_message');
+  // Determinar qual área de alerta usar baseado na etapa visível
+  let alert, alertMessage;
+  
+  const step3Container = document.getElementById('triagem-step3-container');
+  const step2Container = document.getElementById('triagem-step2-container');
+  
+  if (step3Container && step3Container.style.display !== 'none') {
+    // Etapa 3 visível
+    alert = document.getElementById('triagem3_alert_validacao');
+    alertMessage = document.getElementById('triagem3_alert_validacao_message');
+  } else if (step2Container && step2Container.style.display !== 'none') {
+    // Etapa 2 visível
+    alert = document.getElementById('triagem2_alert_validacao');
+    alertMessage = document.getElementById('triagem2_alert_validacao_message');
+  } else {
+    // Etapa 1 (padrão)
+    alert = document.getElementById('triagem_alert_validacao');
+    alertMessage = document.getElementById('triagem_alert_validacao_message');
+  }
   
   if (alert && alertMessage) {
     alertMessage.textContent = mensagem;
@@ -825,13 +841,22 @@ function mostrarAlerta(mensagem) {
 }
 
 /**
- * Esconde alerta visual
+ * Esconde alerta visual de todas as etapas
  */
 function esconderAlerta() {
-  const alert = document.getElementById('triagem_alert_validacao');
-  if (alert) {
-    alert.classList.remove('alert--visible');
-  }
+  // Esconder alertas de todas as etapas
+  const alertIds = [
+    'triagem_alert_validacao',
+    'triagem2_alert_validacao',
+    'triagem3_alert_validacao'
+  ];
+  
+  alertIds.forEach(id => {
+    const alert = document.getElementById(id);
+    if (alert) {
+      alert.classList.remove('alert--visible');
+    }
+  });
   
   // Limpar timeout se existir
   if (alertTimeout) {
@@ -1782,14 +1807,16 @@ function validarArquivoPermitidoE3(file) {
 }
 
 /**
- * Abre modal para visualizar imagem da requisição
+ * Abre modal para visualizar imagem/PDF da requisição
  */
 async function abrirModalVerImagem() {
   const modal = document.getElementById('modal-ver-imagem');
-  const container = document.getElementById('imagem-requisicao-container');
+  const imgContainer = document.getElementById('imagem-requisicao-container');
+  const pdfContainer = document.getElementById('pdf-requisicao-container');
   const loading = document.getElementById('imagem-requisicao-loading');
   const erro = document.getElementById('imagem-requisicao-erro');
   const img = document.getElementById('imagem-requisicao');
+  const pdf = document.getElementById('pdf-requisicao');
   
   if (!requisicaoAtual || !requisicaoAtual.id) {
     mostrarAlerta('Nenhuma requisição selecionada.');
@@ -1798,46 +1825,68 @@ async function abrirModalVerImagem() {
   
   // Mostrar modal com loading
   modal.style.display = 'flex';
-  container.style.display = 'none';
+  imgContainer.style.display = 'none';
+  pdfContainer.style.display = 'none';
   loading.style.display = 'block';
   erro.style.display = 'none';
   
   try {
-    // Usar ArquivoManager para buscar imagem existente
+    // Usar ArquivoManager para buscar arquivo existente
     const result = await ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
     
     if (result.existe && result.arquivo && result.arquivo.url_arquivo) {
-      // Carregar imagem
-      img.src = result.arquivo.url_arquivo;
-      img.onload = () => {
-        loading.style.display = 'none';
-        container.style.display = 'block';
-      };
-      img.onerror = () => {
-        loading.style.display = 'none';
-        erro.style.display = 'block';
-        console.error('Erro ao carregar imagem:', result.arquivo.url_arquivo);
-      };
+      const url = result.arquivo.url_arquivo;
+      const isPdf = url.toLowerCase().endsWith('.pdf');
+      
+      if (isPdf) {
+        // Carregar PDF no iframe
+        pdf.src = url;
+        pdf.onload = () => {
+          loading.style.display = 'none';
+          pdfContainer.style.display = 'block';
+        };
+        // Fallback: mostrar após 1 segundo caso onload não dispare
+        setTimeout(() => {
+          if (loading.style.display !== 'none') {
+            loading.style.display = 'none';
+            pdfContainer.style.display = 'block';
+          }
+        }, 1000);
+      } else {
+        // Carregar imagem
+        img.src = url;
+        img.onload = () => {
+          loading.style.display = 'none';
+          imgContainer.style.display = 'block';
+        };
+        img.onerror = () => {
+          loading.style.display = 'none';
+          erro.style.display = 'block';
+          console.error('Erro ao carregar imagem:', url);
+        };
+      }
     } else {
-      // Sem imagem
+      // Sem arquivo
       loading.style.display = 'none';
       erro.style.display = 'block';
     }
   } catch (error) {
-    console.error('Erro ao buscar imagem:', error);
+    console.error('Erro ao buscar arquivo:', error);
     loading.style.display = 'none';
     erro.style.display = 'block';
   }
 }
 
 /**
- * Fecha modal de visualização de imagem
+ * Fecha modal de visualização de imagem/PDF
  */
 function fecharModalVerImagem() {
   const modal = document.getElementById('modal-ver-imagem');
   const img = document.getElementById('imagem-requisicao');
+  const pdf = document.getElementById('pdf-requisicao');
   modal.style.display = 'none';
   img.src = ''; // Limpar src para liberar memória
+  pdf.src = ''; // Limpar iframe
 }
 
 /**

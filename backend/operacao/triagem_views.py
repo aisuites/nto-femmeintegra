@@ -1360,7 +1360,16 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
                 cpf_formatado = cpf.replace('.', '').replace('-', '').strip()
                 requisicao.cpf_paciente = cpf_formatado
                 
-                # Atualizar campos do paciente
+                # ZERAR campos antes de atualizar (evita mistura de dados antigos)
+                requisicao.nome_paciente = None
+                requisicao.data_nasc_paciente = None
+                requisicao.sexo_paciente = None
+                requisicao.email_paciente = None
+                requisicao.matricula_paciente = None
+                requisicao.convenio_paciente = None
+                requisicao.plano_paciente = None
+                
+                # Atualizar campos do paciente com dados da API
                 if paciente['nome']:
                     requisicao.nome_paciente = paciente['nome']
                 if paciente['data_nascimento']:

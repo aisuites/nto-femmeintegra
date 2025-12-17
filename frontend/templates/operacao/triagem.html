@@ -248,6 +248,12 @@
       </div>
     </div>
 
+    <!-- ÁREA DE ALERTA ETAPA 3 -->
+    <div class="alert alert-validacao" id="triagem3_alert_validacao" role="alert" aria-live="assertive">
+      <strong>Atenção!</strong>
+      <span id="triagem3_alert_validacao_message"></span>
+    </div>
+
     <!-- SEÇÃO DE FRASCOS/AMOSTRAS -->
     <div class="amostras-section">
       <div class="amostras-header">
@@ -635,14 +641,17 @@
       <button type="button" class="modal-close-btn" id="btn-fechar-modal-imagem" title="Fechar">&times;</button>
     </div>
     <div class="modal-body" style="padding: 16px; text-align: center; overflow: auto; max-height: calc(90vh - 120px);">
-      <div id="imagem-requisicao-container">
+      <div id="imagem-requisicao-container" style="display:none;">
         <img id="imagem-requisicao" src="" alt="Imagem da requisição" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 8px;" />
       </div>
+      <div id="pdf-requisicao-container" style="display:none;">
+        <iframe id="pdf-requisicao" src="" style="width: 100%; height: 70vh; border: 1px solid #ddd; border-radius: 8px;"></iframe>
+      </div>
       <div id="imagem-requisicao-loading" style="display:none; padding: 40px;">
-        <span>⏳ Carregando imagem...</span>
+        <span>⏳ Carregando arquivo...</span>
       </div>
       <div id="imagem-requisicao-erro" style="display:none; padding: 40px; color: #c62828;">
-        <span>❌ Nenhuma imagem disponível para esta requisição.</span>
+        <span>❌ Nenhum arquivo disponível para esta requisição.</span>
       </div>
     </div>
     <div class="modal-footer">
