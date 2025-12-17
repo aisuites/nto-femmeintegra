@@ -803,21 +803,35 @@ function limparCamposAmostra() {
 }
 
 /**
- * Mostra alerta visual na área fixa acima dos botões
+ * Mostra alerta visual na área apropriada
+ * @param {string} mensagem - Mensagem a exibir
+ * @param {string} contexto - Contexto do alerta: 'cpf', 'medico', 'geral' (padrão: 'geral')
  */
 let alertTimeout = null;
 
-function mostrarAlerta(mensagem) {
-  // Determinar qual área de alerta usar baseado na etapa visível
+function mostrarAlerta(mensagem, contexto = 'geral') {
+  // Esconder alertas anteriores
+  esconderAlerta();
+  
+  // Determinar qual área de alerta usar baseado na etapa visível e contexto
   let alert, alertMessage;
   
   const step3Container = document.getElementById('triagem-step3-container');
   const step2Container = document.getElementById('triagem-step2-container');
   
   if (step3Container && step3Container.style.display !== 'none') {
-    // Etapa 3 visível
-    alert = document.getElementById('triagem3_alert_validacao');
-    alertMessage = document.getElementById('triagem3_alert_validacao_message');
+    // Etapa 3 visível - usar contexto específico
+    if (contexto === 'cpf') {
+      alert = document.getElementById('triagem3_alert_cpf');
+      alertMessage = document.getElementById('triagem3_alert_cpf_message');
+    } else if (contexto === 'medico') {
+      alert = document.getElementById('triagem3_alert_medico');
+      alertMessage = document.getElementById('triagem3_alert_medico_message');
+    } else {
+      // Geral (acima dos botões)
+      alert = document.getElementById('triagem3_alert_geral');
+      alertMessage = document.getElementById('triagem3_alert_geral_message');
+    }
   } else if (step2Container && step2Container.style.display !== 'none') {
     // Etapa 2 visível
     alert = document.getElementById('triagem2_alert_validacao');
@@ -849,11 +863,13 @@ function mostrarAlerta(mensagem) {
  * Esconde alerta visual de todas as etapas
  */
 function esconderAlerta() {
-  // Esconder alertas de todas as etapas
+  // Esconder alertas de todas as etapas e contextos
   const alertIds = [
     'triagem_alert_validacao',
     'triagem2_alert_validacao',
-    'triagem3_alert_validacao'
+    'triagem3_alert_cpf',
+    'triagem3_alert_medico',
+    'triagem3_alert_geral'
   ];
   
   alertIds.forEach(id => {
@@ -1355,26 +1371,39 @@ async function carregarEtapa3(dados) {
   if (reqBarrasDisplayE3) reqBarrasDisplayE3.textContent = requisicaoAtual.cod_barras_req || '---';
   
   // Preencher campos existentes da requisição (se houver)
-  if (cpfPaciente && requisicaoAtual.cpf_paciente) {
-    cpfPaciente.value = formatarCPF(requisicaoAtual.cpf_paciente);
+  if (cpfPaciente) {
+    cpfPaciente.value = requisicaoAtual.cpf_paciente ? formatarCPF(requisicaoAtual.cpf_paciente) : '';
   }
-  if (nomePaciente && requisicaoAtual.nome_paciente) {
-    nomePaciente.value = requisicaoAtual.nome_paciente;
+  if (nomePaciente) {
+    nomePaciente.value = requisicaoAtual.nome_paciente || '';
   }
-  if (crmMedico && requisicaoAtual.crm) {
-    crmMedico.value = requisicaoAtual.crm;
+  if (crmMedico) {
+    crmMedico.value = requisicaoAtual.crm || '';
   }
-  if (ufCrm && requisicaoAtual.uf_crm) {
-    ufCrm.value = requisicaoAtual.uf_crm;
+  if (ufCrm) {
+    // Se tem UF salva, usa ela; senão, usa SP como padrão
+    ufCrm.value = requisicaoAtual.uf_crm || 'SP';
   }
-  if (nomeMedico && requisicaoAtual.nome_medico) {
-    nomeMedico.value = requisicaoAtual.nome_medico;
+  if (nomeMedico) {
+    nomeMedico.value = requisicaoAtual.nome_medico || '';
   }
-  if (enderecoMedico && requisicaoAtual.end_medico) {
-    enderecoMedico.value = requisicaoAtual.end_medico;
+  if (enderecoMedico) {
+    enderecoMedico.value = requisicaoAtual.end_medico || '';
   }
-  if (destinoMedico && requisicaoAtual.dest_medico) {
-    destinoMedico.value = requisicaoAtual.dest_medico;
+  if (destinoMedico) {
+    destinoMedico.value = requisicaoAtual.dest_medico || '';
+  }
+  
+  // Preencher checkboxes de problema
+  if (checkProblemaCpf) {
+    checkProblemaCpf.checked = requisicaoAtual.flag_problema_cpf || false;
+  }
+  if (checkProblemaMedico) {
+    checkProblemaMedico.checked = requisicaoAtual.flag_problema_medico || false;
+    // Desabilitar botão Valida se checkbox estiver marcado
+    if (btnValidaMedico) {
+      btnValidaMedico.disabled = checkProblemaMedico.checked;
+    }
   }
   
   // Carregar tipos de amostra se ainda não carregados
@@ -1901,7 +1930,7 @@ async function consultarCpfKorus() {
   const cpf = cpfPaciente ? cpfPaciente.value.trim() : '';
   
   if (!cpf) {
-    mostrarAlerta('Informe o CPF do paciente.');
+    mostrarAlerta('Informe o CPF do paciente.', 'cpf');
     if (cpfPaciente) cpfPaciente.focus();
     return;
   }
@@ -1910,13 +1939,13 @@ async function consultarCpfKorus() {
   const cpfLimpo = cpf.replace(/\D/g, '');
   
   if (cpfLimpo.length !== 11) {
-    mostrarAlerta('CPF inválido. Informe 11 dígitos.');
+    mostrarAlerta('CPF inválido. Informe 11 dígitos.', 'cpf');
     if (cpfPaciente) cpfPaciente.focus();
     return;
   }
   
   if (!requisicaoAtual) {
-    mostrarAlerta('Nenhuma requisição selecionada.');
+    mostrarAlerta('Nenhuma requisição selecionada.', 'cpf');
     return;
   }
   
@@ -1945,7 +1974,7 @@ async function consultarCpfKorus() {
     
     // Verificar se houve erro (HTTP não OK ou status error no JSON)
     if (!response.ok || data.status === 'error') {
-      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.', 'cpf');
       return;
     }
     
@@ -1961,12 +1990,12 @@ async function consultarCpfKorus() {
       console.log('Dados do paciente Korus:', data.paciente);
       
     } else {
-      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.', 'cpf');
     }
     
   } catch (error) {
     console.error('Erro ao consultar CPF Korus:', error);
-    mostrarAlerta('Erro ao consultar CPF. Tente novamente.');
+    mostrarAlerta('Erro ao consultar CPF. Tente novamente.', 'cpf');
   } finally {
     // Restaurar botão
     if (btnCpfKorus) {
@@ -1983,7 +2012,7 @@ async function consultarCpfReceita() {
   const cpf = cpfPaciente ? cpfPaciente.value.trim() : '';
   
   if (!cpf) {
-    mostrarAlerta('Informe o CPF do paciente.');
+    mostrarAlerta('Informe o CPF do paciente.', 'cpf');
     if (cpfPaciente) cpfPaciente.focus();
     return;
   }
@@ -1992,13 +2021,13 @@ async function consultarCpfReceita() {
   const cpfLimpo = cpf.replace(/\D/g, '');
   
   if (cpfLimpo.length !== 11) {
-    mostrarAlerta('CPF inválido. Informe 11 dígitos.');
+    mostrarAlerta('CPF inválido. Informe 11 dígitos.', 'cpf');
     if (cpfPaciente) cpfPaciente.focus();
     return;
   }
   
   if (!requisicaoAtual) {
-    mostrarAlerta('Nenhuma requisição selecionada.');
+    mostrarAlerta('Nenhuma requisição selecionada.', 'cpf');
     return;
   }
   
@@ -2027,7 +2056,7 @@ async function consultarCpfReceita() {
     
     // Verificar se houve erro (HTTP não OK ou status error no JSON)
     if (!response.ok || data.status === 'error') {
-      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.', 'cpf');
       return;
     }
     
@@ -2043,12 +2072,12 @@ async function consultarCpfReceita() {
       console.log('Dados do paciente Receita:', data.paciente);
       
     } else {
-      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.', 'cpf');
     }
     
   } catch (error) {
     console.error('Erro ao consultar CPF Receita:', error);
-    mostrarAlerta('Erro ao consultar CPF. Tente novamente.');
+    mostrarAlerta('Erro ao consultar CPF. Tente novamente.', 'cpf');
   } finally {
     // Restaurar botão
     if (btnCpfReceita) {
@@ -2066,19 +2095,19 @@ async function validarMedico() {
   const uf = ufCrm ? ufCrm.value.trim() : '';
   
   if (!crm) {
-    mostrarAlerta('Informe o CRM do médico.');
+    mostrarAlerta('Informe o CRM do médico.', 'medico');
     if (crmMedico) crmMedico.focus();
     return;
   }
   
   if (!uf) {
-    mostrarAlerta('Informe a UF do CRM.');
+    mostrarAlerta('Informe a UF do CRM.', 'medico');
     if (ufCrm) ufCrm.focus();
     return;
   }
   
   if (!requisicaoAtual) {
-    mostrarAlerta('Nenhuma requisição selecionada.');
+    mostrarAlerta('Nenhuma requisição selecionada.', 'medico');
     return;
   }
   
@@ -2107,7 +2136,7 @@ async function validarMedico() {
     console.log('Resposta API Médico:', response.status, data);
     
     if (!response.ok || data.status === 'error') {
-      mostrarAlerta(data.message || 'Erro ao validar médico.');
+      mostrarAlerta(data.message || 'Erro ao validar médico.', 'medico');
       return;
     }
     
@@ -2121,12 +2150,12 @@ async function validarMedico() {
         abrirModalSelecaoMedicos(data.medicos);
       }
     } else {
-      mostrarAlerta('Médico não encontrado.');
+      mostrarAlerta('Médico não encontrado.', 'medico');
     }
     
   } catch (error) {
     console.error('Erro ao validar médico:', error);
-    mostrarAlerta('Erro ao validar médico. Tente novamente.');
+    mostrarAlerta('Erro ao validar médico. Tente novamente.', 'medico');
   } finally {
     // Restaurar botão
     if (btnValidaMedico) {
@@ -2191,7 +2220,7 @@ async function selecionarMedico(medico) {
  */
 async function salvarMedico(medico) {
   if (!requisicaoAtual) {
-    mostrarAlerta('Nenhuma requisição selecionada.');
+    mostrarAlerta('Nenhuma requisição selecionada.', 'medico');
     return;
   }
   
@@ -2215,7 +2244,7 @@ async function salvarMedico(medico) {
     const data = await response.json();
     
     if (!response.ok || data.status === 'error') {
-      mostrarAlerta(data.message || 'Erro ao salvar dados do médico.');
+      mostrarAlerta(data.message || 'Erro ao salvar dados do médico.', 'medico');
       return;
     }
     
@@ -2228,7 +2257,7 @@ async function salvarMedico(medico) {
     
   } catch (error) {
     console.error('Erro ao salvar médico:', error);
-    mostrarAlerta('Erro ao salvar dados do médico. Tente novamente.');
+    mostrarAlerta('Erro ao salvar dados do médico. Tente novamente.', 'medico');
   }
 }
 

@@ -137,6 +137,19 @@ class TriagemLocalizarView(LoginRequiredMixin, View):
                     'data_recebimento_nto': requisicao.data_recebimento_nto.strftime('%Y-%m-%d') if requisicao.data_recebimento_nto else None,
                     'status_codigo': status_codigo,
                     'status_descricao': status_atual,
+                    # Dados do paciente
+                    'cpf_paciente': requisicao.cpf_paciente or '',
+                    'nome_paciente': requisicao.nome_paciente or '',
+                    # Dados do médico
+                    'crm': requisicao.crm or '',
+                    'uf_crm': requisicao.uf_crm or '',
+                    'nome_medico': requisicao.nome_medico or '',
+                    'end_medico': requisicao.end_medico or '',
+                    'dest_medico': requisicao.dest_medico or '',
+                    # Flags de problema
+                    'flag_problema_cpf': requisicao.flag_problema_cpf,
+                    'flag_problema_medico': requisicao.flag_problema_medico,
+                    # Amostras
                     'amostras': [
                         {
                             'id': amostra.id,
