@@ -21,6 +21,7 @@ from .models import (
     TipoAmostra,
     TipoArquivo,
     TipoPendencia,
+    TipoPendenciaEtapa,
     Unidade,
 )
 
@@ -333,6 +334,22 @@ class TipoPendenciaAdmin(admin.ModelAdmin):
             return obj.created_at.strftime('%d/%m/%Y %H:%M:%S')
         return '-'
     created_at_formatted.short_description = 'Criado em'
+
+
+@admin.register(TipoPendenciaEtapa)
+class TipoPendenciaEtapaAdmin(admin.ModelAdmin):
+    """Admin para configurar quais pendências aparecem em cada etapa."""
+    list_display = ('tipo_pendencia', 'etapa', 'ordem', 'ativo', 'codigo_pendencia')
+    list_filter = ('etapa', 'ativo')
+    search_fields = ('tipo_pendencia__descricao', 'tipo_pendencia__codigo')
+    ordering = ('etapa', 'ordem')
+    list_editable = ('ordem', 'ativo')
+    autocomplete_fields = ('tipo_pendencia',)
+    
+    def codigo_pendencia(self, obj):
+        return obj.tipo_pendencia.codigo
+    codigo_pendencia.short_description = 'Código'
+    codigo_pendencia.admin_order_field = 'tipo_pendencia__codigo'
 
 
 @admin.register(RequisicaoPendencia)

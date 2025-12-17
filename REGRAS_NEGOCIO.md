@@ -572,11 +572,40 @@ else:
 
 ### 5.1. Tipos de Pendência
 
-#### Regra: Listagem de Pendências
-- **Descrição**: Sistema lista tipos de pendência ativos para seleção na Etapa 2.
-- **Endpoint**: `GET /operacao/triagem/tipos-pendencia/`
-- **Filtro**: Apenas pendências com `ativo=True`
-- **Código**: `backend/operacao/triagem_views.py:571-603`
+#### Regra: Listagem de Pendências por Etapa
+- **Descrição**: Sistema lista tipos de pendência configurados para cada etapa específica.
+- **Endpoint**: `GET /operacao/triagem/tipos-pendencia/?etapa=2`
+- **Parâmetro**: `etapa` (default: 2) - Define qual etapa buscar
+- **Filtros**:
+  - Pendência configurada para a etapa (`TipoPendenciaEtapa.etapa`)
+  - Configuração ativa (`TipoPendenciaEtapa.ativo=True`)
+  - Tipo de pendência ativo (`TipoPendencia.ativo=True`)
+- **Ordenação**: Por `ordem` configurada, depois por `codigo`
+- **Código**: `backend/operacao/triagem_views.py:589-626`
+
+#### Regra: Configuração de Pendências por Etapa
+- **Descrição**: Administrador pode configurar quais pendências aparecem em cada etapa via Django Admin.
+- **Tabela**: `tipo_pendencia_etapa`
+- **Campos**:
+  - `tipo_pendencia` - FK para TipoPendencia
+  - `etapa` - Número da etapa (2 ou 3)
+  - `ordem` - Ordem de exibição (menor = primeiro)
+  - `ativo` - Se deve aparecer na etapa
+- **Flexibilidade**: Uma pendência pode aparecer em múltiplas etapas com ordens diferentes.
+- **Admin**: `Operação > Pendências por Etapa`
+- **Código**: `backend/operacao/models.py:232-274`
+
+#### Pendências Configuradas para Etapa 2 (Padrão)
+| Ordem | Código | Descrição |
+|-------|--------|-----------|
+| 1 | 2 | CPF EM BRANCO |
+| 2 | 5 | ASSINATURA DO PACIENTE EM BRANCO |
+| 3 | 4 | ASSINATURA MÉDICO EM BRANCO |
+| 4 | 8 | CARIMBO MÉDICO EM BRANCO |
+| 5 | 3 | DADOS CONVÊNIO INCOMPLETOS |
+| 6 | 13 | NOME PACIENTE EM BRANCO/RASURADO |
+| 7 | 14 | EXAMES EM BRANCO |
+| 8 | 15 | REQUISIÇÃO EM BRANCO |
 
 ---
 

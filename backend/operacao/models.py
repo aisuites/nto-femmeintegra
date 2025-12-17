@@ -229,6 +229,51 @@ class TipoPendencia(TimeStampedModel):
         return f'{self.codigo} - {self.descricao}'
 
 
+class TipoPendenciaEtapa(models.Model):
+    """
+    Relacionamento entre tipos de pendência e etapas de triagem.
+    Permite configurar quais pendências aparecem em cada etapa e em qual ordem.
+    """
+    ETAPA_CHOICES = [
+        (2, 'Etapa 2 - Pendências'),
+        (3, 'Etapa 3 - Cadastro'),
+    ]
+    
+    tipo_pendencia = models.ForeignKey(
+        'TipoPendencia',
+        on_delete=models.CASCADE,
+        related_name='etapas',
+        verbose_name='Tipo de Pendência'
+    )
+    etapa = models.PositiveSmallIntegerField(
+        'Etapa',
+        choices=ETAPA_CHOICES,
+        db_index=True,
+        help_text='Etapa de triagem onde esta pendência será exibida'
+    )
+    ordem = models.PositiveSmallIntegerField(
+        'Ordem',
+        default=0,
+        help_text='Ordem de exibição na etapa (menor = primeiro)'
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        db_index=True,
+        help_text='Se desativado, não aparece na etapa mesmo que o tipo esteja ativo'
+    )
+
+    class Meta:
+        db_table = 'tipo_pendencia_etapa'
+        ordering = ('etapa', 'ordem', 'tipo_pendencia__codigo')
+        verbose_name = 'Pendência por Etapa'
+        verbose_name_plural = 'Pendências por Etapa'
+        unique_together = [['tipo_pendencia', 'etapa']]
+
+    def __str__(self) -> str:
+        return f'{self.tipo_pendencia.descricao} - Etapa {self.etapa} (ordem {self.ordem})'
+
+
 class TipoAmostra(TimeStampedModel):
     """
     Tipos de amostras que podem ser associadas às requisições.

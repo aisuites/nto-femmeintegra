@@ -27,6 +27,7 @@ from .models import (
     StatusRequisicao,
     TipoAmostra,
     TipoPendencia,
+    TipoPendenciaEtapa,
 )
 
 logger = logging.getLogger(__name__)
@@ -587,13 +588,34 @@ class ListarTiposPendenciaView(LoginRequiredMixin, View):
     
     def get(self, request):
         try:
-            tipos = TipoPendencia.objects.filter(
-                ativo=True
-            ).values('id', 'codigo', 'descricao').order_by('codigo')
+            # Obter parâmetro de etapa (default: 2)
+            etapa = request.GET.get('etapa', '2')
+            try:
+                etapa = int(etapa)
+            except ValueError:
+                etapa = 2
+            
+            # Buscar pendências configuradas para a etapa específica
+            pendencias_etapa = TipoPendenciaEtapa.objects.filter(
+                etapa=etapa,
+                ativo=True,
+                tipo_pendencia__ativo=True
+            ).select_related('tipo_pendencia').order_by('ordem', 'tipo_pendencia__codigo')
+            
+            tipos = [
+                {
+                    'id': pe.tipo_pendencia.id,
+                    'codigo': pe.tipo_pendencia.codigo,
+                    'descricao': pe.tipo_pendencia.descricao,
+                    'ordem': pe.ordem
+                }
+                for pe in pendencias_etapa
+            ]
             
             return JsonResponse({
                 'status': 'success',
-                'tipos': list(tipos)
+                'etapa': etapa,
+                'tipos': tipos
             })
             
         except Exception as e:
