@@ -330,6 +330,7 @@ const DynamosoftScanner = (function() {
         IfCloseSourceAfterAcquire: true,
         IfShowUI: false,
         IfFeederEnabled: false,
+        IfDuplexEnabled: false,  // Apenas frente (verso sempre em branco)
         PixelType: SCANNER_CONFIG.pixelType,
         Resolution: SCANNER_CONFIG.resolution
       });

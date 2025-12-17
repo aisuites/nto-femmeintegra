@@ -162,14 +162,30 @@ if existe_recebido:
 
 #### Regra: Busca por Código de Barras
 - **Descrição**: O usuário bipa o código de barras da requisição para localizá-la no sistema.
-- **Validação**: Sistema busca requisição com status RECEBIDO (código '2').
-- **Comportamento**: Se encontrada, exibe dados da requisição e habilita botão de digitalização.
-- **Código**: `frontend/static/js/triagem.js`
+- **Validação**: Sistema busca requisição e verifica se está em status válido para triagem.
+- **Status Válidos**:
+  - `2` (RECEBIDO) → Carrega Etapa 1
+  - `7` (TRIAGEM1-OK) → Carrega Etapa 2
+  - `8` (TRIAGEM2-OK) → Carrega Etapa 3
+- **Comportamento**: Se encontrada e em status válido, carrega a etapa correspondente.
+- **Código**: `backend/operacao/views.py:49-161` e `frontend/static/js/triagem.js:264-319`
 
-#### Regra: Requisição Deve Estar Recebida
-- **Descrição**: Apenas requisições com status RECEBIDO podem ser triadas.
-- **Validação**: Frontend verifica status antes de permitir digitalização.
-- **Mensagem**: "Requisição não encontrada ou não está no status correto para triagem."
+#### Regra: Requisição Não Encontrada
+- **Descrição**: Se o código de barras não existe no sistema, exibe mensagem de erro.
+- **Mensagem**: "Requisição não encontrada no sistema."
+- **Status HTTP**: 404
+- **Código**: `backend/operacao/views.py:73-80`
+
+#### Regra: Requisição com Status Inválido
+- **Descrição**: Se a requisição existe mas não está em status válido para triagem, exibe mensagem específica.
+- **Mensagens por Status**:
+  - Status `1` (ABERTO NTO): "Requisição ainda não foi recebida no NTO. Status atual: ABERTO NTO"
+  - Status `4` ou `5` (CAIXA BO/BARRADOS): "Requisição já passou pela triagem. Status atual: X"
+  - Status `12` (CADASTRADA): "Requisição já foi cadastrada. Status atual: CADASTRADA"
+  - Status `99`: "Requisição foi rejeitada. Status atual: X"
+  - Outros: "Requisição não está apta para triagem. Status atual: X"
+- **Status HTTP**: 200 (requisição existe, só não está apta)
+- **Código**: `backend/operacao/views.py:89-114`
 
 ---
 
@@ -246,10 +262,22 @@ option.textContent = device.displayName || device.name || 'Scanner desconhecido'
 - **Código**: `frontend/templates/operacao/triagem.html:272`
 
 #### Regra: Resolução Padrão
-- **Descrição**: Resolução padrão de 200 DPI.
-- **Motivo**: Equilíbrio entre qualidade e tamanho de arquivo.
-- **Constante**: `DEFAULT_RESOLUTION = 200`
-- **Código**: `frontend/templates/operacao/triagem.html:275`
+- **Descrição**: Resolução padrão de 300 DPI.
+- **Motivo**: Boa qualidade para leitura e OCR.
+- **Constante**: `resolution: 300`
+- **Código**: `frontend/static/js/scanner.js:38`
+
+#### Regra: Digitalização Apenas Frente (Sem Duplex)
+- **Descrição**: Scanner SEMPRE digitaliza apenas a frente do documento.
+- **Configuração**: `IfDuplexEnabled: false`
+- **Motivo**: O verso das requisições é sempre em branco. Digitalizar frente e verso causa problemas no envio.
+- **Código**: `frontend/static/js/scanner.js:333`
+
+#### Regra: Alimentador Desabilitado
+- **Descrição**: Alimentador automático de folhas (ADF) desabilitado.
+- **Configuração**: `IfFeederEnabled: false`
+- **Motivo**: Digitalização manual de uma folha por vez.
+- **Código**: `frontend/static/js/scanner.js:332`
 
 ---
 
@@ -258,13 +286,13 @@ option.textContent = device.displayName || device.name || 'Scanner desconhecido'
 #### Regra: Seleção Automática de Scanner
 - **Descrição**: Scanner selecionado no dropdown é automaticamente configurado, SEM popup intermediário.
 - **Comportamento**: Usa `SelectDeviceAsync()` para selecionar dispositivo programaticamente.
-- **Código**: `frontend/templates/operacao/triagem.html:549`
+- **Código**: `frontend/static/js/scanner.js:323`
 
 #### Regra: Digitalização Sem UI
 - **Descrição**: Interface do scanner NÃO é exibida (digitalização silenciosa).
 - **Configuração**: `IfShowUI: false`
 - **Motivo**: Melhor UX, usuário controla tudo pelo modal do sistema.
-- **Código**: `frontend/templates/operacao/triagem.html:559`
+- **Código**: `frontend/static/js/scanner.js:331`
 
 #### Regra: Tratamento de Erro Timeout
 - **Descrição**: Erro de timeout (código -2415) é IGNORADO se a imagem foi capturada com sucesso.

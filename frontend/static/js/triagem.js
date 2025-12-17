@@ -119,20 +119,17 @@ function mostrarMensagemErroLocalizacao(mensagem) {
     erroDiv.id = 'erro-localizacao';
     erroDiv.className = 'erro-localizacao';
     
-    // Inserir após o help-text do código de barras
-    const helpText = document.querySelector('.help-text');
-    if (helpText) {
-      helpText.parentNode.insertBefore(erroDiv, helpText.nextSibling);
+    // Inserir após o barcode-row (onde está o input e botão)
+    const barcodeRow = inputCodBarras.closest('.barcode-row');
+    if (barcodeRow) {
+      barcodeRow.parentNode.insertBefore(erroDiv, barcodeRow.nextSibling);
     } else {
-      // Fallback: inserir após o input-group
-      const inputGroup = inputCodBarras.closest('.input-group');
-      if (inputGroup) {
-        inputGroup.parentNode.insertBefore(erroDiv, inputGroup.nextSibling);
-      }
+      // Fallback: inserir após o próprio input
+      inputCodBarras.parentNode.insertBefore(erroDiv, inputCodBarras.nextSibling);
     }
   }
   
-  erroDiv.innerHTML = `<strong>Ops!</strong> ${mensagem}`;
+  erroDiv.innerHTML = `<strong>⚠️ Atenção:</strong> ${mensagem}`;
   erroDiv.style.display = 'block';
 }
 
@@ -284,6 +281,9 @@ btnLocalizar.addEventListener('click', async () => {
     });
     
     const data = await response.json();
+    
+    // Log para debug
+    console.log('Resposta localizar:', response.status, data);
     
     if (data.status === 'success') {
       ocultarMensagemErroLocalizacao();
