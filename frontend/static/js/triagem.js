@@ -1139,11 +1139,68 @@ function coletarPendenciasSelecionadas() {
 }
 
 /**
- * Salva Etapa 2 - Finaliza triagem
+ * Salva Etapa 2 - Verifica pendências e mostra modal de confirmação se necessário
  */
 async function salvarEtapa2() {
   const pendencias = coletarPendenciasSelecionadas();
   
+  // Se há pendências selecionadas, mostrar modal de confirmação
+  if (pendencias.length > 0) {
+    mostrarModalConfirmarPendencias(pendencias);
+    return;
+  }
+  
+  // Sem pendências - finalizar diretamente
+  await finalizarEtapa2Confirmado([]);
+}
+
+/**
+ * Mostra modal de confirmação de pendências
+ */
+function mostrarModalConfirmarPendencias(pendencias) {
+  const modal = document.getElementById('modal-confirmar-pendencias');
+  const listaPendencias = document.getElementById('lista-pendencias-confirmacao');
+  
+  // Montar lista de pendências selecionadas
+  const pendenciasDescricoes = pendencias.map(p => {
+    const tipo = tiposPendencia.find(t => t.id === p.tipo_pendencia_id);
+    return tipo ? tipo.descricao : `Código ${p.codigo}`;
+  });
+  
+  listaPendencias.innerHTML = pendenciasDescricoes.map(desc => 
+    `<li style="color: #e65100;">• ${desc}</li>`
+  ).join('');
+  
+  // Armazenar pendências para uso posterior
+  modal.dataset.pendencias = JSON.stringify(pendencias);
+  
+  // Exibir modal
+  modal.style.display = 'flex';
+}
+
+/**
+ * Fecha modal de confirmação de pendências
+ */
+function fecharModalConfirmarPendencias() {
+  const modal = document.getElementById('modal-confirmar-pendencias');
+  modal.style.display = 'none';
+}
+
+/**
+ * Confirma pendências e finaliza Etapa 2
+ */
+async function confirmarPendenciasEtapa2() {
+  const modal = document.getElementById('modal-confirmar-pendencias');
+  const pendencias = JSON.parse(modal.dataset.pendencias || '[]');
+  
+  fecharModalConfirmarPendencias();
+  await finalizarEtapa2Confirmado(pendencias);
+}
+
+/**
+ * Finaliza Etapa 2 após confirmação
+ */
+async function finalizarEtapa2Confirmado(pendencias) {
   try {
     btnFinalizarE2.disabled = true;
     btnFinalizarE2.textContent = '⏳ Finalizando...';
@@ -1190,7 +1247,7 @@ async function salvarEtapa2() {
     mostrarAlerta('Erro ao finalizar triagem. Tente novamente.');
   } finally {
     btnFinalizarE2.disabled = false;
-    btnFinalizarE2.textContent = 'FINALIZAR TRIAGEM';
+    btnFinalizarE2.textContent = 'SEGUIR';
   }
 }
 
@@ -2242,6 +2299,18 @@ if (btnCancelarE2) {
 // Botão Finalizar Etapa 2
 if (btnFinalizarE2) {
   btnFinalizarE2.addEventListener('click', salvarEtapa2);
+}
+
+// Modal Confirmar Pendências (Etapa 2) - Botões
+const btnConfirmarPendencias = document.getElementById('btn-confirmar-pendencias');
+const btnCancelarPendencias = document.getElementById('btn-cancelar-pendencias');
+
+if (btnConfirmarPendencias) {
+  btnConfirmarPendencias.addEventListener('click', confirmarPendenciasEtapa2);
+}
+
+if (btnCancelarPendencias) {
+  btnCancelarPendencias.addEventListener('click', fecharModalConfirmarPendencias);
 }
 
 // ============================================

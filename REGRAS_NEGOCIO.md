@@ -609,18 +609,43 @@ else:
 
 ---
 
-### 5.2. Finalização da Triagem
+### 5.2. Fluxo de Finalização
 
-#### Regra: Registro de Pendências
+#### Regra: Confirmação de Pendências
+- **Descrição**: Se há pendências selecionadas, sistema exibe modal de confirmação antes de finalizar.
+- **Comportamento**:
+  - Usuário seleciona pendências → Clica "SEGUIR"
+  - Modal exibe lista das pendências selecionadas
+  - Botão "Continuar" → Confirma e vai para status PENDÊNCIA
+  - Botão "Cancelar" → Fecha modal e volta para edição
+- **Código**: `frontend/static/js/triagem.js:1157-1198`
+
+#### Regra: Sem Pendências
+- **Descrição**: Se nenhuma pendência selecionada, finaliza diretamente sem modal.
+- **Status de Destino**: TRIAGEM2-OK (código 8)
+- **Próximo Passo**: Carrega automaticamente Etapa 3
+
+#### Regra: Com Pendências
+- **Descrição**: Se há pendências confirmadas, registra e finaliza triagem.
+- **Status de Destino**: PENDÊNCIA (código 6)
+- **Próximo Passo**: Limpa formulário e volta para tela inicial
+
+---
+
+### 5.3. Registro de Pendências
+
+#### Regra: Endpoint de Finalização
 - **Descrição**: Ao finalizar Etapa 2, sistema registra pendências selecionadas.
 - **Endpoint**: `POST /operacao/triagem/finalizar/`
 - **Dados**:
   - `requisicao_id` - ID da requisição
-  - `pendencias` - Array de IDs de tipos de pendência
-- **Código**: `backend/operacao/triagem_views.py:608-738`
+  - `pendencias` - Array de objetos `{tipo_pendencia_id, codigo}`
+- **Código**: `backend/operacao/triagem_views.py:628-760`
 
 #### Regra: Atualização de Status
-- **Descrição**: Após finalizar Etapa 2, status muda para TRIAGEM2-OK (código 8).
+- **Descrição**: Status muda conforme presença de pendências.
+- **Sem Pendências**: TRIAGEM2-OK (código 8) → Segue para Etapa 3
+- **Com Pendências**: PENDÊNCIA (código 6) → Finaliza triagem
 - **Registro**: Cria entrada no `RequisicaoStatusHistorico`.
 
 ---
