@@ -2503,8 +2503,8 @@ async function confirmarRetornoEtapa() {
     // Recarregar a requisição para mostrar a etapa correta
     setTimeout(() => {
       // Garantir que o código de barras está no input e clicar no botão localizar
-      if (inputCodBarras && requisicaoAtual && requisicaoAtual.cod_barras) {
-        inputCodBarras.value = requisicaoAtual.cod_barras;
+      if (inputCodBarras && requisicaoAtual && requisicaoAtual.cod_barras_req) {
+        inputCodBarras.value = requisicaoAtual.cod_barras_req;
         btnLocalizar.click();
       }
     }, 500);
