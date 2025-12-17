@@ -1922,6 +1922,9 @@ async function consultarCpfKorus() {
     btnCpfKorus.innerHTML = '<span class="upload-spinner" style="width:14px;height:14px;border-width:2px;"></span> Consultando...';
   }
   
+  // Zerar campos na tela antes de consultar (evita dados antigos se API falhar)
+  if (nomePaciente) nomePaciente.value = '';
+  
   try {
     const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${cpfLimpo}&requisicao_id=${requisicaoAtual.id}`, {
       method: 'GET',
@@ -2000,6 +2003,9 @@ async function consultarCpfReceita() {
     btnCpfReceita.disabled = true;
     btnCpfReceita.innerHTML = '<span class="upload-spinner" style="width:14px;height:14px;border-width:2px;"></span> Consultando...';
   }
+  
+  // Zerar campos na tela antes de consultar (evita dados antigos se API falhar)
+  if (nomePaciente) nomePaciente.value = '';
   
   try {
     const response = await fetch(`/operacao/triagem/consultar-cpf-receita/?cpf=${cpfLimpo}&requisicao_id=${requisicaoAtual.id}`, {
