@@ -1719,3 +1719,224 @@ class SalvarMedicoView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro ao salvar dados do médico.'},
                 status=500
             )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='GET'), name='dispatch')
+class VisualizarEtapaView(LoginRequiredMixin, View):
+    """
+    Retorna dados de uma etapa anterior para visualização (somente leitura).
+    
+    GET /operacao/triagem/visualizar-etapa/?requisicao_id=123&etapa=1
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request):
+        requisicao_id = request.GET.get('requisicao_id')
+        etapa = request.GET.get('etapa')
+        
+        if not requisicao_id or not etapa:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Parâmetros obrigatórios: requisicao_id e etapa.'},
+                status=400
+            )
+        
+        try:
+            etapa = int(etapa)
+            requisicao = DadosRequisicao.objects.select_related('status').get(id=requisicao_id)
+            
+            if etapa == 1:
+                # Dados da Etapa 1: amostras e suas validações
+                amostras = RequisicaoAmostra.objects.filter(
+                    requisicao=requisicao
+                ).select_related('tipo_amostra').order_by('ordem')
+                
+                # Buscar amostras excluídas do log
+                amostras_excluidas = LogAlteracaoAmostra.objects.filter(
+                    requisicao=requisicao,
+                    tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.EXCLUSAO
+                ).select_related('motivo').order_by('data_alteracao')
+                
+                amostras_data = []
+                for amostra in amostras:
+                    amostras_data.append({
+                        'id': amostra.id,
+                        'ordem': amostra.ordem,
+                        'cod_barras': amostra.cod_barras_amostra,
+                        'validada': amostra.triagem1_validada,
+                        'data_coleta': amostra.data_coleta.isoformat() if amostra.data_coleta else None,
+                        'data_validade': amostra.data_validade.isoformat() if amostra.data_validade else None,
+                        'flag_data_coleta_rasurada': amostra.flag_data_coleta_rasurada,
+                        'flag_sem_data_validade': amostra.flag_sem_data_validade,
+                    })
+                
+                excluidas_data = []
+                for log in amostras_excluidas:
+                    excluidas_data.append({
+                        'cod_barras': log.cod_barras_amostra,
+                        'ordem': log.ordem_amostra,
+                        'motivo': log.motivo.descricao if log.motivo else 'Não informado',
+                        'data': log.data_alteracao.strftime('%d/%m/%Y %H:%M'),
+                        'usuario': log.usuario.get_full_name() or log.usuario.username if log.usuario else 'N/A',
+                    })
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'etapa': 1,
+                    'amostras': amostras_data,
+                    'amostras_excluidas': excluidas_data,
+                })
+            
+            elif etapa == 2:
+                # Dados da Etapa 2: pendências (se houver)
+                pendencias = RequisicaoPendencia.objects.filter(
+                    requisicao=requisicao
+                ).select_related('tipo_pendencia')
+                
+                pendencias_data = []
+                for p in pendencias:
+                    pendencias_data.append({
+                        'id': p.id,
+                        'tipo': p.tipo_pendencia.descricao if p.tipo_pendencia else 'N/A',
+                        'observacao': p.observacao or '',
+                    })
+                
+                return JsonResponse({
+                    'status': 'success',
+                    'etapa': 2,
+                    'pendencias': pendencias_data,
+                    'tem_pendencias': len(pendencias_data) > 0,
+                })
+            
+            else:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Etapa inválida. Use 1 ou 2.'},
+                    status=400
+                )
+                
+        except DadosRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        except Exception as e:
+            logger.error(f"Erro ao visualizar etapa: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao carregar dados da etapa.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='10/m', method='POST'), name='dispatch')
+class RetornarEtapaView(LoginRequiredMixin, View):
+    """
+    Retorna a requisição para uma etapa anterior, zerando dados necessários.
+    
+    POST /operacao/triagem/retornar-etapa/
+    Body: {
+        "requisicao_id": 123,
+        "etapa_destino": 1  // 1 ou 2
+    }
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'JSON inválido.'},
+                status=400
+            )
+        
+        requisicao_id = data.get('requisicao_id')
+        etapa_destino = data.get('etapa_destino')
+        
+        if not requisicao_id or not etapa_destino:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Parâmetros obrigatórios: requisicao_id e etapa_destino.'},
+                status=400
+            )
+        
+        try:
+            etapa_destino = int(etapa_destino)
+            requisicao = DadosRequisicao.objects.select_related('status').get(id=requisicao_id)
+            status_atual = requisicao.status.codigo
+            
+            # Validar se pode retornar
+            if status_atual not in ['7', '8']:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Requisição não está em etapa que permita retorno.'},
+                    status=400
+                )
+            
+            if etapa_destino == 1:
+                # Retornar para Etapa 1 (Status 2 - RECEBIDO)
+                novo_status = StatusRequisicao.objects.get(codigo='2')
+                observacao = "Retorno para Etapa 1 - Correção de amostras"
+                
+                # Zerar validação das amostras (para serem reavaliadas)
+                RequisicaoAmostra.objects.filter(requisicao=requisicao).update(
+                    triagem1_validada=False,
+                    triagem2_validada=False,
+                    updated_by=request.user
+                )
+                
+            elif etapa_destino == 2:
+                # Retornar para Etapa 2 (Status 7 - TRIAGEM1-OK)
+                if status_atual != '8':
+                    return JsonResponse(
+                        {'status': 'error', 'message': 'Só é possível voltar para Etapa 2 a partir da Etapa 3.'},
+                        status=400
+                    )
+                novo_status = StatusRequisicao.objects.get(codigo='7')
+                observacao = "Retorno para Etapa 2 - Identificação de pendência"
+                
+            else:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Etapa destino inválida. Use 1 ou 2.'},
+                    status=400
+                )
+            
+            # Atualizar status da requisição
+            requisicao.status = novo_status
+            requisicao.updated_by = request.user
+            requisicao.save()
+            
+            # Registrar no histórico de status
+            RequisicaoStatusHistorico.objects.create(
+                requisicao=requisicao,
+                cod_req=requisicao.cod_req,
+                status=novo_status,
+                usuario=request.user,
+                observacao=observacao
+            )
+            
+            logger.info(
+                f"Retorno de etapa - Requisição: {requisicao.cod_req}, "
+                f"De: {status_atual} Para: {novo_status.codigo}, "
+                f"Usuário: {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Requisição retornada para Etapa {etapa_destino}.',
+                'novo_status': novo_status.codigo,
+                'etapa': etapa_destino
+            })
+            
+        except StatusRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Status de destino não encontrado.'},
+                status=500
+            )
+        except DadosRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        except Exception as e:
+            logger.error(f"Erro ao retornar etapa: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao retornar para etapa anterior.'},
+                status=500
+            )

@@ -1076,3 +1076,109 @@ input[readonly] {
   color: #9c27b0;
   font-size: 18px;
 }
+
+/* NAVEGAÇÃO ENTRE ETAPAS */
+.step-nav-buttons {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.btn-link {
+  background: transparent;
+  border: none;
+  color: var(--femme-purple);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  text-decoration: underline;
+}
+
+.btn-link:hover {
+  color: var(--femme-purple-dark, #5a2d6a);
+}
+
+.btn-warning {
+  background: #f0ad4e;
+  color: #fff;
+  border: none;
+}
+
+.btn-warning:hover {
+  background: #ec971f;
+}
+
+/* MODAL GRANDE */
+.modal-lg {
+  max-width: 800px;
+  width: 90%;
+}
+
+/* VISUALIZAÇÃO DE ETAPA (SOMENTE LEITURA) */
+.etapa-visualizacao {
+  padding: 16px;
+}
+
+.etapa-visualizacao h4 {
+  margin-bottom: 12px;
+  color: var(--femme-purple);
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+.etapa-visualizacao .amostra-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f9f9f9;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.etapa-visualizacao .amostra-item.validada {
+  border-left: 4px solid #5cb85c;
+}
+
+.etapa-visualizacao .amostra-item.excluida {
+  border-left: 4px solid #d9534f;
+  background: #fdf2f2;
+}
+
+.etapa-visualizacao .amostra-status {
+  font-size: 18px;
+}
+
+.etapa-visualizacao .amostra-info {
+  flex: 1;
+}
+
+.etapa-visualizacao .amostra-codigo {
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.etapa-visualizacao .amostra-detalhes {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.etapa-visualizacao .pendencia-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #fff3cd;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  border-left: 4px solid #ffc107;
+}
+
+.etapa-visualizacao .sem-pendencias {
+  padding: 12px;
+  background: #d4edda;
+  border-radius: 6px;
+  color: #155724;
+  text-align: center;
+}

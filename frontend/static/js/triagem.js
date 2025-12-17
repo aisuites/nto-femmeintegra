@@ -93,6 +93,22 @@ const erroAdicionarAmostra = document.getElementById('erro-adicionar-amostra');
 const erroAdicionarAmostraMsg = document.getElementById('erro-adicionar-amostra-msg');
 const listaPendenciasModal = document.getElementById('lista-pendencias-modal');
 
+// Navegação entre etapas
+const btnVerEtapa1FromE2 = document.getElementById('btn-ver-etapa1-from-e2');
+const btnVerEtapa1FromE3 = document.getElementById('btn-ver-etapa1-from-e3');
+const btnVerEtapa2FromE3 = document.getElementById('btn-ver-etapa2-from-e3');
+const modalVisualizarEtapa = document.getElementById('modal-visualizar-etapa');
+const modalVisualizarEtapaTitulo = document.getElementById('modal-visualizar-etapa-titulo');
+const modalVisualizarEtapaConteudo = document.getElementById('modal-visualizar-etapa-conteudo');
+const btnFecharModalVisualizarEtapa = document.getElementById('btn-fechar-modal-visualizar-etapa');
+const btnFecharVisualizarEtapa = document.getElementById('btn-fechar-visualizar-etapa');
+const btnVoltarParaEtapa = document.getElementById('btn-voltar-para-etapa');
+const modalConfirmarRetornoEtapa = document.getElementById('modal-confirmar-retorno-etapa');
+const msgConfirmarRetorno = document.getElementById('msg-confirmar-retorno');
+const msgDadosZerados = document.getElementById('msg-dados-zerados');
+const btnCancelarRetornoEtapa = document.getElementById('btn-cancelar-retorno-etapa');
+const btnConfirmarRetornoEtapa = document.getElementById('btn-confirmar-retorno-etapa');
+
 // ============================================
 // ESTADO GLOBAL
 // ============================================
@@ -106,6 +122,7 @@ let motivosAdicaoAmostra = [];
 let amostraParaExcluir = null;
 let pendenciasIdentificadas = [];
 let configTiposArquivoE3 = null; // Configuração de tipos de arquivo permitidos na Etapa 3
+let etapaVisualizando = null; // Etapa sendo visualizada no modal (1 ou 2)
 
 // ============================================
 // FUNÇÕES AUXILIARES
@@ -2293,6 +2310,213 @@ async function salvarMedico(medico) {
   }
 }
 
+// ============================================
+// NAVEGAÇÃO ENTRE ETAPAS
+// ============================================
+
+/**
+ * Visualiza dados de uma etapa anterior (somente leitura)
+ */
+async function visualizarEtapa(etapa) {
+  if (!requisicaoAtual) {
+    mostrarAlerta('Nenhuma requisição selecionada.', 'geral');
+    return;
+  }
+  
+  etapaVisualizando = etapa;
+  
+  try {
+    const response = await fetch(`/operacao/triagem/visualizar-etapa/?requisicao_id=${requisicaoAtual.id}&etapa=${etapa}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok || data.status === 'error') {
+      mostrarAlerta(data.message || 'Erro ao carregar dados da etapa.', 'geral');
+      return;
+    }
+    
+    // Montar conteúdo do modal
+    let html = '<div class="etapa-visualizacao">';
+    
+    if (etapa === 1) {
+      modalVisualizarEtapaTitulo.textContent = 'Visualizar Etapa 1 - Conferência de Amostras';
+      
+      html += '<h4>Amostras Validadas</h4>';
+      
+      if (data.amostras && data.amostras.length > 0) {
+        data.amostras.forEach(amostra => {
+          const statusClass = amostra.validada ? 'validada' : '';
+          const statusIcon = amostra.validada ? '✅' : '⏳';
+          const dataColeta = amostra.data_coleta ? new Date(amostra.data_coleta).toLocaleDateString('pt-BR') : 'N/A';
+          const dataValidade = amostra.data_validade ? new Date(amostra.data_validade).toLocaleDateString('pt-BR') : 'N/A';
+          
+          html += `
+            <div class="amostra-item ${statusClass}">
+              <span class="amostra-status">${statusIcon}</span>
+              <div class="amostra-info">
+                <span class="amostra-codigo">Frasco ${amostra.ordem}: ${amostra.cod_barras}</span>
+                <div class="amostra-detalhes">
+                  Coleta: ${amostra.flag_data_coleta_rasurada ? 'Rasurada' : dataColeta} | 
+                  Validade: ${amostra.flag_sem_data_validade ? 'Sem validade' : dataValidade}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      } else {
+        html += '<p class="text-muted">Nenhuma amostra encontrada.</p>';
+      }
+      
+      // Amostras excluídas
+      if (data.amostras_excluidas && data.amostras_excluidas.length > 0) {
+        html += '<h4 style="margin-top: 20px;">Amostras Excluídas</h4>';
+        data.amostras_excluidas.forEach(amostra => {
+          html += `
+            <div class="amostra-item excluida">
+              <span class="amostra-status">❌</span>
+              <div class="amostra-info">
+                <span class="amostra-codigo">Frasco ${amostra.ordem}: ${amostra.cod_barras}</span>
+                <div class="amostra-detalhes">
+                  Motivo: ${amostra.motivo} | Por: ${amostra.usuario} em ${amostra.data}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+      }
+      
+      // Mensagem para voltar
+      msgDadosZerados.textContent = 'Os dados de validação das amostras serão zerados e você precisará refazer as etapas 2 e 3.';
+      
+    } else if (etapa === 2) {
+      modalVisualizarEtapaTitulo.textContent = 'Visualizar Etapa 2 - Conferência de Pendências';
+      
+      html += '<h4>Pendências Identificadas</h4>';
+      
+      if (data.tem_pendencias && data.pendencias.length > 0) {
+        data.pendencias.forEach(p => {
+          html += `
+            <div class="pendencia-item">
+              <span>⚠️</span>
+              <span>${p.tipo}</span>
+              ${p.observacao ? `<span class="text-muted">(${p.observacao})</span>` : ''}
+            </div>
+          `;
+        });
+      } else {
+        html += '<div class="sem-pendencias">✅ Nenhuma pendência identificada nesta requisição.</div>';
+      }
+      
+      // Mensagem para voltar
+      msgDadosZerados.textContent = 'Você poderá identificar pendências que não foram marcadas anteriormente.';
+    }
+    
+    html += '</div>';
+    
+    modalVisualizarEtapaConteudo.innerHTML = html;
+    modalVisualizarEtapa.style.display = 'flex';
+    
+  } catch (error) {
+    console.error('Erro ao visualizar etapa:', error);
+    mostrarAlerta('Erro ao carregar dados da etapa.', 'geral');
+  }
+}
+
+/**
+ * Fecha o modal de visualização de etapa
+ */
+function fecharModalVisualizarEtapa() {
+  if (modalVisualizarEtapa) {
+    modalVisualizarEtapa.style.display = 'none';
+  }
+  etapaVisualizando = null;
+}
+
+/**
+ * Abre o modal de confirmação para retornar a uma etapa
+ */
+function abrirModalConfirmarRetorno() {
+  if (!etapaVisualizando) return;
+  
+  msgConfirmarRetorno.textContent = `Tem certeza que deseja voltar para a Etapa ${etapaVisualizando}?`;
+  
+  modalVisualizarEtapa.style.display = 'none';
+  modalConfirmarRetornoEtapa.style.display = 'flex';
+}
+
+/**
+ * Fecha o modal de confirmação de retorno
+ */
+function fecharModalConfirmarRetorno() {
+  if (modalConfirmarRetornoEtapa) {
+    modalConfirmarRetornoEtapa.style.display = 'none';
+  }
+}
+
+/**
+ * Confirma o retorno para uma etapa anterior
+ */
+async function confirmarRetornoEtapa() {
+  if (!requisicaoAtual || !etapaVisualizando) {
+    mostrarAlerta('Erro: dados insuficientes para retornar.', 'geral');
+    return;
+  }
+  
+  // Desabilitar botão durante processamento
+  if (btnConfirmarRetornoEtapa) {
+    btnConfirmarRetornoEtapa.disabled = true;
+    btnConfirmarRetornoEtapa.textContent = 'Processando...';
+  }
+  
+  try {
+    const response = await fetch('/operacao/triagem/retornar-etapa/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        etapa_destino: etapaVisualizando
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok || data.status === 'error') {
+      mostrarAlerta(data.message || 'Erro ao retornar para etapa.', 'geral');
+      return;
+    }
+    
+    // Fechar modais
+    fecharModalConfirmarRetorno();
+    
+    // Mostrar mensagem de sucesso
+    mostrarMensagemSucesso(data.message || `Requisição retornada para Etapa ${etapaVisualizando}.`);
+    
+    // Recarregar a requisição para mostrar a etapa correta
+    setTimeout(() => {
+      localizarRequisicao(requisicaoAtual.cod_barras);
+    }, 500);
+    
+  } catch (error) {
+    console.error('Erro ao retornar etapa:', error);
+    mostrarAlerta('Erro ao retornar para etapa anterior.', 'geral');
+  } finally {
+    // Restaurar botão
+    if (btnConfirmarRetornoEtapa) {
+      btnConfirmarRetornoEtapa.disabled = false;
+      btnConfirmarRetornoEtapa.textContent = 'Confirmar Retorno';
+    }
+  }
+}
+
 /**
  * Handler para clique no botão excluir amostra
  */
@@ -2857,6 +3081,48 @@ if (btnVoltarCorrigir) {
 
 if (btnConfirmarPendencia) {
   btnConfirmarPendencia.addEventListener('click', confirmarEnviarPendencia);
+}
+
+// ============================================
+// EVENT LISTENERS - NAVEGAÇÃO ENTRE ETAPAS
+// ============================================
+
+// Botão Ver Etapa 1 (da Etapa 2)
+if (btnVerEtapa1FromE2) {
+  btnVerEtapa1FromE2.addEventListener('click', () => visualizarEtapa(1));
+}
+
+// Botão Ver Etapa 1 (da Etapa 3)
+if (btnVerEtapa1FromE3) {
+  btnVerEtapa1FromE3.addEventListener('click', () => visualizarEtapa(1));
+}
+
+// Botão Ver Etapa 2 (da Etapa 3)
+if (btnVerEtapa2FromE3) {
+  btnVerEtapa2FromE3.addEventListener('click', () => visualizarEtapa(2));
+}
+
+// Modal Visualizar Etapa - Botões fechar
+if (btnFecharModalVisualizarEtapa) {
+  btnFecharModalVisualizarEtapa.addEventListener('click', fecharModalVisualizarEtapa);
+}
+
+if (btnFecharVisualizarEtapa) {
+  btnFecharVisualizarEtapa.addEventListener('click', fecharModalVisualizarEtapa);
+}
+
+// Modal Visualizar Etapa - Botão voltar para etapa
+if (btnVoltarParaEtapa) {
+  btnVoltarParaEtapa.addEventListener('click', abrirModalConfirmarRetorno);
+}
+
+// Modal Confirmar Retorno - Botões
+if (btnCancelarRetornoEtapa) {
+  btnCancelarRetornoEtapa.addEventListener('click', fecharModalConfirmarRetorno);
+}
+
+if (btnConfirmarRetornoEtapa) {
+  btnConfirmarRetornoEtapa.addEventListener('click', confirmarRetornoEtapa);
 }
 
 // Dropdown customizado UF-CRM

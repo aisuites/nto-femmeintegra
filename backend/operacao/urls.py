@@ -101,6 +101,16 @@ urlpatterns = [
         triagem_views.SalvarMedicoView.as_view(),
         name='triagem-salvar-medico',
     ),
+    path(
+        'triagem/visualizar-etapa/',
+        triagem_views.VisualizarEtapaView.as_view(),
+        name='triagem-visualizar-etapa',
+    ),
+    path(
+        'triagem/retornar-etapa/',
+        triagem_views.RetornarEtapaView.as_view(),
+        name='triagem-retornar-etapa',
+    ),
     # Upload de arquivos
     path(
         'upload/signed-url/',

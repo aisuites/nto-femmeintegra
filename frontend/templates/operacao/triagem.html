@@ -189,6 +189,11 @@
       <div style="font-size:11px; color:var(--femme-gray);">
         Requisição <strong id="req-codigo-display-e2">#---</strong> · Cód. barras <strong id="req-barras-display-e2">---</strong>
       </div>
+      <div class="step-nav-buttons">
+        <button class="btn btn-link btn-sm" type="button" id="btn-ver-etapa1-from-e2" title="Visualizar dados da Etapa 1">
+          👁️ Ver Etapa 1
+        </button>
+      </div>
     </div>
 
     <!-- CAMPOS INFORMATIVOS -->
@@ -245,6 +250,14 @@
       </div>
       <div style="font-size:11px; color:var(--femme-gray);">
         Requisição <strong id="req-codigo-display-e3">#---</strong> · Cód. barras <strong id="req-barras-display-e3">---</strong>
+      </div>
+      <div class="step-nav-buttons">
+        <button class="btn btn-link btn-sm" type="button" id="btn-ver-etapa1-from-e3" title="Visualizar dados da Etapa 1">
+          👁️ Ver Etapa 1
+        </button>
+        <button class="btn btn-link btn-sm" type="button" id="btn-ver-etapa2-from-e3" title="Visualizar dados da Etapa 2">
+          👁️ Ver Etapa 2
+        </button>
       </div>
     </div>
 
@@ -754,6 +767,45 @@
       <div style="padding:12px 16px; text-align:center; color:#666; font-size:0.9em;" id="medicos-contador">
         <!-- Ex: 1 a 3 de 3 registros -->
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAR ETAPA ANTERIOR -->
+<div class="modal-overlay" id="modal-visualizar-etapa" style="display: none;">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <h3 id="modal-visualizar-etapa-titulo">Visualizar Etapa</h3>
+      <button type="button" class="modal-close-btn" id="btn-fechar-modal-visualizar-etapa" title="Fechar">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-visualizar-etapa-conteudo">
+      <!-- Conteúdo será preenchido via JS -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" id="btn-fechar-visualizar-etapa">Fechar</button>
+      <button class="btn btn-warning" type="button" id="btn-voltar-para-etapa">
+        ⚠️ Voltar para esta Etapa
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR RETORNO DE ETAPA -->
+<div class="modal-overlay" id="modal-confirmar-retorno-etapa" style="display: none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>⚠️ Confirmar Retorno</h3>
+    </div>
+    <div class="modal-body">
+      <p id="msg-confirmar-retorno">Tem certeza que deseja voltar para a Etapa 1?</p>
+      <div class="alert alert-warning" style="margin-top: 12px;">
+        <strong>Atenção:</strong>
+        <span id="msg-dados-zerados">Os dados de validação das amostras serão zerados e você precisará refazer as etapas seguintes.</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-retorno-etapa">Cancelar</button>
+      <button class="btn btn-danger" type="button" id="btn-confirmar-retorno-etapa">Confirmar Retorno</button>
     </div>
   </div>
 </div>
