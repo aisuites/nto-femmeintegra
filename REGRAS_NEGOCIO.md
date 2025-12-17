@@ -11,16 +11,21 @@
 1. [Página de Recebimento](#1-página-de-recebimento)
 2. [Página de Triagem](#2-página-de-triagem)
 3. [Scanner Dynamsoft](#3-scanner-dynamsoft)
-4. [Gestão de Requisições](#4-gestão-de-requisições)
-5. [Validações de Código de Barras](#5-validações-de-código-de-barras)
-6. [Fluxo de Requisições em Trânsito](#6-fluxo-de-requisições-em-trânsito)
-7. [Cadastros Mestres](#7-cadastros-mestres)
-8. [Auditoria e Logs](#8-auditoria-e-logs)
-9. [Validações de Frontend](#9-validações-de-frontend)
-10. [Cache e Performance](#10-cache-e-performance)
-11. [Segurança](#11-segurança)
-12. [Sistema de Notificações](#12-sistema-de-notificações)
-13. [Transferência de Requisições](#13-transferência-de-requisições)
+4. [Triagem - Etapa 1 (Validação de Amostras)](#4-triagem---etapa-1-validação-de-amostras)
+5. [Triagem - Etapa 2 (Finalização)](#5-triagem---etapa-2-finalização)
+6. [Triagem - Etapa 3 (Cadastro)](#6-triagem---etapa-3-cadastro)
+7. [Integração Korus CPF](#7-integração-korus-cpf)
+8. [Upload de Arquivos](#8-upload-de-arquivos)
+9. [Gestão de Requisições](#9-gestão-de-requisições)
+10. [Validações de Código de Barras](#10-validações-de-código-de-barras)
+11. [Fluxo de Requisições em Trânsito](#11-fluxo-de-requisições-em-trânsito)
+12. [Cadastros Mestres](#12-cadastros-mestres)
+13. [Auditoria e Logs](#13-auditoria-e-logs)
+14. [Validações de Frontend](#14-validações-de-frontend)
+15. [Cache e Performance](#15-cache-e-performance)
+16. [Segurança](#16-segurança)
+17. [Sistema de Notificações](#17-sistema-de-notificações)
+18. [Transferência de Requisições](#18-transferência-de-requisições)
 
 ---
 
@@ -366,9 +371,369 @@ if (error.code === ERROR_CODE_TIMEOUT && DWTObject.HowManyImagesInBuffer > 0) {
 
 ---
 
-## 4. GESTÃO DE REQUISIÇÕES
+## 4. TRIAGEM - ETAPA 1 (VALIDAÇÃO DE AMOSTRAS)
 
-### 4.1. Criação de Requisição
+### 4.1. Pré-requisitos
+
+#### Regra: Digitalização Obrigatória
+- **Descrição**: É OBRIGATÓRIO digitalizar a requisição antes de validar qualquer amostra.
+- **Validação**: Backend verifica existência de arquivo do tipo REQUISICAO (código 1) vinculado à requisição.
+- **Mensagem**: "É obrigatório digitalizar a requisição antes de validar as amostras."
+- **Status HTTP**: 400
+- **Código**: `backend/operacao/triagem_views.py:270-289`
+
+```python
+# Buscar tipo de arquivo REQUISICAO (código 1)
+tipo_requisicao = TipoArquivo.objects.filter(codigo=1).first()
+
+if tipo_requisicao:
+    tem_arquivo = RequisicaoArquivo.objects.filter(
+        requisicao=amostra.requisicao,
+        tipo_arquivo=tipo_requisicao
+    ).exists()
+    
+    if not tem_arquivo:
+        return JsonResponse(
+            {'status': 'error', 'message': 'É obrigatório digitalizar a requisição antes de validar as amostras.'},
+            status=400
+        )
+```
+
+---
+
+### 4.2. Campos da Amostra
+
+#### Regra: Data de Validade Obrigatória (Condicional)
+- **Descrição**: Data de validade é obrigatória APENAS se a flag "Sem data de validade" NÃO estiver marcada.
+- **Validação**: Se `data_validade` está vazia e `flag_sem_data_validade` é False → Erro.
+- **Mensagem**: "Data de validade é obrigatória ou marque 'Sem data de validade'"
+- **Código**: `backend/operacao/triagem_views.py:319-322`
+
+#### Regra: Motivo de Armazenamento Inadequado Obrigatório
+- **Descrição**: Se flag "Armazenamento inadequado" estiver marcada, pelo menos um motivo DEVE ser selecionado.
+- **Validação**: `flag_armazenamento_inadequado=True` e `len(motivos_ids)==0` → Erro.
+- **Mensagem**: "Selecione pelo menos um motivo de armazenamento inadequado"
+- **Código**: `backend/operacao/triagem_views.py:324-326`
+
+---
+
+### 4.3. Flags de Impeditivos
+
+#### Regra: Lista de Flags de Impeditivo
+- **Descrição**: O sistema verifica 6 flags que podem gerar impeditivos na amostra.
+- **Flags**:
+  - `flag_data_coleta_rasurada` → "Data de coleta rasurada"
+  - `flag_sem_data_validade` → "Sem data de validade"
+  - `flag_amostra_sem_identificacao` → "Amostra sem identificação"
+  - `flag_armazenamento_inadequado` → "Armazenamento inadequado"
+  - `flag_frasco_trocado_tipo_coleta` → "Frasco trocado"
+  - `flag_material_nao_analisado` → "Material não analisado"
+- **Código**: `backend/operacao/triagem_views.py:334-359`
+
+#### Regra: Data de Validade Expirada (90 dias)
+- **Descrição**: Se a data de validade exceder 90 dias atrás, é considerado impeditivo.
+- **Validação**: `(hoje - data_validade).days > 90` → Impeditivo.
+- **Mensagem**: "Data de validade excede 90 dias (há X dias)"
+- **Código**: `backend/operacao/triagem_views.py:343-347`
+
+```python
+if amostra.data_validade:
+    dias_atras = (timezone.now().date() - amostra.data_validade).days
+    if dias_atras > 90:
+        impeditivos.append(f'Data de validade excede 90 dias (há {dias_atras} dias)')
+```
+
+---
+
+### 4.4. Status de Rejeição por Unidade
+
+#### Regra: Determinação do Status de Rejeição
+- **Descrição**: O status de rejeição depende da unidade da requisição.
+- **Regras**:
+  - Unidade `09` (EXTERNOS) → Status `5` (CAIXA BARRADOS)
+  - Unidade `17` (PAPA BRASIL) → Status `4` (CAIXA BO)
+  - Outras unidades → Status `4` (CAIXA BO) como padrão
+- **Código**: `backend/operacao/triagem_views.py:363-375`
+
+```python
+unidade_codigo = amostra.requisicao.unidade.codigo
+
+if unidade_codigo == '09':  # EXTERNOS
+    status_rejeicao_id = 5  # CAIXA BARRADOS
+    status_rejeicao_nome = 'CAIXA BARRADOS'
+elif unidade_codigo == '17':  # PAPA BRASIL
+    status_rejeicao_id = 4  # CAIXA BO
+    status_rejeicao_nome = 'CAIXA BO'
+else:
+    status_rejeicao_id = 4
+    status_rejeicao_nome = 'CAIXA BO'
+```
+
+---
+
+### 4.5. Fluxo de Validação
+
+#### Regra: Validação com Impeditivos
+- **Descrição**: Se amostra possui impeditivos, dados são salvos mas amostra NÃO é marcada como validada.
+- **Comportamento**: Retorna status `impeditivo` para frontend decidir (continuar ou rejeitar).
+- **Dados Salvos**: Flags, motivos inadequados, descrição.
+- **Código**: `backend/operacao/triagem_views.py:361-402`
+
+#### Regra: Validação sem Impeditivos
+- **Descrição**: Se amostra NÃO possui impeditivos, é marcada como `triagem1_validada=True`.
+- **Comportamento**: Sistema avança automaticamente para próxima amostra pendente.
+- **Código**: `backend/operacao/triagem_views.py:404-407`
+
+#### Regra: Conclusão Automática da Etapa 1
+- **Descrição**: Quando TODAS as amostras forem validadas, status da requisição muda para TRIAGEM1-OK (código 7).
+- **Registro**: Cria entrada no `RequisicaoStatusHistorico`.
+- **Código**: `backend/operacao/triagem_views.py:433-457`
+
+---
+
+### 4.6. Motivos de Armazenamento Inadequado
+
+#### Regra: Registro de Motivos
+- **Descrição**: Motivos selecionados são salvos na tabela `AmostraMotivoArmazenamentoInadequado`.
+- **Comportamento**: 
+  - Remove motivos anteriores da amostra
+  - Cria novos registros com código de barras, motivo e usuário
+- **Código**: `backend/operacao/triagem_views.py:381-392`
+
+---
+
+## 5. TRIAGEM - ETAPA 2 (FINALIZAÇÃO)
+
+### 5.1. Tipos de Pendência
+
+#### Regra: Listagem de Pendências
+- **Descrição**: Sistema lista tipos de pendência ativos para seleção na Etapa 2.
+- **Endpoint**: `GET /operacao/triagem/tipos-pendencia/`
+- **Filtro**: Apenas pendências com `ativo=True`
+- **Código**: `backend/operacao/triagem_views.py:571-603`
+
+---
+
+### 5.2. Finalização da Triagem
+
+#### Regra: Registro de Pendências
+- **Descrição**: Ao finalizar Etapa 2, sistema registra pendências selecionadas.
+- **Endpoint**: `POST /operacao/triagem/finalizar/`
+- **Dados**:
+  - `requisicao_id` - ID da requisição
+  - `pendencias` - Array de IDs de tipos de pendência
+- **Código**: `backend/operacao/triagem_views.py:608-738`
+
+#### Regra: Atualização de Status
+- **Descrição**: Após finalizar Etapa 2, status muda para TRIAGEM2-OK (código 8).
+- **Registro**: Cria entrada no `RequisicaoStatusHistorico`.
+
+---
+
+## 6. TRIAGEM - ETAPA 3 (CADASTRO)
+
+### 6.1. Gestão de Amostras
+
+#### Regra: Exclusão de Amostra
+- **Descrição**: Permite excluir amostra da requisição com registro de auditoria.
+- **Endpoint**: `POST /operacao/triagem/amostras/excluir/`
+- **Requisitos**:
+  - `amostra_id` - ID da amostra
+  - `motivo_exclusao_id` - Motivo obrigatório
+  - `etapa` - Etapa onde ocorreu (ex: TRIAGEM3)
+- **Auditoria**: Cria registro em `LogAlteracaoAmostra` com tipo EXCLUSAO.
+- **Código**: `backend/operacao/triagem_views.py:866-954`
+
+#### Regra: Adição de Amostra
+- **Descrição**: Permite adicionar nova amostra à requisição com registro de auditoria.
+- **Endpoint**: `POST /operacao/triagem/amostras/adicionar/`
+- **REGRA CRÍTICA**: Código de barras da nova amostra DEVE ser IGUAL ao código de barras da requisição.
+- **Validação**: `cod_barras_amostra != requisicao.cod_barras_req` → Erro.
+- **Mensagem**: "O código de barras da amostra deve ser igual ao código de barras da requisição (XXX)."
+- **Código**: `backend/operacao/triagem_views.py:958-1080`
+
+```python
+# REGRA DE NEGÓCIO: Código de barras da amostra DEVE ser igual ao da requisição
+if cod_barras_amostra != requisicao.cod_barras_req:
+    return JsonResponse(
+        {
+            'status': 'error',
+            'message': f'O código de barras da amostra deve ser igual ao código de barras da requisição ({requisicao.cod_barras_req}).',
+            'codigo_esperado': requisicao.cod_barras_req,
+            'codigo_informado': cod_barras_amostra
+        },
+        status=400
+    )
+```
+
+#### Regra: Amostra Adicionada Já Validada
+- **Descrição**: Amostra adicionada na Etapa 3 já vem com `triagem1_validada=True`.
+- **Motivo**: Está na etapa final, já passou pelas validações anteriores.
+- **Código**: `backend/operacao/triagem_views.py:1028`
+
+---
+
+### 6.2. Tipos de Amostra
+
+#### Regra: Listagem de Tipos
+- **Descrição**: Sistema lista tipos de amostra ativos para seleção.
+- **Endpoint**: `GET /operacao/triagem/tipos-amostra/`
+- **Código**: `backend/operacao/triagem_views.py:773-796`
+
+#### Regra: Atualização de Tipo
+- **Descrição**: Permite atualizar o tipo de amostra de uma amostra específica.
+- **Endpoint**: `POST /operacao/triagem/amostras/atualizar-tipo/`
+- **Código**: `backend/operacao/triagem_views.py:801-861`
+
+---
+
+### 6.3. Cadastro Final
+
+#### Regra: Status Correto para Cadastro
+- **Descrição**: Requisição DEVE estar no status TRIAGEM2-OK (código 8) para ser cadastrada.
+- **Validação**: `requisicao.status.codigo != '8'` → Erro.
+- **Mensagem**: "Requisição não está apta para cadastro. Status atual: X"
+- **Código**: `backend/operacao/triagem_views.py:1119-1124`
+
+#### Regra: Flags de Problema
+- **Descrição**: Sistema verifica flags de problema CPF e Médico.
+- **Flags**:
+  - `flag_problema_cpf` - CPF em branco ou inválido
+  - `flag_problema_medico` - Dados do médico incompletos
+- **Código**: `backend/operacao/triagem_views.py:1127-1128`
+
+#### Regra: Confirmação de Envio para Pendência
+- **Descrição**: Se há flags de problema, usuário DEVE confirmar envio para fila de pendências.
+- **Validação**: `(flag_problema_cpf or flag_problema_medico) and not enviar_para_pendencia` → Erro.
+- **Mensagem**: "Confirme o envio para fila de pendências."
+- **Código**: `backend/operacao/triagem_views.py:1131-1136`
+
+#### Regra: Fluxo de Cadastro
+- **Com Problemas**: Status muda para PENDÊNCIA (código 6), cria registros de pendência.
+  - `flag_problema_cpf` → Tipo pendência código 17 (CPF em branco ou inválido)
+  - `flag_problema_medico` → Tipo pendência código 18 (Dados médico incompletos)
+- **Sem Problemas**: Status muda para CADASTRADA (código 12).
+- **Código**: `backend/operacao/triagem_views.py:1151-1184`
+
+---
+
+## 7. INTEGRAÇÃO KORUS CPF
+
+### 7.1. Configuração
+
+#### Regra: Variáveis de Ambiente
+- **Descrição**: Credenciais da API Korus são configuradas via variáveis de ambiente.
+- **Variáveis**:
+  - `KORUS_API_URL` - URL base da API
+  - `KORUS_API_LOGIN` - Login de autenticação
+  - `KORUS_API_PASSWORD` - Senha de autenticação
+  - `KORUS_API_TIMEOUT` - Timeout em segundos (padrão: 20)
+- **Código**: `backend/core/services/external_api.py:145-170`
+
+---
+
+### 7.2. Autenticação
+
+#### Regra: Token por Requisição
+- **Descrição**: Sistema gera NOVO token a cada requisição (sem cache de token).
+- **Motivo**: Garantir sempre token válido e evitar problemas de expiração.
+- **Código**: `backend/core/services/external_api.py:274-282`
+
+```python
+def get_korus_client() -> KorusAPIClient:
+    """
+    Retorna nova instância do cliente Korus.
+    Sempre gera novo token a cada requisição conforme especificado.
+    """
+    return KorusAPIClient()
+```
+
+---
+
+### 7.3. Consulta de CPF
+
+#### Regra: Endpoint de Consulta
+- **Descrição**: Consulta dados de paciente por CPF na API Korus.
+- **Endpoint**: `GET /operacao/triagem/consultar-cpf-korus/?cpf=XXX&requisicao_id=YYY`
+- **Rate Limit**: 30 requisições por minuto
+- **Código**: `backend/operacao/triagem_views.py:1243-1389`
+
+#### Regra: Mapeamento de Campos
+- **Descrição**: Dados da API Korus são mapeados para o formato interno.
+- **Estrutura da API**:
+  - `pessoaFisica.nome` → `nome_paciente`
+  - `pessoaFisica.dataNascimento` → `data_nasc_paciente`
+  - `pessoaFisica.sexo` → `sexo_paciente`
+  - `contato.email` → `email_paciente`
+  - `matricula` → `matricula_paciente`
+  - `convenio` → `convenio_paciente`
+  - `plano` → `plano_paciente`
+- **Código**: `backend/operacao/triagem_views.py:1313-1328`
+
+```python
+pessoa_fisica = dados_api.get('pessoaFisica', {}) or {}
+contato = dados_api.get('contato', {}) or {}
+
+paciente = {
+    'nome': pessoa_fisica.get('nome', '') or '',
+    'data_nascimento': pessoa_fisica.get('dataNascimento', '') or '',
+    'email': contato.get('email', '') or '',
+    'sexo': pessoa_fisica.get('sexo', '') or '',
+    'matricula': dados_api.get('matricula', '') or '',
+    'convenio': dados_api.get('convenio', '') or '',
+    'plano': dados_api.get('plano', '') or '',
+}
+```
+
+#### Regra: Salvamento Automático
+- **Descrição**: Se `requisicao_id` for informado, dados são salvos automaticamente na requisição.
+- **CPF**: O CPF digitado também é salvo no campo `cpf_paciente`.
+- **Código**: `backend/operacao/triagem_views.py:1332-1383`
+
+#### Regra: CPF Não Encontrado
+- **Descrição**: Se CPF não existe na base FEMME, retorna erro com status 404.
+- **Mensagem**: "CPF não encontrado na base FEMME."
+- **Código**: `backend/core/services/external_api.py:241-269`
+
+---
+
+## 8. UPLOAD DE ARQUIVOS
+
+### 8.1. Tipos de Arquivo
+
+#### Regra: Tipos Cadastrados
+- **Descrição**: Sistema possui tipos de arquivo pré-definidos.
+- **Tipos Principais**:
+  - Código `1` = REQUISICAO (digitalização da requisição física)
+  - Outros tipos conforme cadastro
+- **Código**: `backend/operacao/models.py` (TipoArquivo)
+
+---
+
+### 8.2. Verificação de Arquivo
+
+#### Regra: Verificação de Existência
+- **Descrição**: Sistema verifica se requisição possui arquivo digitalizado.
+- **Endpoint**: `GET /operacao/triagem/verificar-arquivo/?requisicao_id=XXX`
+- **Resposta**: `{"status": "success", "tem_arquivo": true/false}`
+- **Código**: `backend/operacao/triagem_views.py:73-119`
+
+---
+
+### 8.3. Obrigatoriedade na Triagem
+
+#### Regra: Digitalização Obrigatória
+- **Descrição**: Requisição DEVE ter arquivo digitalizado (tipo REQUISICAO) antes de validar amostras na Etapa 1.
+- **Validação**: Backend verifica antes de salvar amostra.
+- **Bloqueio**: Se não houver arquivo, não permite validar nenhuma amostra.
+- **Mensagem**: "É obrigatório digitalizar a requisição antes de validar as amostras."
+- **Código**: `backend/operacao/triagem_views.py:270-289`
+
+---
+
+## 9. GESTÃO DE REQUISIÇÕES
+
+### 9.1. Criação de Requisição
 
 #### Regra: Geração de Código de Requisição
 - **Descrição**: O sistema gera automaticamente um código único alfanumérico aleatório.
@@ -418,7 +783,7 @@ def gerar_codigo_requisicao(tamanho: int = 10, max_tentativas: int = 10) -> str:
 
 ---
 
-### 2.2. Validação de Amostras
+### 9.2. Validação de Amostras
 
 #### Regra: Códigos Iguais (OBRIGATÓRIO)
 - **Descrição**: O sistema EXIGE que todos os códigos de barras (requisição + amostras) sejam IGUAIS.
@@ -474,7 +839,7 @@ for idx, cod_amostra in enumerate(cod_barras_amostras, start=1):
 
 ---
 
-### 2.3. Finalização de Kit
+### 9.3. Finalização de Kit
 
 #### Regra: Validação de Requisições Pendentes
 - **Descrição**: Ao clicar em "Finalizar Recebimento", o sistema valida se há requisições com status "ABERTO NTO" para o usuário logado.
@@ -534,9 +899,9 @@ for req in requisicoes:
 
 ---
 
-## 3. VALIDAÇÕES DE CÓDIGO DE BARRAS
+## 10. VALIDAÇÕES DE CÓDIGO DE BARRAS
 
-### 3.1. Duplicidade
+### 10.1. Duplicidade
 
 #### Regra: Código de Barras Único
 - **Descrição**: Não é permitido criar uma requisição com um código de barras que já foi RECEBIDO (status 2).
@@ -564,7 +929,7 @@ if existe_recebido:
 
 ---
 
-### 3.2. Formato
+### 10.2. Formato
 
 #### Regra: Código Não Vazio
 - **Descrição**: O código de barras da requisição NÃO pode ser vazio ou apenas espaços.
@@ -583,9 +948,9 @@ if not cod_barras_req:
 
 ---
 
-## 4. FLUXO DE REQUISIÇÕES EM TRÂNSITO
+## 11. FLUXO DE REQUISIÇÕES EM TRÂNSITO
 
-### 4.1. Identificação
+### 11.1. Identificação
 
 #### Regra: Status "EM TRÂNSITO" (código 10)
 - **Descrição**: Requisições com status 10 são consideradas "em trânsito" - enviadas por representantes de fora de SP.
@@ -626,7 +991,7 @@ except DadosRequisicao.DoesNotExist:
 
 ---
 
-### 4.2. Validação de Amostras em Trânsito
+### 11.2. Validação de Amostras em Trânsito
 
 #### Regra: Quantidade Exata
 - **Descrição**: A quantidade de amostras bipadas DEVE ser EXATAMENTE igual à quantidade cadastrada.
@@ -688,7 +1053,7 @@ if amostras_cadastradas_sorted != amostras_bipadas_sorted:
 
 ---
 
-### 4.3. Atualização de Status
+### 11.3. Atualização de Status
 
 #### Regra: Transição EM TRÂNSITO → ABERTO NTO
 - **Descrição**: Ao validar uma requisição em trânsito, o status muda de 10 (EM TRÂNSITO) para 1 (ABERTO NTO).
@@ -721,9 +1086,9 @@ RequisicaoStatusHistorico.objects.create(
 
 ---
 
-## 5. CADASTROS MESTRES
+## 12. CADASTROS MESTRES
 
-### 5.1. Unidade
+### 12.1. Unidade
 
 #### Regra: Campo Ativo
 - **Descrição**: Unidades podem ser desativadas sem serem deletadas do banco.
@@ -735,7 +1100,7 @@ RequisicaoStatusHistorico.objects.create(
 
 ---
 
-### 5.2. Portador/Representante
+### 12.2. Portador/Representante
 
 #### Regra: Unificação de Campos
 - **Descrição**: O sistema usa um ÚNICO campo `portador_representante` no modelo `DadosRequisicao`.
@@ -771,7 +1136,7 @@ def migrar_dados_portador(apps, schema_editor):
 
 ---
 
-### 5.3. Status de Requisição
+### 12.3. Status de Requisição
 
 #### Regra: Status Cadastrados
 - **Descrição**: O sistema possui status pré-definidos para controlar o ciclo de vida das requisições.
@@ -796,7 +1161,7 @@ def migrar_dados_portador(apps, schema_editor):
 
 ---
 
-### 5.4. Origem
+### 12.4. Origem
 
 #### Regra: Tipos de Origem
 - **Descrição**: Origens são classificadas por tipo.
@@ -815,9 +1180,9 @@ def migrar_dados_portador(apps, schema_editor):
 
 ---
 
-## 6. AUDITORIA E LOGS
+## 13. AUDITORIA E LOGS
 
-### 6.1. Campos de Auditoria (AuditModel)
+### 13.1. Campos de Auditoria (AuditModel)
 
 #### Regra: Rastreamento Automático
 - **Descrição**: Modelos que herdam de `AuditModel` possuem rastreamento automático de criação e atualização.
@@ -833,7 +1198,7 @@ def migrar_dados_portador(apps, schema_editor):
 
 ---
 
-### 6.2. LogRecebimento (JSON)
+### 13.2. LogRecebimento (JSON)
 
 #### Regra: Log Imutável
 - **Descrição**: Cada requisição FINALIZADA gera um registro JSON no `LogRecebimento`.
@@ -866,7 +1231,7 @@ LogRecebimento.objects.create(
 
 ---
 
-### 6.3. Histórico de Status
+### 13.3. Histórico de Status
 
 #### Regra: Rastreamento de Mudanças
 - **Descrição**: Toda mudança de status de uma requisição é registrada no `RequisicaoStatusHistorico`.
@@ -896,9 +1261,9 @@ def has_delete_permission(self, request, obj=None):
 
 ---
 
-## 7. VALIDAÇÕES DE FRONTEND
+## 14. VALIDAÇÕES DE FRONTEND
 
-### 7.1. SessionStorage
+### 14.1. SessionStorage
 
 #### Regra: Persistência de Seleção
 - **Descrição**: Ao validar uma requisição, o sistema salva a unidade e portador/representante selecionados no `sessionStorage`.
@@ -925,7 +1290,7 @@ sessionStorage.removeItem('recebimento_portador_representante_id');
 
 ---
 
-### 7.2. Modal de Bipagem
+### 14.2. Modal de Bipagem
 
 #### Regra: Geração Dinâmica de Inputs
 - **Descrição**: O modal gera dinamicamente inputs de código de barras conforme a quantidade informada.
@@ -942,9 +1307,9 @@ sessionStorage.removeItem('recebimento_portador_representante_id');
 
 ---
 
-## 8. CACHE E PERFORMANCE
+## 15. CACHE E PERFORMANCE
 
-### 8.1. Cache de Unidades e Portadores
+### 15.1. Cache de Unidades e Portadores
 
 #### Regra: Cache de 5 Minutos
 - **Descrição**: Unidades e portadores são cacheados por 5 minutos para melhorar performance.
@@ -968,9 +1333,9 @@ if unidades is None:
 
 ---
 
-## 9. SEGURANÇA
+## 16. SEGURANÇA
 
-### 9.1. Autenticação
+### 16.1. Autenticação
 
 #### Regra: Login Obrigatório
 - **Descrição**: Todas as views de operação requerem autenticação.
@@ -980,7 +1345,7 @@ if unidades is None:
 
 ---
 
-### 9.2. Rate Limiting
+### 16.2. Rate Limiting
 
 #### Regra: Limite de Requisições
 - **Descrição**: Endpoints de validação possuem rate limiting para prevenir abuso.
@@ -989,7 +1354,7 @@ if unidades is None:
 
 ---
 
-### 9.3. CSRF Protection
+### 16.3. CSRF Protection
 
 #### Regra: Token CSRF Obrigatório
 - **Descrição**: Todas as requisições POST requerem token CSRF válido.
@@ -1028,9 +1393,9 @@ const csrfToken = getCookie('csrftoken');
 
 ---
 
-## 10. SISTEMA DE NOTIFICAÇÕES
+## 17. SISTEMA DE NOTIFICAÇÕES
 
-### 10.1. Model Notificacao
+### 17.1. Model Notificacao
 
 #### Regra: Tipos de Notificação
 - **Descrição**: O sistema suporta 3 tipos de notificações.
@@ -1056,7 +1421,7 @@ class Tipo(models.TextChoices):
 
 ---
 
-### 10.2. Sininho no Header
+### 17.2. Sininho no Header
 
 #### Regra: Badge de Contador
 - **Descrição**: Badge vermelho exibe quantidade de notificações não lidas.
@@ -1082,7 +1447,7 @@ if (contador > 0) {
 
 ---
 
-### 10.3. Modal de Notificações
+### 17.3. Modal de Notificações
 
 #### Regra: Listagem de Notificações
 - **Descrição**: Modal exibe até 50 notificações mais recentes.
@@ -1104,9 +1469,9 @@ if (contador > 0) {
 
 ---
 
-## 11. TRANSFERÊNCIA DE REQUISIÇÕES
+## 18. TRANSFERÊNCIA DE REQUISIÇÕES
 
-### 11.1. Detecção de Requisição Iniciada
+### 18.1. Detecção de Requisição Iniciada
 
 #### Regra: Verificação ao Localizar
 - **Descrição**: Ao bipar código de barras, sistema verifica se requisição já foi iniciada por outro usuário.
@@ -1144,7 +1509,7 @@ except DadosRequisicao.DoesNotExist:
 
 ---
 
-### 11.2. Modal de Confirmação
+### 18.2. Modal de Confirmação
 
 #### Regra: Confirmação Obrigatória
 - **Descrição**: Usuário DEVE confirmar antes de assumir requisição de outro usuário.
@@ -1160,7 +1525,7 @@ except DadosRequisicao.DoesNotExist:
 
 ---
 
-### 11.3. Processo de Transferência
+### 18.3. Processo de Transferência
 
 #### Regra: Transferência Atômica
 - **Descrição**: Transferência é uma transação atômica que:
@@ -1224,7 +1589,7 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 
 ---
 
-### 11.4. Notificação de Transferência
+### 18.4. Notificação de Transferência
 
 #### Regra: Criação Automática
 - **Descrição**: Ao transferir requisição, sistema cria notificação automaticamente para usuário anterior.
@@ -1248,7 +1613,7 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 
 ---
 
-### 11.5. Impacto no Grid
+### 18.5. Impacto no Grid
 
 #### Regra: Requisição Removida do Grid Original
 - **Descrição**: Após transferência, requisição NÃO aparece mais no grid do usuário anterior.
@@ -1261,7 +1626,7 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 
 ---
 
-### 11.6. Histórico de Transferências
+### 18.6. Histórico de Transferências
 
 #### Regra: Rastreamento Completo
 - **Descrição**: Toda transferência é registrada no `RequisicaoStatusHistorico`.
@@ -1289,13 +1654,45 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 
 ---
 
-**Última Atualização**: 09/12/2025  
-**Versão**: 1.3  
+**Última Atualização**: 17/12/2025  
+**Versão**: 1.4  
 **Responsável**: Equipe de Desenvolvimento FEMME INTEGRA
 
 ---
 
 ## 🔄 HISTÓRICO DE ALTERAÇÕES
+
+### Versão 1.4 (17/12/2025)
+- **Nova seção**: 4. Triagem - Etapa 1 (Validação de Amostras)
+  * Digitalização obrigatória antes de validar amostras
+  * Data de validade obrigatória (condicional)
+  * Motivos de armazenamento inadequado
+  * 6 flags de impeditivos com regras específicas
+  * Data de validade expirada (90 dias)
+  * Status de rejeição por unidade (CAIXA BO/BARRADOS)
+  * Conclusão automática da etapa
+- **Nova seção**: 5. Triagem - Etapa 2 (Finalização)
+  * Tipos de pendência
+  * Registro de pendências
+  * Atualização de status para TRIAGEM2-OK
+- **Nova seção**: 6. Triagem - Etapa 3 (Cadastro)
+  * Exclusão/Adição de amostras com auditoria
+  * Código de barras da amostra DEVE ser igual ao da requisição
+  * Tipos de amostra
+  * Cadastro final com flags de problema (CPF/Médico)
+  * Fluxo para pendências ou cadastrada
+- **Nova seção**: 7. Integração Korus CPF
+  * Variáveis de ambiente
+  * Token por requisição (sem cache)
+  * Mapeamento de campos da API
+  * Salvamento automático na requisição
+  * Tratamento de CPF não encontrado
+- **Nova seção**: 8. Upload de Arquivos
+  * Tipos de arquivo
+  * Verificação de existência
+  * Obrigatoriedade na triagem
+- **Renumeração**: Seções 4-13 renumeradas para 9-18
+- **Atualização**: Mais de 50 novas regras de negócio documentadas
 
 ### Versão 1.3 (09/12/2025)
 - **Nova seção**: 2. Página de Triagem - Regras de localização e digitalização de requisições
