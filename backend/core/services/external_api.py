@@ -280,3 +280,135 @@ def get_korus_client() -> KorusAPIClient:
         KorusAPIClient configurado
     """
     return KorusAPIClient()
+
+
+class ReceitaAPIClient:
+    """
+    Cliente para API de consulta de CPF na Receita Federal.
+    Utiliza o serviço Hub do Desenvolvedor.
+    
+    Endpoint: GET https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf={cpf}&token={token}
+    
+    Resposta esperada:
+    {
+        "status": true,
+        "return": "OK",
+        "result": {
+            "numero_de_cpf": "005.392.877-68",
+            "nome_da_pf": "NOME DA PESSOA",
+            "data_nascimento": "26/08/1939",
+            "situacao_cadastral": "REGULAR"
+        }
+    }
+    """
+    
+    def __init__(self):
+        self.base_url = os.environ.get('RECEITA_API_URL', 'https://ws.hubdodesenvolvedor.com.br/v2/cpf/')
+        self.token = os.environ.get('RECEITA_API_TOKEN', '')
+        self.timeout = int(os.environ.get('RECEITA_API_TIMEOUT', '20'))
+        
+        if not self.token:
+            logger.warning("RECEITA_API_TOKEN não configurado no ambiente")
+    
+    def buscar_cpf(self, cpf: str) -> APIResponse:
+        """
+        Busca dados de CPF na Receita Federal.
+        
+        Args:
+            cpf: CPF a ser consultado (apenas números)
+            
+        Returns:
+            APIResponse com dados do CPF ou erro
+        """
+        # Limpar CPF
+        cpf_limpo = cpf.replace('.', '').replace('-', '').strip()
+        
+        if not cpf_limpo or len(cpf_limpo) != 11:
+            return APIResponse(
+                success=False,
+                error='CPF inválido. Informe 11 dígitos.'
+            )
+        
+        if not self.token:
+            return APIResponse(
+                success=False,
+                error='Token da API Receita não configurado.'
+            )
+        
+        try:
+            url = f"{self.base_url}?cpf={cpf_limpo}&token={self.token}"
+            
+            logger.info(f"Consultando CPF na Receita: {cpf_limpo[:3]}***{cpf_limpo[-2:]}")
+            
+            response = requests.get(
+                url,
+                timeout=self.timeout,
+                headers={
+                    'Content-Type': 'application/json'
+                }
+            )
+            
+            logger.info(f"Resposta Receita - status_code={response.status_code}")
+            
+            if response.status_code != 200:
+                return APIResponse(
+                    success=False,
+                    status_code=response.status_code,
+                    error=f'Erro na API Receita: HTTP {response.status_code}'
+                )
+            
+            data = response.json()
+            
+            # Verificar se a consulta foi bem-sucedida
+            if not data.get('status'):
+                error_msg = data.get('message') or data.get('return') or 'CPF não encontrado na Receita Federal.'
+                logger.warning(f"CPF não encontrado na Receita: {error_msg}")
+                return APIResponse(
+                    success=False,
+                    error='CPF não encontrado na Receita Federal.'
+                )
+            
+            result = data.get('result', {})
+            
+            if not result:
+                return APIResponse(
+                    success=False,
+                    error='CPF não encontrado na Receita Federal.'
+                )
+            
+            logger.info(f"CPF encontrado na Receita: {result.get('nome_da_pf', 'N/A')[:20]}...")
+            
+            return APIResponse(
+                success=True,
+                status_code=200,
+                data=result
+            )
+            
+        except requests.exceptions.Timeout:
+            logger.error("Timeout ao consultar API Receita")
+            return APIResponse(
+                success=False,
+                error='Timeout ao consultar Receita Federal. Tente novamente.'
+            )
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erro de conexão com API Receita: {str(e)}")
+            return APIResponse(
+                success=False,
+                error='Erro ao conectar com a Receita Federal. Tente novamente.'
+            )
+        except Exception as e:
+            logger.error(f"Erro inesperado ao consultar API Receita: {str(e)}", exc_info=True)
+            return APIResponse(
+                success=False,
+                error='Erro inesperado ao consultar CPF.'
+            )
+
+
+def get_receita_client() -> ReceitaAPIClient:
+    """
+    Retorna nova instância do cliente Receita.
+    
+    Returns:
+        ReceitaAPIClient configurado
+    """
+    return ReceitaAPIClient()

@@ -86,6 +86,11 @@ urlpatterns = [
         triagem_views.ConsultarCPFKorusView.as_view(),
         name='triagem-consultar-cpf-korus',
     ),
+    path(
+        'triagem/consultar-cpf-receita/',
+        triagem_views.ConsultarCPFReceitaView.as_view(),
+        name='triagem-consultar-cpf-receita',
+    ),
     # Upload de arquivos
     path(
         'upload/signed-url/',

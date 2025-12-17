@@ -13,7 +13,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django_ratelimit.decorators import ratelimit
 
-from core.services.external_api import get_korus_client
+from core.services.external_api import get_korus_client, get_receita_client
 
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
@@ -1414,6 +1414,141 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
                 
                 logger.info(
                     f"Dados do paciente atualizados via Korus - Requisição: {requisicao.cod_req}, "
+                    f"CPF: {cpf[:3]}***{cpf[-2:]}, Usuário: {request.user.username}"
+                )
+                
+            except DadosRequisicao.DoesNotExist:
+                logger.warning(f"Requisição {requisicao_id} não encontrada para atualização")
+            except Exception as e:
+                logger.error(f"Erro ao salvar dados do paciente: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            'status': 'success',
+            'paciente': paciente
+        })
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='GET'), name='dispatch')
+class ConsultarCPFReceitaView(LoginRequiredMixin, View):
+    """
+    Consulta dados de CPF na Receita Federal (via Hub do Desenvolvedor).
+    
+    GET /operacao/triagem/consultar-cpf-receita/?cpf=12345678900&requisicao_id=123
+    
+    Response (sucesso):
+        {
+            "status": "success",
+            "paciente": {
+                "nome": "NOME DA PESSOA",
+                "data_nascimento": "26/08/1939",
+                "situacao_cadastral": "REGULAR"
+            }
+        }
+    
+    Response (erro):
+        {
+            "status": "error",
+            "message": "CPF não encontrado na Receita Federal."
+        }
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        cpf = request.GET.get('cpf', '').strip()
+        requisicao_id = request.GET.get('requisicao_id')
+        
+        if not cpf:
+            return JsonResponse(
+                {'status': 'error', 'message': 'CPF não informado.'},
+                status=400
+            )
+        
+        # ZERAR campos ANTES de consultar API (evita mistura de dados antigos)
+        # Nota: alguns campos não permitem NULL, então usamos string vazia
+        if requisicao_id:
+            try:
+                requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+                cpf_formatado = cpf.replace('.', '').replace('-', '').strip()
+                requisicao.cpf_paciente = cpf_formatado
+                requisicao.nome_paciente = ''  # null=False, usar string vazia
+                requisicao.data_nasc_paciente = None  # null=True, pode ser None
+                requisicao.sexo_paciente = ''  # null=False
+                requisicao.email_paciente = ''  # null=False
+                requisicao.matricula_paciente = ''  # null=False
+                requisicao.convenio_paciente = ''  # null=False
+                requisicao.plano_paciente = ''  # null=False
+                requisicao.updated_by = request.user
+                requisicao.save()
+                logger.info(f"Campos do paciente zerados antes de consultar API Receita - Requisição ID: {requisicao_id}")
+            except DadosRequisicao.DoesNotExist:
+                logger.warning(f"Requisição {requisicao_id} não encontrada para zerar campos")
+            except Exception as e:
+                logger.error(f"Erro ao zerar campos do paciente: {str(e)}", exc_info=True)
+        
+        try:
+            # Consultar API Receita
+            receita_client = get_receita_client()
+            response = receita_client.buscar_cpf(cpf)
+            
+            if not response.success:
+                error_msg = response.error or 'Erro ao consultar CPF.'
+                logger.warning(f"Erro na consulta CPF Receita: {error_msg}")
+                return JsonResponse(
+                    {'status': 'error', 'message': error_msg},
+                    status=404 if 'não encontrado' in error_msg.lower() else 500
+                )
+        except Exception as e:
+            logger.error(f"Exceção ao consultar API Receita: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao conectar com a API externa. Tente novamente.'},
+                status=500
+            )
+        
+        # Extrair dados do CPF da resposta
+        dados_api = response.data
+        
+        # Log para debug
+        logger.info(f"Resposta API Receita: {dados_api}")
+        
+        # Mapear campos da API Receita para nosso formato
+        # Campos disponíveis: nome_da_pf, data_nascimento, situacao_cadastral
+        paciente = {
+            'nome': dados_api.get('nome_da_pf', '') or '',
+            'data_nascimento': dados_api.get('data_nascimento', '') or '',
+            'situacao_cadastral': dados_api.get('situacao_cadastral', '') or '',
+        }
+        
+        logger.info(f"Dados mapeados do paciente (Receita): {paciente}")
+        
+        # Se requisicao_id foi informado, atualizar com dados da API (campos já foram zerados antes)
+        if requisicao_id:
+            try:
+                requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+                
+                # Atualizar campos do paciente com dados da API
+                if paciente['nome']:
+                    requisicao.nome_paciente = paciente['nome']
+                if paciente['data_nascimento']:
+                    # Converter data de DD/MM/YYYY para date
+                    try:
+                        from datetime import datetime
+                        if isinstance(paciente['data_nascimento'], str):
+                            # Formato esperado: DD/MM/YYYY
+                            data_str = paciente['data_nascimento'].replace('\\/', '/')
+                            requisicao.data_nasc_paciente = datetime.strptime(
+                                data_str, '%d/%m/%Y'
+                            ).date()
+                    except Exception as e:
+                        logger.warning(f"Erro ao converter data de nascimento: {e}")
+                
+                # Nota: API Receita não retorna sexo, email, matricula, convenio, plano
+                # Esses campos permanecem vazios
+                
+                requisicao.updated_by = request.user
+                requisicao.save()
+                
+                logger.info(
+                    f"Dados do paciente atualizados via Receita - Requisição: {requisicao.cod_req}, "
                     f"CPF: {cpf[:3]}***{cpf[-2:]}, Usuário: {request.user.username}"
                 )
                 

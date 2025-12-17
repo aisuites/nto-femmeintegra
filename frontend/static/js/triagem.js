@@ -75,6 +75,7 @@ const btnCancelarE3 = document.getElementById('btn-cancelar-triagem3');
 const btnSeguirCadastro = document.getElementById('btn-seguir-cadastro');
 const btnAdicionarFrasco = document.getElementById('btn-adicionar-frasco');
 const btnCpfKorus = document.getElementById('btn-cpf-korus');
+const btnCpfReceita = document.getElementById('btn-cpf-receita');
 const btnVerImagemRequisicao = document.getElementById('btn-ver-imagem-requisicao');
 
 // Modais Etapa 3
@@ -1969,6 +1970,85 @@ async function consultarCpfKorus() {
 }
 
 /**
+ * Consulta CPF na Receita Federal e preenche dados do paciente
+ */
+async function consultarCpfReceita() {
+  const cpf = cpfPaciente ? cpfPaciente.value.trim() : '';
+  
+  if (!cpf) {
+    mostrarAlerta('Informe o CPF do paciente.');
+    if (cpfPaciente) cpfPaciente.focus();
+    return;
+  }
+  
+  // Limpar CPF (apenas números)
+  const cpfLimpo = cpf.replace(/\D/g, '');
+  
+  if (cpfLimpo.length !== 11) {
+    mostrarAlerta('CPF inválido. Informe 11 dígitos.');
+    if (cpfPaciente) cpfPaciente.focus();
+    return;
+  }
+  
+  if (!requisicaoAtual) {
+    mostrarAlerta('Nenhuma requisição selecionada.');
+    return;
+  }
+  
+  // Desabilitar botão e mostrar loading
+  if (btnCpfReceita) {
+    btnCpfReceita.disabled = true;
+    btnCpfReceita.innerHTML = '<span class="upload-spinner" style="width:14px;height:14px;border-width:2px;"></span> Consultando...';
+  }
+  
+  try {
+    const response = await fetch(`/operacao/triagem/consultar-cpf-receita/?cpf=${cpfLimpo}&requisicao_id=${requisicaoAtual.id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    // Log para debug
+    console.log('Resposta API Receita:', response.status, data);
+    
+    // Verificar se houve erro (HTTP não OK ou status error no JSON)
+    if (!response.ok || data.status === 'error') {
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+      return;
+    }
+    
+    if (data.status === 'success' && data.paciente) {
+      // Preencher campos com dados retornados
+      if (data.paciente.nome && nomePaciente) {
+        nomePaciente.value = data.paciente.nome;
+      }
+      
+      mostrarMensagemSucesso('Dados do paciente carregados com sucesso!');
+      
+      // Log dos dados recebidos para debug
+      console.log('Dados do paciente Receita:', data.paciente);
+      
+    } else {
+      mostrarAlerta(data.message || 'Erro ao consultar CPF.');
+    }
+    
+  } catch (error) {
+    console.error('Erro ao consultar CPF Receita:', error);
+    mostrarAlerta('Erro ao consultar CPF. Tente novamente.');
+  } finally {
+    // Restaurar botão
+    if (btnCpfReceita) {
+      btnCpfReceita.disabled = false;
+      btnCpfReceita.textContent = 'CPF Receita';
+    }
+  }
+}
+
+/**
  * Handler para clique no botão excluir amostra
  */
 function onExcluirAmostraClick(e) {
@@ -2449,6 +2529,11 @@ if (btnAdicionarFrasco) {
 // Botão CPF Korus
 if (btnCpfKorus) {
   btnCpfKorus.addEventListener('click', consultarCpfKorus);
+}
+
+// Botão CPF Receita
+if (btnCpfReceita) {
+  btnCpfReceita.addEventListener('click', consultarCpfReceita);
 }
 
 // Botão Ver Imagem Requisição

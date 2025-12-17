@@ -805,15 +805,53 @@ paciente = {
 }
 ```
 
+#### Regra: Limpeza de Campos Antes da Consulta
+- **Descrição**: Antes de consultar a API, os campos do paciente são zerados para evitar mistura de dados.
+- **Campos Zerados**: `nome_paciente`, `data_nasc_paciente`, `sexo_paciente`, `email_paciente`, `matricula_paciente`, `convenio_paciente`, `plano_paciente`
+- **Observação**: Campos com `null=False` recebem string vazia `''`, campos com `null=True` recebem `None`.
+- **Código**: `backend/operacao/triagem_views.py:1304-1324`
+
 #### Regra: Salvamento Automático
-- **Descrição**: Se `requisicao_id` for informado, dados são salvos automaticamente na requisição.
+- **Descrição**: Se `requisicao_id` for informado e CPF for encontrado, dados são salvos automaticamente na requisição.
 - **CPF**: O CPF digitado também é salvo no campo `cpf_paciente`.
-- **Código**: `backend/operacao/triagem_views.py:1332-1383`
+- **Código**: `backend/operacao/triagem_views.py:1375-1428`
 
 #### Regra: CPF Não Encontrado
 - **Descrição**: Se CPF não existe na base FEMME, retorna erro com status 404.
 - **Mensagem**: "CPF não encontrado na base FEMME."
 - **Código**: `backend/core/services/external_api.py:241-269`
+
+---
+
+### 7.4. Consulta de CPF na Receita Federal
+
+#### Regra: Endpoint de Consulta
+- **Descrição**: Consulta dados de CPF na Receita Federal via Hub do Desenvolvedor.
+- **Endpoint**: `GET /operacao/triagem/consultar-cpf-receita/?cpf=XXX&requisicao_id=YYY`
+- **Rate Limit**: 30 requisições por minuto
+- **Código**: `backend/operacao/triagem_views.py:1431-1563`
+
+#### Regra: Configuração
+- **Variáveis de Ambiente**:
+  - `RECEITA_API_URL`: URL da API (padrão: `https://ws.hubdodesenvolvedor.com.br/v2/cpf/`)
+  - `RECEITA_API_TOKEN`: Token de autenticação
+  - `RECEITA_API_TIMEOUT`: Timeout em segundos (padrão: 20)
+- **Código**: `backend/core/services/external_api.py:285-414`
+
+#### Regra: Mapeamento de Campos
+- **Descrição**: Dados da API Receita são mapeados para o formato interno.
+- **Estrutura da API**:
+  - `nome_da_pf` → `nome_paciente`
+  - `data_nascimento` (DD/MM/YYYY) → `data_nasc_paciente`
+- **Observação**: API Receita não retorna `sexo`, `email`, `matricula`, `convenio` ou `plano`.
+
+#### Regra: Limpeza de Campos Antes da Consulta
+- **Descrição**: Antes de consultar a API, os campos do paciente são zerados para evitar mistura de dados.
+- **Campos Zerados**: `nome_paciente`, `data_nasc_paciente`, `sexo_paciente`, `email_paciente`, `matricula_paciente`, `convenio_paciente`, `plano_paciente`
+
+#### Regra: CPF Não Encontrado
+- **Descrição**: Se CPF não existe na Receita Federal, retorna erro com status 404.
+- **Mensagem**: "CPF não encontrado na Receita Federal."
 
 ---
 
