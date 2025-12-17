@@ -1754,7 +1754,7 @@ class VisualizarEtapaView(LoginRequiredMixin, View):
                 amostras_excluidas = LogAlteracaoAmostra.objects.filter(
                     requisicao=requisicao,
                     tipo_alteracao=LogAlteracaoAmostra.TipoAlteracao.EXCLUSAO
-                ).select_related('motivo').order_by('data_alteracao')
+                ).select_related('motivo', 'usuario').order_by('created_at')
                 
                 amostras_data = []
                 for amostra in amostras:
@@ -1775,7 +1775,7 @@ class VisualizarEtapaView(LoginRequiredMixin, View):
                         'cod_barras': log.cod_barras_amostra,
                         'ordem': log.ordem_amostra,
                         'motivo': log.motivo.descricao if log.motivo else 'Não informado',
-                        'data': log.data_alteracao.strftime('%d/%m/%Y %H:%M'),
+                        'data': log.created_at.strftime('%d/%m/%Y %H:%M'),
                         'usuario': log.usuario.get_full_name() or log.usuario.username if log.usuario else 'N/A',
                     })
                 
