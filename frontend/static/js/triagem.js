@@ -1511,9 +1511,11 @@ function renderizarAmostrasEtapa3() {
       const tipoAtual = tiposAmostra.find(t => t.id === tipoAmostraId);
       valorTipoAmostra = tipoAtual ? tipoAtual.descricao : '';
     } else if (tipoPadrao) {
-      // Usar tipo padrão
+      // Usar tipo padrão e salvar automaticamente
       valorTipoAmostra = tipoPadrao.descricao;
       tipoAmostraId = tipoPadrao.id;
+      // Salvar tipo padrão no banco (async, não bloqueia renderização)
+      salvarTipoAmostraSilencioso(amostra.id, tipoPadrao.id);
     }
     
     // Criar lista de opções para dropdown customizado
@@ -1700,6 +1702,36 @@ async function onTipoAmostraChangeCustom(amostraId, tipoAmostraId) {
   } catch (error) {
     console.error('Erro ao atualizar tipo de amostra:', error);
     mostrarAlerta('Erro ao atualizar tipo de amostra.');
+  }
+}
+
+/**
+ * Salva tipo de amostra silenciosamente (sem feedback visual)
+ * Usado para salvar tipo padrão automaticamente
+ */
+async function salvarTipoAmostraSilencioso(amostraId, tipoAmostraId) {
+  try {
+    const response = await fetch('/operacao/triagem/amostras/atualizar/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        amostra_id: amostraId,
+        tipo_amostra_id: tipoAmostraId
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.status === 'success') {
+      console.log(`Tipo padrão salvo para amostra ${amostraId}: tipo_id=${tipoAmostraId}`);
+    } else {
+      console.warn(`Erro ao salvar tipo padrão para amostra ${amostraId}:`, result.message);
+    }
+  } catch (error) {
+    console.error('Erro ao salvar tipo de amostra silencioso:', error);
   }
 }
 
