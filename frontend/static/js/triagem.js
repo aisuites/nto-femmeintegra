@@ -75,6 +75,7 @@ const btnCancelarE3 = document.getElementById('btn-cancelar-triagem3');
 const btnSeguirCadastro = document.getElementById('btn-seguir-cadastro');
 const btnAdicionarFrasco = document.getElementById('btn-adicionar-frasco');
 const btnCpfKorus = document.getElementById('btn-cpf-korus');
+const btnVerImagemRequisicao = document.getElementById('btn-ver-imagem-requisicao');
 
 // Modais Etapa 3
 const modalExcluirAmostra = document.getElementById('modal-excluir-amostra');
@@ -1781,6 +1782,65 @@ function validarArquivoPermitidoE3(file) {
 }
 
 /**
+ * Abre modal para visualizar imagem da requisição
+ */
+async function abrirModalVerImagem() {
+  const modal = document.getElementById('modal-ver-imagem');
+  const container = document.getElementById('imagem-requisicao-container');
+  const loading = document.getElementById('imagem-requisicao-loading');
+  const erro = document.getElementById('imagem-requisicao-erro');
+  const img = document.getElementById('imagem-requisicao');
+  
+  if (!requisicaoAtual || !requisicaoAtual.id) {
+    mostrarAlerta('Nenhuma requisição selecionada.');
+    return;
+  }
+  
+  // Mostrar modal com loading
+  modal.style.display = 'flex';
+  container.style.display = 'none';
+  loading.style.display = 'block';
+  erro.style.display = 'none';
+  
+  try {
+    // Usar ArquivoManager para buscar imagem existente
+    const result = await ArquivoManager.verificarArquivoExistente(requisicaoAtual.id);
+    
+    if (result.existe && result.arquivo && result.arquivo.url_arquivo) {
+      // Carregar imagem
+      img.src = result.arquivo.url_arquivo;
+      img.onload = () => {
+        loading.style.display = 'none';
+        container.style.display = 'block';
+      };
+      img.onerror = () => {
+        loading.style.display = 'none';
+        erro.style.display = 'block';
+        console.error('Erro ao carregar imagem:', result.arquivo.url_arquivo);
+      };
+    } else {
+      // Sem imagem
+      loading.style.display = 'none';
+      erro.style.display = 'block';
+    }
+  } catch (error) {
+    console.error('Erro ao buscar imagem:', error);
+    loading.style.display = 'none';
+    erro.style.display = 'block';
+  }
+}
+
+/**
+ * Fecha modal de visualização de imagem
+ */
+function fecharModalVerImagem() {
+  const modal = document.getElementById('modal-ver-imagem');
+  const img = document.getElementById('imagem-requisicao');
+  modal.style.display = 'none';
+  img.src = ''; // Limpar src para liberar memória
+}
+
+/**
  * Consulta CPF na API Korus e preenche dados do paciente
  */
 async function consultarCpfKorus() {
@@ -2340,6 +2400,23 @@ if (btnAdicionarFrasco) {
 // Botão CPF Korus
 if (btnCpfKorus) {
   btnCpfKorus.addEventListener('click', consultarCpfKorus);
+}
+
+// Botão Ver Imagem Requisição
+if (btnVerImagemRequisicao) {
+  btnVerImagemRequisicao.addEventListener('click', abrirModalVerImagem);
+}
+
+// Modal Ver Imagem - Botões
+const btnFecharModalImagem = document.getElementById('btn-fechar-modal-imagem');
+const btnFecharImagem = document.getElementById('btn-fechar-imagem');
+
+if (btnFecharModalImagem) {
+  btnFecharModalImagem.addEventListener('click', fecharModalVerImagem);
+}
+
+if (btnFecharImagem) {
+  btnFecharImagem.addEventListener('click', fecharModalVerImagem);
 }
 
 // Modal Excluir Amostra - Botões
