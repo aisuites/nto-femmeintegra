@@ -1877,8 +1877,7 @@ class RetornarEtapaView(LoginRequiredMixin, View):
                 # Zerar validação das amostras (para serem reavaliadas)
                 RequisicaoAmostra.objects.filter(requisicao=requisicao).update(
                     triagem1_validada=False,
-                    triagem2_validada=False,
-                    updated_by=request.user
+                    triagem2_validada=False
                 )
                 
             elif etapa_destino == 2:
