@@ -1302,18 +1302,19 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
             )
         
         # ZERAR campos ANTES de consultar API (evita mistura de dados antigos)
+        # Nota: alguns campos não permitem NULL, então usamos string vazia
         if requisicao_id:
             try:
                 requisicao = DadosRequisicao.objects.get(id=requisicao_id)
                 cpf_formatado = cpf.replace('.', '').replace('-', '').strip()
                 requisicao.cpf_paciente = cpf_formatado
-                requisicao.nome_paciente = None
-                requisicao.data_nasc_paciente = None
-                requisicao.sexo_paciente = None
-                requisicao.email_paciente = None
-                requisicao.matricula_paciente = None
-                requisicao.convenio_paciente = None
-                requisicao.plano_paciente = None
+                requisicao.nome_paciente = ''  # null=False, usar string vazia
+                requisicao.data_nasc_paciente = None  # null=True, pode ser None
+                requisicao.sexo_paciente = ''  # null=False
+                requisicao.email_paciente = ''  # null=False
+                requisicao.matricula_paciente = ''  # null=False
+                requisicao.convenio_paciente = ''  # null=False
+                requisicao.plano_paciente = ''  # null=False
                 requisicao.updated_by = request.user
                 requisicao.save()
                 logger.info(f"Campos do paciente zerados antes de consultar API - Requisição ID: {requisicao_id}")
