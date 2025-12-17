@@ -717,7 +717,38 @@ if cod_barras_amostra != requisicao.cod_barras_req:
 
 ---
 
-### 6.3. Cadastro Final
+### 6.3. Navegação Entre Etapas
+
+#### Regra: Visualização de Etapas Anteriores
+- **Descrição**: Usuário pode visualizar dados de etapas anteriores sem editar.
+- **Botões**: "Ver Etapa 1" (nas Etapas 2 e 3), "Ver Etapa 2" (na Etapa 3).
+- **Endpoint**: `GET /operacao/triagem/visualizar-etapa/?requisicao_id=X&etapa=Y`
+- **Código**: `backend/operacao/triagem_views.py:1724-1826`
+
+#### Regra: Retorno para Etapa Anterior
+- **Descrição**: Usuário pode voltar para uma etapa anterior para correções.
+- **Endpoint**: `POST /operacao/triagem/retornar-etapa/`
+- **Código**: `backend/operacao/triagem_views.py:1829-1942`
+
+#### Regra: Retorno para Etapa 1
+- **Descrição**: Ao voltar para Etapa 1, zera validação das amostras.
+- **Ação**: `triagem1_validada=False`, `triagem2_validada=False` em todas as amostras.
+- **Status**: Muda para RECEBIDO (código 2).
+- **Observação no histórico**: "Retorno para Etapa 1 - Correção de amostras"
+
+#### Regra: Retorno para Etapa 2
+- **Descrição**: Ao voltar para Etapa 2, permite identificar pendências não marcadas.
+- **Ação**: Nenhum dado é zerado.
+- **Status**: Muda para TRIAGEM1-OK (código 7).
+- **Observação no histórico**: "Retorno para Etapa 2 - Identificação de pendência"
+
+#### Regra: Dados Preservados
+- **Descrição**: CPF, nome paciente, CRM, médico e tipo de amostra são preservados ao voltar etapas.
+- **Justificativa**: São dados da requisição física que não mudam.
+
+---
+
+### 6.4. Cadastro Final
 
 #### Regra: Status Correto para Cadastro
 - **Descrição**: Requisição DEVE estar no status TRIAGEM2-OK (código 8) para ser cadastrada.
