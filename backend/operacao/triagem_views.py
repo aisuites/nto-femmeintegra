@@ -1301,6 +1301,27 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
                 status=400
             )
         
+        # ZERAR campos ANTES de consultar API (evita mistura de dados antigos)
+        if requisicao_id:
+            try:
+                requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+                cpf_formatado = cpf.replace('.', '').replace('-', '').strip()
+                requisicao.cpf_paciente = cpf_formatado
+                requisicao.nome_paciente = None
+                requisicao.data_nasc_paciente = None
+                requisicao.sexo_paciente = None
+                requisicao.email_paciente = None
+                requisicao.matricula_paciente = None
+                requisicao.convenio_paciente = None
+                requisicao.plano_paciente = None
+                requisicao.updated_by = request.user
+                requisicao.save()
+                logger.info(f"Campos do paciente zerados antes de consultar API - Requisição ID: {requisicao_id}")
+            except DadosRequisicao.DoesNotExist:
+                logger.warning(f"Requisição {requisicao_id} não encontrada para zerar campos")
+            except Exception as e:
+                logger.error(f"Erro ao zerar campos do paciente: {str(e)}", exc_info=True)
+        
         try:
             # Consultar API Korus
             korus_client = get_korus_client()
@@ -1351,23 +1372,10 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
         
         logger.info(f"Dados mapeados do paciente: {paciente}")
         
-        # Se requisicao_id foi informado, salvar dados na requisição
+        # Se requisicao_id foi informado, atualizar com dados da API (campos já foram zerados antes)
         if requisicao_id:
             try:
                 requisicao = DadosRequisicao.objects.get(id=requisicao_id)
-                
-                # Salvar CPF digitado
-                cpf_formatado = cpf.replace('.', '').replace('-', '').strip()
-                requisicao.cpf_paciente = cpf_formatado
-                
-                # ZERAR campos antes de atualizar (evita mistura de dados antigos)
-                requisicao.nome_paciente = None
-                requisicao.data_nasc_paciente = None
-                requisicao.sexo_paciente = None
-                requisicao.email_paciente = None
-                requisicao.matricula_paciente = None
-                requisicao.convenio_paciente = None
-                requisicao.plano_paciente = None
                 
                 # Atualizar campos do paciente com dados da API
                 if paciente['nome']:
