@@ -412,3 +412,205 @@ def get_receita_client() -> ReceitaAPIClient:
         ReceitaAPIClient configurado
     """
     return ReceitaAPIClient()
+
+
+class FemmeAPIClient:
+    """
+    Cliente para API FEMME de validação de médicos.
+    
+    Fluxo:
+    1. Gerar token: POST /token (client_credentials)
+    2. Consultar médico: GET /medicos?uf_crm={uf}&crm={crm}
+    
+    Resposta esperada:
+    {
+        "data": {
+            "medicos": [
+                {
+                    "id_medico": "273709",
+                    "nome_medico": "NOME DO MÉDICO",
+                    "crm": "185442",
+                    "uf_crm": "SE",
+                    "logradouro": "FREI CANECA",
+                    "destino": "INTERNET"
+                }
+            ]
+        }
+    }
+    """
+    
+    def __init__(self):
+        self.base_url = os.environ.get('FEMME_API_URL', 'https://bi14ljafz0.execute-api.us-east-1.amazonaws.com/dev')
+        self.client_id = os.environ.get('FEMME_API_CLIENT_ID', '')
+        self.client_secret = os.environ.get('FEMME_API_CLIENT_SECRET', '')
+        self.timeout = int(os.environ.get('FEMME_API_TIMEOUT', '20'))
+        
+        if not self.client_id or not self.client_secret:
+            logger.warning("FEMME_API_CLIENT_ID ou FEMME_API_CLIENT_SECRET não configurados")
+    
+    def _gerar_token(self) -> str | None:
+        """
+        Gera token de autenticação via client_credentials.
+        
+        Returns:
+            Token de acesso ou None em caso de erro
+        """
+        try:
+            url = f"{self.base_url}/token"
+            
+            logger.info("Gerando token FEMME API...")
+            
+            response = requests.post(
+                url,
+                data={
+                    'grant_type': 'client_credentials',
+                    'client_id': self.client_id,
+                    'client_secret': self.client_secret
+                },
+                headers={
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                timeout=self.timeout
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Erro ao gerar token FEMME: HTTP {response.status_code}")
+                return None
+            
+            data = response.json()
+            token = data.get('access_token')
+            
+            if token:
+                logger.info("Token FEMME gerado com sucesso")
+                return token
+            else:
+                logger.error("Token não encontrado na resposta")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Exceção ao gerar token FEMME: {str(e)}", exc_info=True)
+            return None
+    
+    def buscar_medico(self, crm: str, uf_crm: str) -> APIResponse:
+        """
+        Busca médico por CRM e UF.
+        
+        Args:
+            crm: Número do CRM
+            uf_crm: UF do CRM (ex: SP, RJ)
+            
+        Returns:
+            APIResponse com lista de médicos ou erro
+        """
+        # Validar parâmetros
+        crm_limpo = crm.strip()
+        uf_limpo = uf_crm.strip().upper()
+        
+        if not crm_limpo:
+            return APIResponse(
+                success=False,
+                error='CRM não informado.'
+            )
+        
+        if not uf_limpo or len(uf_limpo) != 2:
+            return APIResponse(
+                success=False,
+                error='UF do CRM inválida. Informe 2 caracteres.'
+            )
+        
+        if not self.client_id or not self.client_secret:
+            return APIResponse(
+                success=False,
+                error='Credenciais da API FEMME não configuradas.'
+            )
+        
+        # Gerar token
+        token = self._gerar_token()
+        if not token:
+            return APIResponse(
+                success=False,
+                error='Erro ao autenticar na API FEMME.'
+            )
+        
+        try:
+            url = f"{self.base_url}/medicos"
+            
+            logger.info(f"Consultando médico na API FEMME: CRM={crm_limpo}, UF={uf_limpo}")
+            
+            response = requests.get(
+                url,
+                params={
+                    'crm': crm_limpo,
+                    'uf_crm': uf_limpo.lower()  # API espera UF em minúsculo
+                },
+                headers={
+                    'Authorization': f'Bearer {token}',
+                    'Accept': 'application/json'
+                },
+                timeout=self.timeout
+            )
+            
+            logger.info(f"Resposta FEMME API - status_code={response.status_code}")
+            
+            if response.status_code == 401:
+                return APIResponse(
+                    success=False,
+                    status_code=401,
+                    error='Token expirado ou inválido.'
+                )
+            
+            if response.status_code != 200:
+                return APIResponse(
+                    success=False,
+                    status_code=response.status_code,
+                    error=f'Erro na API FEMME: HTTP {response.status_code}'
+                )
+            
+            data = response.json()
+            
+            # Extrair lista de médicos
+            medicos = data.get('data', {}).get('medicos', [])
+            
+            if not medicos:
+                logger.warning(f"Médico não encontrado: CRM={crm_limpo}, UF={uf_limpo}")
+                return APIResponse(
+                    success=False,
+                    error='Médico não encontrado.'
+                )
+            
+            logger.info(f"Médico(s) encontrado(s): {len(medicos)} registro(s)")
+            
+            return APIResponse(
+                success=True,
+                status_code=200,
+                data=medicos
+            )
+            
+        except requests.exceptions.Timeout:
+            logger.error("Timeout ao consultar API FEMME")
+            return APIResponse(
+                success=False,
+                error='Timeout ao consultar API. Tente novamente.'
+            )
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Erro de conexão com API FEMME: {str(e)}")
+            return APIResponse(
+                success=False,
+                error='Erro ao conectar com a API. Tente novamente.'
+            )
+        except Exception as e:
+            logger.error(f"Erro inesperado ao consultar API FEMME: {str(e)}", exc_info=True)
+            return APIResponse(
+                success=False,
+                error='Erro inesperado ao consultar médico.'
+            )
+
+
+def get_femme_client() -> FemmeAPIClient:
+    """
+    Retorna nova instância do cliente FEMME.
+    
+    Returns:
+        FemmeAPIClient configurado
+    """
+    return FemmeAPIClient()

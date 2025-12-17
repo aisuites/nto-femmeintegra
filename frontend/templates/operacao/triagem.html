@@ -341,7 +341,7 @@
       </div>
 
       <div class="field field-actions">
-        <button class="btn btn-muted" type="button" id="btn-valida-medico" disabled title="API em desenvolvimento">Valida médico</button>
+        <button class="btn btn-outline" type="button" id="btn-valida-medico" title="Validar médico na API FEMME">Valida</button>
         <label class="check-inline">
           <input type="checkbox" id="check-problema-medico" />
           Dados médico com problema
@@ -720,6 +720,34 @@
       <button type="button" class="btn-pill-ghost" id="btn-cancelar-rejeicao">
         Cancelar
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Seleção de Médicos (múltiplos endereços) -->
+<div id="modal-selecao-medicos" class="modal-overlay" style="display:none;">
+  <div class="modal-container" style="max-width:800px;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #7b1fa2 0%, #9c27b0 100%);">
+      <h3 style="color: #fff;">MÉDICOS</h3>
+      <button type="button" class="modal-close-btn" id="btn-fechar-modal-medicos" title="Fechar" style="color:#fff;">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 0;">
+      <table class="tabela-medicos" style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr style="background:#f5f5f5; border-bottom:2px solid #ddd;">
+            <th style="padding:12px 16px; text-align:left; width:40px;"></th>
+            <th style="padding:12px 16px; text-align:left;">CRM</th>
+            <th style="padding:12px 16px; text-align:left;">NOME</th>
+            <th style="padding:12px 16px; text-align:left;">ENDEREÇO</th>
+          </tr>
+        </thead>
+        <tbody id="lista-medicos-modal">
+          <!-- Preenchido via JS -->
+        </tbody>
+      </table>
+      <div style="padding:12px 16px; text-align:center; color:#666; font-size:0.9em;" id="medicos-contador">
+        <!-- Ex: 1 a 3 de 3 registros -->
+      </div>
     </div>
   </div>
 </div>

@@ -13,7 +13,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django_ratelimit.decorators import ratelimit
 
-from core.services.external_api import get_korus_client, get_receita_client
+from core.services.external_api import get_korus_client, get_receita_client, get_femme_client
 
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
@@ -1561,3 +1561,159 @@ class ConsultarCPFReceitaView(LoginRequiredMixin, View):
             'status': 'success',
             'paciente': paciente
         })
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='GET'), name='dispatch')
+class ValidarMedicoView(LoginRequiredMixin, View):
+    """
+    Valida médico por CRM e UF na API FEMME.
+    
+    GET /operacao/triagem/validar-medico/?crm=XXX&uf_crm=YY
+    
+    Response (sucesso):
+        {
+            "status": "success",
+            "medicos": [...],
+            "total": 1 ou mais
+        }
+    
+    Response (erro):
+        {
+            "status": "error",
+            "message": "Médico não encontrado."
+        }
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        crm = request.GET.get('crm', '').strip()
+        uf_crm = request.GET.get('uf_crm', '').strip()
+        
+        if not crm:
+            return JsonResponse(
+                {'status': 'error', 'message': 'CRM não informado.'},
+                status=400
+            )
+        
+        if not uf_crm:
+            return JsonResponse(
+                {'status': 'error', 'message': 'UF do CRM não informada.'},
+                status=400
+            )
+        
+        try:
+            # Consultar API FEMME
+            femme_client = get_femme_client()
+            response = femme_client.buscar_medico(crm, uf_crm)
+            
+            if not response.success:
+                error_msg = response.error or 'Erro ao consultar médico.'
+                logger.warning(f"Erro na consulta médico FEMME: {error_msg}")
+                return JsonResponse(
+                    {'status': 'error', 'message': error_msg},
+                    status=404 if 'não encontrado' in error_msg.lower() else 500
+                )
+        except Exception as e:
+            logger.error(f"Exceção ao consultar API FEMME: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao conectar com a API externa. Tente novamente.'},
+                status=500
+            )
+        
+        # Extrair lista de médicos
+        medicos = response.data
+        
+        # Log para debug
+        logger.info(f"Médicos encontrados: {len(medicos)} registro(s)")
+        
+        # Mapear campos para formato simplificado
+        medicos_formatados = []
+        for med in medicos:
+            medicos_formatados.append({
+                'id_medico': med.get('id_medico', ''),
+                'nome_medico': med.get('nome_medico', ''),
+                'crm': med.get('crm', ''),
+                'uf_crm': med.get('uf_crm', '').upper(),
+                'endereco': med.get('logradouro', ''),  # Apenas logradouro conforme solicitado
+                'destino': med.get('destino', ''),
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'medicos': medicos_formatados,
+            'total': len(medicos_formatados)
+        })
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='POST'), name='dispatch')
+class SalvarMedicoView(LoginRequiredMixin, View):
+    """
+    Salva dados do médico selecionado na requisição.
+    
+    POST /operacao/triagem/salvar-medico/
+    Body: {
+        "requisicao_id": 123,
+        "nome_medico": "NOME DO MÉDICO",
+        "endereco_medico": "LOGRADOURO",
+        "destino_medico": "INTERNET",
+        "crm": "123456",
+        "uf_crm": "SP"
+    }
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'JSON inválido.'},
+                status=400
+            )
+        
+        requisicao_id = data.get('requisicao_id')
+        nome_medico = data.get('nome_medico', '').strip()
+        endereco_medico = data.get('endereco_medico', '').strip()
+        destino_medico = data.get('destino_medico', '').strip()
+        crm = data.get('crm', '').strip()
+        uf_crm = data.get('uf_crm', '').strip().upper()
+        
+        if not requisicao_id:
+            return JsonResponse(
+                {'status': 'error', 'message': 'ID da requisição não informado.'},
+                status=400
+            )
+        
+        try:
+            requisicao = DadosRequisicao.objects.get(id=requisicao_id)
+            
+            # Atualizar campos do médico
+            requisicao.nome_medico = nome_medico
+            requisicao.end_medico = endereco_medico
+            requisicao.dest_medico = destino_medico
+            requisicao.updated_by = request.user
+            requisicao.save()
+            
+            logger.info(
+                f"Dados do médico salvos - Requisição: {requisicao.cod_req}, "
+                f"CRM: {crm}-{uf_crm}, Médico: {nome_medico[:30] if nome_medico else 'N/A'}..., "
+                f"Usuário: {request.user.username}"
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Dados do médico salvos com sucesso.'
+            })
+            
+        except DadosRequisicao.DoesNotExist:
+            logger.warning(f"Requisição {requisicao_id} não encontrada para salvar médico")
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        except Exception as e:
+            logger.error(f"Erro ao salvar dados do médico: {str(e)}", exc_info=True)
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao salvar dados do médico.'},
+                status=500
+            )

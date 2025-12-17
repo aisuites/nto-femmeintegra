@@ -855,6 +855,56 @@ paciente = {
 
 ---
 
+### 7.5. Validação de Médico (API FEMME)
+
+#### Regra: Endpoint de Consulta
+- **Descrição**: Valida médico por CRM e UF na API FEMME.
+- **Endpoint**: `GET /operacao/triagem/validar-medico/?crm=XXX&uf_crm=YY`
+- **Rate Limit**: 30 requisições por minuto
+- **Código**: `backend/operacao/triagem_views.py:1566-1645`
+
+#### Regra: Configuração
+- **Variáveis de Ambiente**:
+  - `FEMME_API_URL`: URL da API (padrão: `https://bi14ljafz0.execute-api.us-east-1.amazonaws.com/dev`)
+  - `FEMME_API_CLIENT_ID`: Client ID para autenticação OAuth
+  - `FEMME_API_CLIENT_SECRET`: Client Secret para autenticação OAuth
+  - `FEMME_API_TIMEOUT`: Timeout em segundos (padrão: 20)
+- **Código**: `backend/core/services/external_api.py:417-616`
+
+#### Regra: Autenticação
+- **Descrição**: A API usa OAuth2 com grant_type `client_credentials`.
+- **Fluxo**: 
+  1. POST `/token` com client_id e client_secret
+  2. Recebe `access_token`
+  3. Usa token no header `Authorization: Bearer {token}`
+- **Token**: Gerado a cada consulta (não há cache)
+
+#### Regra: Mapeamento de Campos
+- **Descrição**: Dados da API FEMME são mapeados para o formato interno.
+- **Estrutura da API**:
+  - `nome_medico` → `nome_medico`
+  - `logradouro` → `end_medico` (apenas logradouro)
+  - `destino` → `dest_medico`
+
+#### Regra: Múltiplos Endereços
+- **Descrição**: Um médico pode ter múltiplos endereços cadastrados.
+- **Comportamento**:
+  - **1 endereço**: Salva automaticamente sem modal
+  - **Múltiplos endereços**: Abre modal para usuário selecionar
+- **Modal**: Exibe CRM, Nome e Endereço para cada opção
+
+#### Regra: Endpoint de Salvamento
+- **Descrição**: Salva dados do médico selecionado na requisição.
+- **Endpoint**: `POST /operacao/triagem/salvar-medico/`
+- **Body**: `{ requisicao_id, nome_medico, endereco_medico, destino_medico, crm, uf_crm }`
+- **Código**: `backend/operacao/triagem_views.py:1648-1719`
+
+#### Regra: Checkbox "Problema com Médico"
+- **Descrição**: Quando marcado, desabilita o botão "Valida".
+- **Comportamento**: Permite prosseguir sem validar médico em casos de problema.
+
+---
+
 ## 8. UPLOAD DE ARQUIVOS
 
 ### 8.1. Tipos de Arquivo

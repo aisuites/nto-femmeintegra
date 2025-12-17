@@ -1036,3 +1036,31 @@ input[readonly] {
     width: 100%;
   }
 }
+
+/* ============================================
+   TABELA DE MÉDICOS (MODAL)
+   ============================================ */
+
+.tabela-medicos tbody tr {
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.tabela-medicos tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.tabela-medicos tbody tr:active {
+  background-color: #e8e8e8;
+}
+
+.tabela-medicos td {
+  padding: 12px 16px;
+  vertical-align: middle;
+}
+
+.tabela-medicos .icone-selecao {
+  color: #9c27b0;
+  font-size: 18px;
+}

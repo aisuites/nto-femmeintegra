@@ -91,6 +91,16 @@ urlpatterns = [
         triagem_views.ConsultarCPFReceitaView.as_view(),
         name='triagem-consultar-cpf-receita',
     ),
+    path(
+        'triagem/validar-medico/',
+        triagem_views.ValidarMedicoView.as_view(),
+        name='triagem-validar-medico',
+    ),
+    path(
+        'triagem/salvar-medico/',
+        triagem_views.SalvarMedicoView.as_view(),
+        name='triagem-salvar-medico',
+    ),
     # Upload de arquivos
     path(
         'upload/signed-url/',

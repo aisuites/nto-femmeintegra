@@ -77,11 +77,15 @@ const btnAdicionarFrasco = document.getElementById('btn-adicionar-frasco');
 const btnCpfKorus = document.getElementById('btn-cpf-korus');
 const btnCpfReceita = document.getElementById('btn-cpf-receita');
 const btnVerImagemRequisicao = document.getElementById('btn-ver-imagem-requisicao');
+const btnValidaMedico = document.getElementById('btn-valida-medico');
 
 // Modais Etapa 3
 const modalExcluirAmostra = document.getElementById('modal-excluir-amostra');
 const modalAdicionarAmostra = document.getElementById('modal-adicionar-amostra');
 const modalAvisoPendencias = document.getElementById('modal-aviso-pendencias');
+const modalSelecaoMedicos = document.getElementById('modal-selecao-medicos');
+const listaMedicosModal = document.getElementById('lista-medicos-modal');
+const medicosContador = document.getElementById('medicos-contador');
 const selectMotivoExclusao = document.getElementById('motivo-exclusao-amostra');
 const selectMotivoAdicao = document.getElementById('motivo-adicao-amostra');
 const inputNovaAmostraCodBarras = document.getElementById('nova-amostra-cod-barras');
@@ -2055,6 +2059,180 @@ async function consultarCpfReceita() {
 }
 
 /**
+ * Valida médico por CRM e UF na API FEMME
+ */
+async function validarMedico() {
+  const crm = crmMedico ? crmMedico.value.trim() : '';
+  const uf = ufCrm ? ufCrm.value.trim() : '';
+  
+  if (!crm) {
+    mostrarAlerta('Informe o CRM do médico.');
+    if (crmMedico) crmMedico.focus();
+    return;
+  }
+  
+  if (!uf) {
+    mostrarAlerta('Informe a UF do CRM.');
+    if (ufCrm) ufCrm.focus();
+    return;
+  }
+  
+  if (!requisicaoAtual) {
+    mostrarAlerta('Nenhuma requisição selecionada.');
+    return;
+  }
+  
+  // Desabilitar botão e mostrar loading
+  if (btnValidaMedico) {
+    btnValidaMedico.disabled = true;
+    btnValidaMedico.innerHTML = '<span class="upload-spinner" style="width:14px;height:14px;border-width:2px;"></span> Validando...';
+  }
+  
+  // Zerar campos na tela antes de consultar
+  if (nomeMedico) nomeMedico.value = '';
+  if (enderecoMedico) enderecoMedico.value = '';
+  if (destinoMedico) destinoMedico.value = '';
+  
+  try {
+    const response = await fetch(`/operacao/triagem/validar-medico/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      }
+    });
+    
+    const data = await response.json();
+    
+    console.log('Resposta API Médico:', response.status, data);
+    
+    if (!response.ok || data.status === 'error') {
+      mostrarAlerta(data.message || 'Erro ao validar médico.');
+      return;
+    }
+    
+    if (data.status === 'success' && data.medicos && data.medicos.length > 0) {
+      if (data.total === 1) {
+        // Apenas 1 endereço: salvar direto
+        const medico = data.medicos[0];
+        await salvarMedico(medico);
+      } else {
+        // Múltiplos endereços: abrir modal para seleção
+        abrirModalSelecaoMedicos(data.medicos);
+      }
+    } else {
+      mostrarAlerta('Médico não encontrado.');
+    }
+    
+  } catch (error) {
+    console.error('Erro ao validar médico:', error);
+    mostrarAlerta('Erro ao validar médico. Tente novamente.');
+  } finally {
+    // Restaurar botão
+    if (btnValidaMedico) {
+      btnValidaMedico.disabled = false;
+      btnValidaMedico.textContent = 'Valida';
+    }
+  }
+}
+
+/**
+ * Abre modal de seleção de médicos (múltiplos endereços)
+ */
+function abrirModalSelecaoMedicos(medicos) {
+  if (!modalSelecaoMedicos || !listaMedicosModal) return;
+  
+  // Limpar lista
+  listaMedicosModal.innerHTML = '';
+  
+  // Preencher lista de médicos
+  medicos.forEach((medico, index) => {
+    const tr = document.createElement('tr');
+    tr.dataset.index = index;
+    tr.dataset.medico = JSON.stringify(medico);
+    tr.innerHTML = `
+      <td class="icone-selecao">✓</td>
+      <td>${medico.crm} - ${medico.uf_crm}</td>
+      <td>${medico.nome_medico}</td>
+      <td>${medico.endereco}</td>
+    `;
+    tr.addEventListener('click', () => selecionarMedico(medico));
+    listaMedicosModal.appendChild(tr);
+  });
+  
+  // Atualizar contador
+  if (medicosContador) {
+    medicosContador.textContent = `1 a ${medicos.length} de ${medicos.length} registros`;
+  }
+  
+  // Mostrar modal
+  modalSelecaoMedicos.style.display = 'flex';
+}
+
+/**
+ * Fecha modal de seleção de médicos
+ */
+function fecharModalSelecaoMedicos() {
+  if (modalSelecaoMedicos) {
+    modalSelecaoMedicos.style.display = 'none';
+  }
+}
+
+/**
+ * Seleciona médico do modal e salva
+ */
+async function selecionarMedico(medico) {
+  fecharModalSelecaoMedicos();
+  await salvarMedico(medico);
+}
+
+/**
+ * Salva dados do médico na requisição
+ */
+async function salvarMedico(medico) {
+  if (!requisicaoAtual) {
+    mostrarAlerta('Nenhuma requisição selecionada.');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/operacao/triagem/salvar-medico/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        nome_medico: medico.nome_medico || '',
+        endereco_medico: medico.endereco || '',
+        destino_medico: medico.destino || '',
+        crm: medico.crm || '',
+        uf_crm: medico.uf_crm || ''
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok || data.status === 'error') {
+      mostrarAlerta(data.message || 'Erro ao salvar dados do médico.');
+      return;
+    }
+    
+    // Preencher campos na tela
+    if (nomeMedico) nomeMedico.value = medico.nome_medico || '';
+    if (enderecoMedico) enderecoMedico.value = medico.endereco || '';
+    if (destinoMedico) destinoMedico.value = medico.destino || '';
+    
+    mostrarMensagemSucesso('Dados do médico carregados com sucesso!');
+    
+  } catch (error) {
+    console.error('Erro ao salvar médico:', error);
+    mostrarAlerta('Erro ao salvar dados do médico. Tente novamente.');
+  }
+}
+
+/**
  * Handler para clique no botão excluir amostra
  */
 function onExcluirAmostraClick(e) {
@@ -2540,6 +2718,26 @@ if (btnCpfKorus) {
 // Botão CPF Receita
 if (btnCpfReceita) {
   btnCpfReceita.addEventListener('click', consultarCpfReceita);
+}
+
+// Botão Valida Médico
+if (btnValidaMedico) {
+  btnValidaMedico.addEventListener('click', validarMedico);
+}
+
+// Checkbox Problema com Médico - desabilita botão Valida quando marcado
+if (checkProblemaMedico) {
+  checkProblemaMedico.addEventListener('change', () => {
+    if (btnValidaMedico) {
+      btnValidaMedico.disabled = checkProblemaMedico.checked;
+    }
+  });
+}
+
+// Modal Seleção de Médicos - Botão fechar
+const btnFecharModalMedicos = document.getElementById('btn-fechar-modal-medicos');
+if (btnFecharModalMedicos) {
+  btnFecharModalMedicos.addEventListener('click', fecharModalSelecaoMedicos);
 }
 
 // Botão Ver Imagem Requisição
