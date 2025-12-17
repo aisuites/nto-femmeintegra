@@ -702,8 +702,18 @@ if cod_barras_amostra != requisicao.cod_barras_req:
 
 #### Regra: Atualização de Tipo
 - **Descrição**: Permite atualizar o tipo de amostra de uma amostra específica.
-- **Endpoint**: `POST /operacao/triagem/amostras/atualizar-tipo/`
-- **Código**: `backend/operacao/triagem_views.py:801-861`
+- **Endpoint**: `POST /operacao/triagem/amostras/atualizar/`
+- **Código**: `backend/operacao/triagem_views.py:822-890`
+
+#### Regra: Salvamento Imediato
+- **Descrição**: O tipo de amostra é salvo imediatamente ao ser selecionado no dropdown.
+- **Comportamento**: Não aguarda o clique em "Seguir para Cadastro".
+- **Justificativa**: Evita perda de dados se o usuário fechar a página.
+
+#### Regra: Tipo Padrão
+- **Descrição**: Amostras sem tipo definido recebem automaticamente "Citologia em meio liquido".
+- **Comportamento**: O tipo padrão é salvo no banco automaticamente ao carregar a Etapa 3.
+- **Código**: `frontend/static/js/triagem.js:1513-1518`
 
 ---
 
