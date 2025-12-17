@@ -260,7 +260,9 @@ function carregarRequisicao(dados) {
     });
   }
   
-  // Mostrar seção de triagem
+  // Ocultar outras etapas e mostrar apenas Etapa 1
+  step2Container.style.display = 'none';
+  step3Container.style.display = 'none';
   stepContainer.style.display = 'block';
   
   // Esconder alerta de arquivo obrigatório se estava visível
@@ -1104,8 +1106,9 @@ function cancelarRejeicao() {
  * Carrega Etapa 2 - Conferência de Pendências
  */
 async function carregarEtapa2(dados) {
-  // Esconder Etapa 1
+  // Esconder outras etapas
   stepContainer.style.display = 'none';
+  step3Container.style.display = 'none';
   
   // Guardar dados da requisição
   if (dados) {
