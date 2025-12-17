@@ -384,18 +384,56 @@ if (error.code === ERROR_CODE_TIMEOUT && DWTObject.HowManyImagesInBuffer > 0) {
 
 ---
 
-### 3.9. Envio para AWS (Pendente)
+### 3.9. Envio para AWS S3
 
 #### Regra: Upload de Imagens
-- **Status**: ⚠️ **NÃO IMPLEMENTADO**
-- **Descrição**: Botão "Enviar para AWS" ainda não funcional.
-- **Próximos Passos**:
-  1. Converter imagens do buffer para formato adequado (JPEG/PNG/PDF)
-  2. Implementar endpoint backend para receber imagens
-  3. Upload para bucket S3
-  4. Vincular imagens à requisição no banco
-- **Código**: `frontend/templates/operacao/triagem.html:509-522` (função `enviarParaAWS` - stub)
-- **Referência**: Ver `BACKLOG.md` - Item "Upload de Imagens do Scanner para AWS S3"
+- **Status**: ✅ **IMPLEMENTADO**
+- **Descrição**: Imagens digitalizadas são enviadas para AWS S3 via signed URL.
+- **Fluxo**:
+  1. Converter imagem do buffer para PDF (`ConvertToBlob`)
+  2. Obter signed URL do backend (`GET /operacao/upload/signed-url/`)
+  3. Upload direto para S3 usando signed URL
+  4. Confirmar upload no backend (vincula arquivo à requisição)
+- **Código**: `frontend/static/js/scanner.js:363-462` (função `enviarParaAWS`)
+
+#### Regra: Formato de Arquivo
+- **Descrição**: Imagens são convertidas para PDF antes do envio.
+- **Tipo MIME**: `application/pdf`
+- **Código**: `frontend/static/js/scanner.js:470-484` (função `obterImagemComoBlob`)
+
+```javascript
+DWTObject.ConvertToBlob(
+  [index],
+  Dynamsoft.DWT.EnumDWT_ImageType.IT_PDF,
+  successCallback,
+  errorCallback
+);
+```
+
+#### Regra: Signed URL (Pré-assinada)
+- **Descrição**: Backend gera URL pré-assinada para upload direto ao S3.
+- **Endpoint**: `GET /operacao/upload/signed-url/?requisicao_id=X&content_type=Y`
+- **Retorno**: `{ signed_url, file_key, original_filename }`
+- **Código**: `frontend/static/js/scanner.js:492-509` (função `obterSignedUrl`)
+
+#### Regra: Confirmação de Upload
+- **Descrição**: Após upload para S3, backend é notificado para vincular arquivo à requisição.
+- **Endpoint**: `POST /operacao/upload/confirmar/`
+- **Dados**: `{ requisicao_id, file_key, filename, file_size }`
+- **Código**: `frontend/static/js/scanner.js:417-422`
+
+#### Regra: Feedback Visual
+- **Descrição**: Botão exibe progresso durante envio.
+- **Comportamento**:
+  - Botão desabilitado durante envio
+  - Spinner animado
+  - Texto "Enviando X/Y..." para múltiplas imagens
+- **Código**: `frontend/static/js/scanner.js:380-386, 397-400`
+
+#### Regra: Limpeza Após Envio
+- **Descrição**: Buffer de imagens é limpo após envio bem-sucedido.
+- **Método**: `DWTObject.RemoveAllImages()`
+- **Código**: `frontend/static/js/scanner.js:449`
 
 ---
 
