@@ -167,14 +167,25 @@ function ocultarMensagemErroLocalizacao() {
 }
 
 /**
- * Limpa o formulário (Etapa 1 e Etapa 2)
+ * Limpa o formulário e reseta para estado inicial de bipagem
  */
 function limparFormulario() {
-  inputCodBarras.value = '';
-  stepContainer.style.display = 'none';
-  step2Container.style.display = 'none';
+  // Resetar estado global
   requisicaoAtual = null;
   amostrasAtual = [];
+  pendenciasIdentificadas = [];
+  amostraParaExcluir = null;
+  
+  // Esconder todas as etapas
+  stepContainer.style.display = 'none';
+  step2Container.style.display = 'none';
+  if (step3Container) step3Container.style.display = 'none';
+  
+  // Limpar campo de busca
+  inputCodBarras.value = '';
+  
+  // Limpar mensagens de erro/sucesso
+  ocultarMensagemErroLocalizacao();
   
   // Limpar campos Etapa 1
   reqId.value = '';
@@ -198,9 +209,25 @@ function limparFormulario() {
   checkFrascoTrocado.checked = false;
   checkMaterialNaoAnalisado.checked = false;
   
-  // Desabilitar dropdown de motivo
-  selectMotivoArmazenamento.disabled = true;
-  selectMotivoArmazenamento.value = '';
+  // Desabilitar dropdown de motivo (select antigo, se existir)
+  if (selectMotivoArmazenamento) {
+    selectMotivoArmazenamento.disabled = true;
+    selectMotivoArmazenamento.value = '';
+  }
+  
+  // Limpar multiselect de motivos de armazenamento inadequado
+  if (multiselectMotivo) {
+    // Desmarcar todos os checkboxes
+    const checkboxes = multiselectMotivo.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = false);
+    // Resetar texto do botão
+    if (multiselectText) multiselectText.textContent = 'Selecione...';
+    // Fechar dropdown se estiver aberto
+    if (multiselectOptions) multiselectOptions.style.display = 'none';
+  }
+  
+  // Limpar container de arquivos digitalizados
+  if (scannerFilesContainer) scannerFilesContainer.innerHTML = '';
   
   // Limpar campos Etapa 2
   if (reqIdE2) reqIdE2.value = '';
@@ -211,7 +238,6 @@ function limparFormulario() {
   if (pendenciasCheckboxes) pendenciasCheckboxes.innerHTML = '';
   
   // Limpar campos Etapa 3
-  if (step3Container) step3Container.style.display = 'none';
   if (reqCodigoDisplayE3) reqCodigoDisplayE3.textContent = '#---';
   if (reqBarrasDisplayE3) reqBarrasDisplayE3.textContent = '---';
   if (cpfPaciente) cpfPaciente.value = '';
