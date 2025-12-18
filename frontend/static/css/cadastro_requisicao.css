@@ -359,6 +359,9 @@ input[readonly] {
   align-items: flex-end;
   gap: 10px;
   margin-bottom: 12px;
+  background-color: #f1f1f1;
+  padding: 20px;
+  border-radius: 15px;
 }
 
 .cpf-actions .field {
@@ -401,6 +404,9 @@ input[readonly] {
 /* Row Layouts */
 .row {
   margin-bottom: 12px;
+  background-color: #f1f1f1;
+  padding: 20px;
+  border-radius: 15px;
 }
 
 .row.two {

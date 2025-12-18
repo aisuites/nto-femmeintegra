@@ -408,6 +408,9 @@ function renderizarArquivos() {
 // FUNÇÕES DE VALIDAÇÃO DE MÉDICO
 // ============================================
 
+// Variáveis para o modal de problema com médico
+let problemaMedicoAtual = null;
+
 async function validarMedico() {
   const crm = crmMedico.value.trim();
   const uf = ufCrm.value.trim().toUpperCase();
@@ -427,8 +430,8 @@ async function validarMedico() {
   btnValidaMedico.textContent = 'Validando...';
   
   try {
-    // API usa GET com query params
-    const response = await fetch(`/operacao/triagem/validar-medico/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
+    // Usar API unificada que faz fallback automático
+    const response = await fetch(`/operacao/triagem/validar-medico-completo/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
       method: 'GET',
       headers: {
         'X-CSRFToken': csrfToken,
@@ -436,19 +439,42 @@ async function validarMedico() {
     });
     
     const data = await response.json();
+    console.log('[Cadastro] Resposta validação médico:', data);
     
-    if (data.status === 'success' && data.medicos && data.medicos.length > 0) {
-      const medico = data.medicos[0];
+    if (data.status === 'success' && data.medico) {
+      // Sucesso - médico validado com destino
+      const medico = data.medico;
       nomeMedico.value = medico.nome_medico || '';
       enderecoMedico.value = medico.endereco || '';
       destinoMedico.value = medico.destino || '';
       medicoValidado = true;
+      checkProblemaMedico.checked = false;
       mostrarAlerta(alertMedico, alertMedicoMessage, '✅ Médico validado com sucesso!', 'success');
-    } else if (data.status === 'not_found') {
-      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Médico não encontrado.', 'error');
+    } else if (data.code === 'medico_sem_destino') {
+      // Médico existe mas sem destino - abrir modal
+      problemaMedicoAtual = {
+        tipo: 'medico_sem_destino',
+        crm: crm,
+        uf_crm: uf,
+        medico: data.medico || {},
+        mensagem: data.message
+      };
+      abrirModalProblemaMedico(problemaMedicoAtual);
       medicoValidado = false;
-    } else if (data.status === 'multiple') {
-      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Múltiplos médicos encontrados.', 'error');
+    } else if (data.code === 'medico_nao_encontrado') {
+      // Médico não encontrado - abrir modal
+      problemaMedicoAtual = {
+        tipo: 'medico_nao_encontrado',
+        crm: crm,
+        uf_crm: uf,
+        medico: null,
+        mensagem: data.message
+      };
+      abrirModalProblemaMedico(problemaMedicoAtual);
+      medicoValidado = false;
+    } else if (data.code === 'medico_duplicado') {
+      // Múltiplos médicos encontrados
+      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Múltiplos médicos encontrados. Verifique o CRM.', 'error');
       medicoValidado = false;
     } else {
       mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao validar médico.', 'error');
@@ -461,6 +487,118 @@ async function validarMedico() {
   } finally {
     btnValidaMedico.disabled = false;
     btnValidaMedico.textContent = 'Valida';
+  }
+}
+
+// Funções do modal de problema com médico
+function abrirModalProblemaMedico(problema) {
+  const modal = document.getElementById('modal-problema-medico');
+  const mensagemDiv = document.getElementById('modal-medico-mensagem');
+  const infoDiv = document.getElementById('modal-medico-info');
+  
+  // Definir mensagem
+  if (problema.tipo === 'medico_sem_destino') {
+    mensagemDiv.innerHTML = `
+      <strong>Médico encontrado, mas sem destino configurado.</strong><br>
+      <small>O médico existe na base, porém não possui um destino de entrega configurado.</small>
+    `;
+    mensagemDiv.className = 'alert alert-warning';
+  } else {
+    mensagemDiv.innerHTML = `
+      <strong>Médico não encontrado na base.</strong><br>
+      <small>Não foi possível localizar o médico com o CRM informado.</small>
+    `;
+    mensagemDiv.className = 'alert alert-danger';
+  }
+  
+  // Mostrar informações do médico se disponível
+  if (problema.medico && problema.medico.nome_medico) {
+    infoDiv.innerHTML = `
+      <div class="info-box" style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px;">
+        <p style="margin: 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
+        <p style="margin: 0;"><strong>Nome:</strong> ${problema.medico.nome_medico}</p>
+        ${problema.medico.endereco ? `<p style="margin: 0;"><strong>Endereço:</strong> ${problema.medico.endereco}</p>` : ''}
+      </div>
+    `;
+    infoDiv.style.display = 'block';
+  } else {
+    infoDiv.innerHTML = `
+      <div class="info-box" style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px;">
+        <p style="margin: 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
+      </div>
+    `;
+    infoDiv.style.display = 'block';
+  }
+  
+  modal.style.display = 'flex';
+}
+
+function fecharModalProblemaMedico() {
+  const modal = document.getElementById('modal-problema-medico');
+  modal.style.display = 'none';
+  problemaMedicoAtual = null;
+}
+
+async function registrarPendenciaMedico() {
+  if (!problemaMedicoAtual || !requisicaoAtual) {
+    mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro: dados insuficientes para registrar pendência.', 'error');
+    fecharModalProblemaMedico();
+    return;
+  }
+  
+  const btnRegistrar = document.getElementById('btn-registrar-pendencia-medico');
+  btnRegistrar.disabled = true;
+  btnRegistrar.textContent = 'Registrando...';
+  
+  try {
+    const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken,
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        tipo_pendencia: problemaMedicoAtual.tipo,
+        crm: problemaMedicoAtual.crm,
+        uf_crm: problemaMedicoAtual.uf_crm,
+        nome_medico: problemaMedicoAtual.medico?.nome_medico || '',
+      }),
+    });
+    
+    const data = await response.json();
+    console.log('[Cadastro] Resposta registro pendência:', data);
+    
+    if (data.status === 'success') {
+      // Marcar checkbox de problema com médico
+      checkProblemaMedico.checked = true;
+      
+      // Preencher campos do médico se disponível
+      if (problemaMedicoAtual.medico) {
+        nomeMedico.value = problemaMedicoAtual.medico.nome_medico || '';
+        enderecoMedico.value = problemaMedicoAtual.medico.endereco || '';
+      }
+      
+      // Limpar destino (não tem)
+      destinoMedico.value = '';
+      
+      fecharModalProblemaMedico();
+      
+      // Mostrar mensagem de sucesso
+      let msgExtra = '';
+      if (data.email_enviado) msgExtra += ' Email enviado.';
+      if (data.tarefa_criada) msgExtra += ' Tarefa criada.';
+      
+      mostrarAlerta(alertMedico, alertMedicoMessage, `✅ Pendência registrada com sucesso.${msgExtra}`, 'success');
+    } else {
+      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao registrar pendência.', 'error');
+    }
+  } catch (error) {
+    console.error('Erro ao registrar pendência:', error);
+    mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro de conexão ao registrar pendência.', 'error');
+  } finally {
+    btnRegistrar.disabled = false;
+    btnRegistrar.textContent = '📋 Registrar Pendência e Continuar';
   }
 }
 
@@ -904,6 +1042,11 @@ document.addEventListener('DOMContentLoaded', () => {
     excluirExame(index);
     modal.style.display = 'none';
   });
+  
+  // Modal problema com médico
+  document.getElementById('btn-fechar-modal-medico')?.addEventListener('click', fecharModalProblemaMedico);
+  document.getElementById('btn-cancelar-modal-medico')?.addEventListener('click', fecharModalProblemaMedico);
+  document.getElementById('btn-registrar-pendencia-medico')?.addEventListener('click', registrarPendenciaMedico);
   
   // Cancelar
   btnCancelar.addEventListener('click', () => {

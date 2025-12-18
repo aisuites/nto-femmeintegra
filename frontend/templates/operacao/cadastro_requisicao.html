@@ -323,6 +323,33 @@
   </div>
 </div>
 
+<!-- MODAL PROBLEMA COM MÉDICO -->
+<div class="modal-overlay" id="modal-problema-medico" style="display: none;">
+  <div class="modal-content modal-md">
+    <div class="modal-header">
+      <h3>⚠️ Problema na Validação do Médico</h3>
+      <button class="modal-close" type="button" id="btn-fechar-modal-medico">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-medico-mensagem" class="alert alert-warning" style="margin-bottom: 1rem;">
+        <!-- Mensagem dinâmica -->
+      </div>
+      <div id="modal-medico-info" style="margin-bottom: 1rem;">
+        <!-- Informações do médico se encontrado -->
+      </div>
+      <p class="text-muted">O que deseja fazer?</p>
+    </div>
+    <div class="modal-footer" style="flex-direction: column; gap: 0.5rem;">
+      <button class="btn btn-primary btn-block" type="button" id="btn-registrar-pendencia-medico">
+        📋 Registrar Pendência e Continuar
+      </button>
+      <button class="btn btn-outline btn-block" type="button" id="btn-cancelar-modal-medico">
+        Cancelar e Corrigir Dados
+      </button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
