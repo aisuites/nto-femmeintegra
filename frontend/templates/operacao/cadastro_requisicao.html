@@ -1,0 +1,329 @@
+{% extends "base_app.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/cadastro_requisicao.css' %}" />
+{% endblock %}
+
+{% block main_content %}
+<!-- SEÇÃO BIPAGEM (CONTEÚDO FIXO) -->
+<section class="card">
+  <div class="barcode-section">
+    <div>
+      <div class="section-kicker">Cadastro</div>
+      <div class="section-title">Localizar requisição para cadastro</div>
+      <div class="section-subtitle">
+        Bipe o código de barras da requisição ou digite manualmente para iniciar o cadastro.
+      </div>
+    </div>
+
+    <div class="barcode-row">
+      <input 
+        type="text" 
+        id="input-cod-barras-cadastro" 
+        placeholder="Bipe ou digite o código de barras da requisição"
+        autocomplete="off"
+      />
+      <button class="btn btn-primary" type="button" id="btn-localizar-cadastro">
+        🔍 Localizar
+      </button>
+    </div>
+
+    <div class="info-inline">
+      • Apenas requisições com status CADASTRADA podem ser processadas nesta página.
+    </div>
+  </div>
+</section>
+
+<!-- ÁREA DINÂMICA - CADASTRO DA REQUISIÇÃO (INICIALMENTE OCULTA) -->
+<section class="card" id="cadastro-container" style="display: none;">
+  <div class="cadastro-step">
+
+    <!-- HEADER -->
+    <div class="step-header">
+      <div>
+        <span class="step-badge step-badge-cadastro">Cadastro Requisição</span>
+      </div>
+      <div style="font-size:11px; color:var(--femme-gray);">
+        Requisição <strong id="req-codigo-display">#---</strong> · Cód. barras <strong id="req-barras-display">---</strong>
+      </div>
+    </div>
+
+    <!-- UNIDADE EM DESTAQUE -->
+    <div class="unidade-destaque">
+      <span class="unidade-label">Unidade:</span>
+      <span class="unidade-nome" id="unidade-nome-display">---</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BLOCO CPF -->
+    <div class="cpf-actions">
+      <div class="field">
+        <label class="label-strong">CPF Paciente</label>
+        <input type="text" id="cpf-paciente" placeholder="000.000.000-00" maxlength="14" />
+      </div>
+
+      <button class="btn btn-outline" type="button" id="btn-cpf-korus" title="Consultar CPF na base FEMME">CPF Korus</button>
+      <button class="btn btn-muted" type="button" id="btn-rodar-ocr" disabled title="API em desenvolvimento">Rodar OCR</button>
+      <button class="btn btn-outline" type="button" id="btn-cpf-receita" title="Consultar CPF na Receita Federal">CPF Receita</button>
+
+      <label class="check-inline">
+        <input type="checkbox" id="check-problema-cpf" />
+        Problema com CPF
+      </label>
+
+      <button class="btn btn-outline" type="button" id="btn-ver-imagem-requisicao" title="Ver imagem digitalizada da requisição">Ver imagem requisição</button>
+    </div>
+
+    <!-- ÁREA DE ALERTA CPF -->
+    <div class="alert alert-validacao" id="cadastro_alert_cpf" role="alert" aria-live="assertive">
+      <strong>Atenção!</strong>
+      <span id="cadastro_alert_cpf_message"></span>
+    </div>
+
+    <!-- NOME PACIENTE -->
+    <div class="row">
+      <div class="field">
+        <label class="label-strong">Nome paciente</label>
+        <input type="text" id="nome-paciente" placeholder="Nome do paciente" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BLOCO DADOS PACIENTE -->
+    <div class="section-title-sm">Dados do Paciente</div>
+    
+    <div class="row four">
+      <div class="field">
+        <label class="label-strong">DUM (Data Última Menstruação)</label>
+        <input type="date" id="data-dum" />
+      </div>
+
+      <div class="field">
+        <label class="label-strong">Data de Nascimento</label>
+        <input type="date" id="data-nascimento" />
+      </div>
+
+      <div class="field">
+        <label class="label-strong">Email</label>
+        <input type="email" id="email-paciente" placeholder="email@exemplo.com" />
+      </div>
+
+      <div class="field">
+        <label class="label-strong">Telefone</label>
+        <input type="text" id="telefone-paciente" placeholder="(00) 00000-0000" maxlength="15" />
+      </div>
+    </div>
+
+    <div class="row two">
+      <div class="field">
+        <label class="label-strong">Sexo</label>
+        <select id="sexo-paciente">
+          <option value="">Selecione...</option>
+          <option value="F">Feminino</option>
+          <option value="M">Masculino</option>
+        </select>
+        <label class="checkbox-item" style="margin-top:6px; width:max-content;">
+          <input type="checkbox" id="check-sexo-a-confirmar" />
+          <span>A confirmar</span>
+        </label>
+      </div>
+      <div class="field"></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BLOCO DADOS MÉDICO -->
+    <div class="section-title-sm">Dados do Médico</div>
+
+    <div class="row three">
+      <div class="field">
+        <label class="label-strong">CRM</label>
+        <input type="text" id="crm-medico" placeholder="Número do CRM" pattern="[0-9]*" inputmode="numeric" />
+      </div>
+
+      <div class="field">
+        <label class="label-strong">UF-CRM</label>
+        <div class="custom-dropdown-wrapper" id="uf-crm-wrapper">
+          <input type="text" id="uf-crm" placeholder="Digite ou selecione..." maxlength="2" style="text-transform: uppercase;" autocomplete="off" />
+          <div class="custom-dropdown-list" id="uf-crm-dropdown">
+            <div class="custom-dropdown-item" data-value="AC">AC</div>
+            <div class="custom-dropdown-item" data-value="AL">AL</div>
+            <div class="custom-dropdown-item" data-value="AM">AM</div>
+            <div class="custom-dropdown-item" data-value="AP">AP</div>
+            <div class="custom-dropdown-item" data-value="BA">BA</div>
+            <div class="custom-dropdown-item" data-value="CE">CE</div>
+            <div class="custom-dropdown-item" data-value="DF">DF</div>
+            <div class="custom-dropdown-item" data-value="ES">ES</div>
+            <div class="custom-dropdown-item" data-value="GO">GO</div>
+            <div class="custom-dropdown-item" data-value="MA">MA</div>
+            <div class="custom-dropdown-item" data-value="MG">MG</div>
+            <div class="custom-dropdown-item" data-value="MS">MS</div>
+            <div class="custom-dropdown-item" data-value="MT">MT</div>
+            <div class="custom-dropdown-item" data-value="PA">PA</div>
+            <div class="custom-dropdown-item" data-value="PB">PB</div>
+            <div class="custom-dropdown-item" data-value="PE">PE</div>
+            <div class="custom-dropdown-item" data-value="PI">PI</div>
+            <div class="custom-dropdown-item" data-value="PR">PR</div>
+            <div class="custom-dropdown-item" data-value="RJ">RJ</div>
+            <div class="custom-dropdown-item" data-value="RN">RN</div>
+            <div class="custom-dropdown-item" data-value="RO">RO</div>
+            <div class="custom-dropdown-item" data-value="RR">RR</div>
+            <div class="custom-dropdown-item" data-value="RS">RS</div>
+            <div class="custom-dropdown-item" data-value="SC">SC</div>
+            <div class="custom-dropdown-item" data-value="SE">SE</div>
+            <div class="custom-dropdown-item" data-value="SP">SP</div>
+            <div class="custom-dropdown-item" data-value="TO">TO</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field field-actions">
+        <button class="btn btn-outline" type="button" id="btn-valida-medico" title="Validar médico na API FEMME">Valida</button>
+        <label class="check-inline">
+          <input type="checkbox" id="check-problema-medico" />
+          Dados médico com problema
+        </label>
+      </div>
+    </div>
+
+    <!-- ÁREA DE ALERTA MÉDICO -->
+    <div class="alert alert-validacao" id="cadastro_alert_medico" role="alert" aria-live="assertive">
+      <strong>Atenção!</strong>
+      <span id="cadastro_alert_medico_message"></span>
+    </div>
+
+    <!-- NOME DO MÉDICO -->
+    <div class="row">
+      <div class="field">
+        <label class="label-strong">Nome do médico</label>
+        <input type="text" id="nome-medico" readonly placeholder="Preenchido via API Valida Médico" />
+      </div>
+    </div>
+
+    <!-- ENDEREÇO + DESTINO -->
+    <div class="row two">
+      <div class="field">
+        <label class="label-strong">Endereço médico</label>
+        <input type="text" id="endereco-medico" readonly placeholder="Preenchido via API Valida Médico" />
+      </div>
+
+      <div class="field">
+        <label class="label-strong">Destino</label>
+        <input type="text" id="destino-medico" readonly placeholder="Preenchido via API Valida Médico" />
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BLOCO EXAMES E ATENDIMENTO -->
+    <div class="section-title-sm">Exames e Atendimento</div>
+
+    <div class="exames-actions">
+      <div class="field" style="flex: 0 0 250px;">
+        <label class="label-strong">Tipo de Atendimento</label>
+        <select id="select-tipo-atendimento">
+          <option value="">Selecione o tipo...</option>
+          {% for tipo in tipos_atendimento %}
+          <option value="{{ tipo.id }}" data-codigo="{{ tipo.codigo }}">{{ tipo.descricao }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button class="btn btn-outline" type="button" id="btn-adicionar-exame" title="Adicionar exame">
+        + Adicionar
+      </button>
+    </div>
+
+    <!-- GRID DE EXAMES -->
+    <div class="exames-grid" id="exames-grid">
+      <div class="exames-grid-header">
+        <span></span>
+        <span>EXAMES SELECIONADOS</span>
+        <span>TIPO ATENDIMENTO</span>
+      </div>
+      <div class="exames-grid-body" id="exames-grid-body">
+        <!-- Exames serão carregados dinamicamente via JS -->
+        <div class="exames-empty" id="exames-empty">
+          Nenhum exame adicionado. Selecione o tipo de atendimento e clique em "+ Adicionar".
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- BLOCO UPLOAD IMAGEM -->
+    <div class="row">
+      <div class="field">
+        <span class="label-strong">Upload imagens (não obrigatório)</span>
+        <div class="scanner-box">
+          <div class="scanner-row">
+            <button class="btn btn-outline" type="button" id="btn-carregar-imagem">📁 Carregar Imagem</button>
+            <input type="file" id="input-upload-imagem" accept=".pdf,.jpg,.jpeg,.png" multiple style="display:none;" />
+            <!-- Arquivos aparecerão aqui dinamicamente -->
+            <div id="upload-files-container"></div>
+          </div>
+          <div class="info-inline" id="info-formatos-aceitos">
+            Selecione um ou mais arquivos. Formatos aceitos: PDF, JPEG, JPG ou PNG.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÁREA DE ALERTA GERAL -->
+    <div class="alert alert-validacao" id="cadastro_alert_geral" role="alert" aria-live="assertive">
+      <strong>Atenção!</strong>
+      <span id="cadastro_alert_geral_message"></span>
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="step-actions">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-cadastro">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="btn-autorizar">AUTORIZAR</button>
+    </div>
+
+  </div>
+</section>
+
+<!-- MODAL VISUALIZAR IMAGEM -->
+<div class="modal-overlay" id="modal-ver-imagem" style="display: none;">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <h3>📄 Imagem da Requisição</h3>
+      <button class="modal-close" type="button" id="btn-fechar-modal-imagem">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="imagem-requisicao-container">
+        <p class="text-muted">Carregando imagem...</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" id="btn-fechar-modal-imagem-footer">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMAR EXCLUSÃO DE EXAME -->
+<div class="modal-overlay" id="modal-excluir-exame" style="display: none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>⚠️ Excluir Exame</h3>
+    </div>
+    <div class="modal-body">
+      <p>Tem certeza que deseja excluir este exame?</p>
+      <p class="text-muted" id="exame-excluir-info">Exame: ---</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-excluir-exame">Cancelar</button>
+      <button class="btn btn-danger" type="button" id="btn-confirmar-excluir-exame">Excluir</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/cadastro_requisicao.js' %}"></script>
+{% endblock %}

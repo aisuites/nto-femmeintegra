@@ -5,6 +5,7 @@ from . import upload_views
 from . import triagem_views
 from . import protocolo_views
 from . import tarefas_views
+from . import cadastro_views
 
 app_name = 'operacao'
 
@@ -275,5 +276,21 @@ urlpatterns = [
         'tarefas/api/colaboradores/',
         tarefas_views.ListarColaboradoresAPIView.as_view(),
         name='tarefas-api-colaboradores',
+    ),
+    # Cadastro de Requisição
+    path(
+        'cadastro/',
+        cadastro_views.CadastroRequisicaoView.as_view(),
+        name='cadastro-requisicao',
+    ),
+    path(
+        'cadastro/localizar/',
+        cadastro_views.CadastroLocalizarView.as_view(),
+        name='cadastro-localizar',
+    ),
+    path(
+        'cadastro/autorizar/',
+        cadastro_views.CadastroAutorizarView.as_view(),
+        name='cadastro-autorizar',
     ),
 ]

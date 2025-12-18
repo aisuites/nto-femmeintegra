@@ -17,12 +17,14 @@ from .models import (
     DadosRequisicao,
     RequisicaoAmostra,
     RequisicaoArquivo,
+    RequisicaoExame,
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
     Tarefa,
     TipoAmostra,
     TipoArquivo,
+    TipoAtendimento,
     TipoPendencia,
     TipoPendenciaEtapa,
     TipoTarefa,
@@ -565,3 +567,43 @@ class EventoTarefaAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('tipo_tarefa', 'responsavel_fixo')
+
+
+# ============================================
+# CADASTRO DE REQUISIÇÃO - TIPOS DE ATENDIMENTO E EXAMES
+# ============================================
+
+@admin.register(TipoAtendimento)
+class TipoAtendimentoAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'descricao', 'ativo', 'created_at_formatted')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'descricao')
+    list_editable = ('ativo',)
+    ordering = ('descricao',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M')
+        return '-'
+    created_at_formatted.short_description = 'Criado em'
+
+
+@admin.register(RequisicaoExame)
+class RequisicaoExameAdmin(admin.ModelAdmin):
+    list_display = ('cod_req', 'tipo_amostra', 'tipo_atendimento', 'num_autorizacao', 'created_at_formatted')
+    list_filter = ('tipo_atendimento', 'tipo_amostra')
+    search_fields = ('cod_req', 'cod_barras_req', 'num_autorizacao', 'num_guia')
+    readonly_fields = ('created_at', 'updated_at', 'created_by', 'updated_by')
+    raw_id_fields = ('requisicao',)
+    ordering = ('-created_at',)
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M')
+        return '-'
+    created_at_formatted.short_description = 'Criado em'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'requisicao', 'tipo_amostra', 'tipo_atendimento'
+        )

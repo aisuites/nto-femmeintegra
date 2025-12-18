@@ -466,6 +466,11 @@ class DadosRequisicao(AuditModel):
         default=False,
         help_text='Indica problema identificado nos dados do médico'
     )
+    flag_sexo_a_confirmar = models.BooleanField(
+        'Sexo a confirmar',
+        default=False,
+        help_text='Indica que o sexo do paciente precisa ser confirmado posteriormente'
+    )
 
     motivo_preenchimento = models.ForeignKey(
         MotivoPreenchimento,
@@ -1538,3 +1543,124 @@ class EventoTarefa(TimeStampedModel):
             )
         
         return tarefa
+
+
+# ============================================
+# CADASTRO DE REQUISIÇÃO - TIPOS DE ATENDIMENTO E EXAMES
+# ============================================
+
+class TipoAtendimento(TimeStampedModel):
+    """
+    Tipos de atendimento disponíveis para requisições.
+    Ex: CONVÊNIO, CONGIP FATURAMENTO, CONGIP CAIXA, CORTESIA
+    """
+    codigo = models.CharField(
+        'Código',
+        max_length=30,
+        unique=True,
+        db_index=True,
+        help_text='Código único do tipo de atendimento (ex: CONVENIO, CONGIP_FAT)'
+    )
+    descricao = models.CharField(
+        'Descrição',
+        max_length=100,
+        help_text='Descrição do tipo de atendimento'
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        db_index=True,
+        help_text='Indica se o tipo de atendimento está disponível para uso'
+    )
+
+    class Meta:
+        db_table = 'tipo_atendimento'
+        ordering = ('descricao',)
+        verbose_name = 'Tipo de Atendimento'
+        verbose_name_plural = 'Tipos de Atendimento'
+
+    def __str__(self) -> str:
+        return self.descricao
+
+
+class RequisicaoExame(AuditModel):
+    """
+    Exames vinculados a uma requisição.
+    Armazena dados de autorização e tipo de atendimento para cada exame.
+    """
+    requisicao = models.ForeignKey(
+        DadosRequisicao,
+        on_delete=models.CASCADE,
+        related_name='exames',
+        verbose_name='Requisição',
+        help_text='Requisição à qual o exame pertence',
+    )
+    cod_req = models.CharField(
+        'Código da requisição',
+        max_length=30,
+        db_index=True,
+        help_text='Código da requisição (desnormalizado para performance)',
+    )
+    cod_barras_req = models.CharField(
+        'Código de barras da requisição',
+        max_length=64,
+        db_index=True,
+        help_text='Código de barras da requisição (desnormalizado para auditoria)',
+    )
+    tipo_amostra = models.ForeignKey(
+        'TipoAmostra',
+        on_delete=models.PROTECT,
+        related_name='exames',
+        verbose_name='Tipo de Amostra/Exame',
+        help_text='Tipo de amostra/exame selecionado',
+    )
+    tipo_atendimento = models.ForeignKey(
+        'TipoAtendimento',
+        on_delete=models.PROTECT,
+        related_name='exames',
+        verbose_name='Tipo de Atendimento',
+        help_text='Tipo de atendimento (Convênio, CONGIP, etc)',
+    )
+    
+    # Dados de autorização (retornados via API)
+    num_autorizacao = models.CharField(
+        'Número de Autorização',
+        max_length=50,
+        blank=True,
+        default='',
+        help_text='Número de autorização retornado pela API',
+    )
+    num_guia = models.CharField(
+        'Número da Guia',
+        max_length=50,
+        blank=True,
+        default='',
+        help_text='Número da guia retornado pela API',
+    )
+    num_guia_prestador = models.CharField(
+        'Número da Guia Prestador',
+        max_length=50,
+        blank=True,
+        default='',
+        help_text='Número da guia do prestador retornado pela API',
+    )
+    retorno_autorizacao = models.JSONField(
+        'Retorno da Autorização',
+        default=dict,
+        blank=True,
+        help_text='Dados completos retornados pela API de autorização',
+    )
+
+    class Meta:
+        db_table = 'requisicao_exame'
+        ordering = ('-created_at',)
+        verbose_name = 'Exame da Requisição'
+        verbose_name_plural = 'Exames das Requisições'
+        indexes = [
+            models.Index(fields=['requisicao', '-created_at']),
+            models.Index(fields=['cod_req', '-created_at']),
+            models.Index(fields=['tipo_atendimento', '-created_at']),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.cod_req} - {self.tipo_amostra.descricao} ({self.tipo_atendimento.descricao})'
