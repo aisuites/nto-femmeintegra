@@ -19,10 +19,12 @@ from .models import (
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
     StatusRequisicao,
+    Tarefa,
     TipoAmostra,
     TipoArquivo,
     TipoPendencia,
     TipoPendenciaEtapa,
+    TipoTarefa,
     Unidade,
 )
 
@@ -455,3 +457,72 @@ class ProtocoloAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+# ============================================
+# SISTEMA DE TAREFAS
+# ============================================
+
+@admin.register(TipoTarefa)
+class TipoTarefaAdmin(admin.ModelAdmin):
+    list_display = ('codigo', 'nome', 'prazo_dias', 'ativo', 'created_at')
+    list_filter = ('ativo',)
+    search_fields = ('codigo', 'nome', 'descricao')
+    ordering = ('nome',)
+    list_editable = ('ativo',)
+    
+    fieldsets = (
+        (None, {
+            'fields': ('codigo', 'nome', 'descricao')
+        }),
+        ('Configuração', {
+            'fields': ('prazo_dias', 'ativo')
+        }),
+    )
+
+
+@admin.register(Tarefa)
+class TarefaAdmin(admin.ModelAdmin):
+    list_display = (
+        'codigo', 'titulo', 'tipo', 'status', 'prioridade', 
+        'responsavel', 'data_prazo', 'origem', 'created_at'
+    )
+    list_filter = ('status', 'prioridade', 'origem', 'tipo', 'responsavel')
+    search_fields = ('codigo', 'titulo', 'descricao', 'responsavel__username', 'responsavel__first_name')
+    ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
+    raw_id_fields = ('responsavel', 'criado_por', 'protocolo', 'requisicao')
+    readonly_fields = ('codigo', 'created_at', 'updated_at', 'data_inicio', 'data_conclusao')
+    list_per_page = 30
+    
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('codigo', 'titulo', 'descricao')
+        }),
+        ('Classificação', {
+            'fields': ('tipo', 'status', 'prioridade')
+        }),
+        ('Responsáveis', {
+            'fields': ('origem', 'criado_por', 'responsavel')
+        }),
+        ('Datas', {
+            'fields': ('data_prazo', 'data_inicio', 'data_conclusao')
+        }),
+        ('Referências', {
+            'fields': ('protocolo', 'requisicao'),
+            'classes': ('collapse',)
+        }),
+        ('Observações', {
+            'fields': ('observacoes',),
+            'classes': ('collapse',)
+        }),
+        ('Auditoria', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'tipo', 'responsavel', 'criado_por', 'protocolo', 'requisicao'
+        )

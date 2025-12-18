@@ -1083,3 +1083,263 @@ class Protocolo(AuditModel):
             novo_num = 1
         
         return f'{prefixo}{novo_num:04d}'
+
+
+# ============================================
+# SISTEMA DE TAREFAS
+# ============================================
+
+class TipoTarefa(TimeStampedModel):
+    """
+    Tipos de tarefa pré-definidos com prazo padrão.
+    Ex: 'Cadastro de Médico' - 3 dias, 'Validação de Documento' - 1 dia
+    """
+    codigo = models.CharField(
+        'Código',
+        max_length=50,
+        unique=True,
+        help_text='Código único do tipo de tarefa (ex: CADASTRO_MEDICO)',
+    )
+    nome = models.CharField(
+        'Nome',
+        max_length=150,
+        help_text='Nome descritivo do tipo de tarefa',
+    )
+    descricao = models.TextField(
+        'Descrição',
+        blank=True,
+        default='',
+        help_text='Descrição detalhada do tipo de tarefa',
+    )
+    prazo_dias = models.PositiveIntegerField(
+        'Prazo (dias)',
+        default=3,
+        help_text='Prazo padrão em dias para conclusão',
+    )
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+    )
+
+    class Meta:
+        ordering = ['nome']
+        verbose_name = 'Tipo de Tarefa'
+        verbose_name_plural = 'Tipos de Tarefa'
+
+    def __str__(self) -> str:
+        return f'{self.nome} ({self.prazo_dias} dias)'
+
+
+class Tarefa(TimeStampedModel):
+    """
+    Tarefa para gerenciamento de processos em aberto.
+    Suporta visualização Kanban com colunas: A FAZER, EM ANDAMENTO, CONCLUÍDA.
+    """
+    
+    class Status(models.TextChoices):
+        A_FAZER = 'A_FAZER', 'A Fazer'
+        EM_ANDAMENTO = 'EM_ANDAMENTO', 'Em Andamento'
+        CONCLUIDA = 'CONCLUIDA', 'Concluída'
+        CANCELADA = 'CANCELADA', 'Cancelada'
+    
+    class Prioridade(models.TextChoices):
+        BAIXA = 'BAIXA', 'Baixa'
+        MEDIA = 'MEDIA', 'Média'
+        ALTA = 'ALTA', 'Alta'
+        URGENTE = 'URGENTE', 'Urgente'
+    
+    class Origem(models.TextChoices):
+        SISTEMA = 'SISTEMA', 'Sistema'
+        GESTOR = 'GESTOR', 'Gestor'
+    
+    # Identificação
+    codigo = models.CharField(
+        'Código',
+        max_length=20,
+        unique=True,
+        editable=False,
+        help_text='Código único gerado automaticamente',
+    )
+    titulo = models.CharField(
+        'Título',
+        max_length=200,
+        help_text='Título resumido da tarefa',
+    )
+    descricao = models.TextField(
+        'Descrição',
+        blank=True,
+        default='',
+        help_text='Descrição detalhada da tarefa',
+    )
+    
+    # Tipo e Status
+    tipo = models.ForeignKey(
+        TipoTarefa,
+        on_delete=models.PROTECT,
+        related_name='tarefas',
+        verbose_name='Tipo de Tarefa',
+        null=True,
+        blank=True,
+        help_text='Tipo pré-definido (opcional)',
+    )
+    status = models.CharField(
+        'Status',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.A_FAZER,
+        db_index=True,
+    )
+    prioridade = models.CharField(
+        'Prioridade',
+        max_length=20,
+        choices=Prioridade.choices,
+        default=Prioridade.MEDIA,
+    )
+    
+    # Origem e Responsáveis
+    origem = models.CharField(
+        'Origem',
+        max_length=20,
+        choices=Origem.choices,
+        default=Origem.GESTOR,
+        help_text='Quem criou a tarefa: Sistema ou Gestor',
+    )
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='tarefas_criadas',
+        verbose_name='Criado por',
+        null=True,
+        blank=True,
+        help_text='Usuário que criou a tarefa (null se criada pelo sistema)',
+    )
+    responsavel = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name='tarefas_responsavel',
+        verbose_name='Responsável',
+        help_text='Colaborador responsável pela execução',
+    )
+    
+    # Datas
+    data_prazo = models.DateField(
+        'Data de Prazo',
+        null=True,
+        blank=True,
+        help_text='Data limite para conclusão',
+    )
+    data_inicio = models.DateTimeField(
+        'Data de Início',
+        null=True,
+        blank=True,
+        help_text='Quando a tarefa foi iniciada (status EM_ANDAMENTO)',
+    )
+    data_conclusao = models.DateTimeField(
+        'Data de Conclusão',
+        null=True,
+        blank=True,
+        help_text='Quando a tarefa foi concluída',
+    )
+    
+    # Referências (para vincular a outros objetos do sistema)
+    protocolo = models.ForeignKey(
+        'Protocolo',
+        on_delete=models.SET_NULL,
+        related_name='tarefas',
+        verbose_name='Protocolo',
+        null=True,
+        blank=True,
+        help_text='Protocolo relacionado (se aplicável)',
+    )
+    requisicao = models.ForeignKey(
+        'DadosRequisicao',
+        on_delete=models.SET_NULL,
+        related_name='tarefas',
+        verbose_name='Requisição',
+        null=True,
+        blank=True,
+        help_text='Requisição relacionada (se aplicável)',
+    )
+    
+    # Observações
+    observacoes = models.TextField(
+        'Observações',
+        blank=True,
+        default='',
+        help_text='Observações adicionais ou histórico de ações',
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Tarefa'
+        verbose_name_plural = 'Tarefas'
+        indexes = [
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['responsavel', 'status']),
+            models.Index(fields=['data_prazo']),
+            models.Index(fields=['origem', '-created_at']),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.codigo} - {self.titulo}'
+
+    def save(self, *args, **kwargs):
+        # Gerar código automaticamente se não existir
+        if not self.codigo:
+            self.codigo = self._gerar_codigo()
+        
+        # Calcular data de prazo baseado no tipo, se não informada
+        if not self.data_prazo and self.tipo:
+            from datetime import timedelta
+            self.data_prazo = timezone.now().date() + timedelta(days=self.tipo.prazo_dias)
+        
+        # Atualizar datas de status
+        if self.pk:
+            old = Tarefa.objects.filter(pk=self.pk).first()
+            if old:
+                # Iniciou a tarefa
+                if old.status == self.Status.A_FAZER and self.status == self.Status.EM_ANDAMENTO:
+                    self.data_inicio = timezone.now()
+                # Concluiu a tarefa
+                if old.status != self.Status.CONCLUIDA and self.status == self.Status.CONCLUIDA:
+                    self.data_conclusao = timezone.now()
+        
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def _gerar_codigo(cls):
+        """Gera código único no formato TAR-YYYYMMDD-XXXX"""
+        from datetime import datetime
+        hoje = datetime.now().strftime('%Y%m%d')
+        prefixo = f'TAR-{hoje}-'
+        
+        ultimo = cls.objects.filter(
+            codigo__startswith=prefixo
+        ).order_by('-codigo').first()
+        
+        if ultimo:
+            try:
+                ultimo_num = int(ultimo.codigo.split('-')[-1])
+                novo_num = ultimo_num + 1
+            except (ValueError, IndexError):
+                novo_num = 1
+        else:
+            novo_num = 1
+        
+        return f'{prefixo}{novo_num:04d}'
+    
+    @property
+    def esta_atrasada(self) -> bool:
+        """Verifica se a tarefa está atrasada"""
+        if self.status in [self.Status.CONCLUIDA, self.Status.CANCELADA]:
+            return False
+        if not self.data_prazo:
+            return False
+        return timezone.now().date() > self.data_prazo
+    
+    @property
+    def dias_restantes(self) -> int | None:
+        """Retorna dias restantes até o prazo (negativo se atrasada)"""
+        if not self.data_prazo:
+            return None
+        return (self.data_prazo - timezone.now().date()).days

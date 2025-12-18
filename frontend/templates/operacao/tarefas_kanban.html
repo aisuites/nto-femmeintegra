@@ -1,0 +1,257 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tarefas - Kanban{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/tarefas_kanban.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="tarefas-container">
+  <!-- Header -->
+  <div class="tarefas-header">
+    <div class="header-left">
+      <h1 class="page-title">📋 Tarefas</h1>
+      <span class="tarefas-contador" id="tarefasContador">0 tarefas</span>
+    </div>
+    <div class="header-right">
+      <div class="filtros-wrapper">
+        <label class="filtro-checkbox">
+          <input type="checkbox" id="filtroMinhasTarefas" checked>
+          <span>Minhas tarefas</span>
+        </label>
+        <select id="filtroResponsavel" class="filtro-select" style="display: none;">
+          <option value="">Todos os responsáveis</option>
+          {% for colaborador in colaboradores %}
+            <option value="{{ colaborador.id }}">{{ colaborador.get_full_name|default:colaborador.username }}</option>
+          {% endfor %}
+        </select>
+        <select id="filtroPrioridade" class="filtro-select">
+          <option value="">Todas prioridades</option>
+          {% for value, label in prioridades %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select id="filtroTipo" class="filtro-select">
+          <option value="">Todos os tipos</option>
+          {% for tipo in tipos_tarefa %}
+            <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if pode_criar_tarefa %}
+      <button type="button" class="btn-nova-tarefa" id="btnNovaTarefa">
+        <span class="btn-icon">+</span>
+        Nova Tarefa
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Kanban Board -->
+  <div class="kanban-board">
+    <!-- Coluna: A Fazer -->
+    <div class="kanban-column" data-status="A_FAZER">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-dot status-a-fazer"></span>
+          A Fazer
+        </div>
+        <span class="column-count" id="countAFazer">0</span>
+      </div>
+      <div class="column-cards" id="cardsAFazer" data-status="A_FAZER">
+        <!-- Cards serão inseridos via JS -->
+      </div>
+    </div>
+
+    <!-- Coluna: Em Andamento -->
+    <div class="kanban-column" data-status="EM_ANDAMENTO">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-dot status-em-andamento"></span>
+          Em Andamento
+        </div>
+        <span class="column-count" id="countEmAndamento">0</span>
+      </div>
+      <div class="column-cards" id="cardsEmAndamento" data-status="EM_ANDAMENTO">
+        <!-- Cards serão inseridos via JS -->
+      </div>
+    </div>
+
+    <!-- Coluna: Concluída -->
+    <div class="kanban-column" data-status="CONCLUIDA">
+      <div class="column-header">
+        <div class="column-title">
+          <span class="status-dot status-concluida"></span>
+          Concluída
+        </div>
+        <span class="column-count" id="countConcluida">0</span>
+      </div>
+      <div class="column-cards" id="cardsConcluida" data-status="CONCLUIDA">
+        <!-- Cards serão inseridos via JS -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova Tarefa -->
+<div class="modal-overlay" id="modalNovaTarefa">
+  <div class="modal-content modal-tarefa">
+    <div class="modal-header">
+      <h2 id="modalTarefaTitulo">Nova Tarefa</h2>
+      <button type="button" class="modal-close" id="btnFecharModal">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="formTarefa">
+        <input type="hidden" id="tarefaId" value="">
+        
+        <div class="form-group">
+          <label for="tarefaTitulo">Título *</label>
+          <input type="text" id="tarefaTitulo" class="form-input" placeholder="Título da tarefa" required maxlength="200">
+        </div>
+
+        <div class="form-group">
+          <label for="tarefaDescricao">Descrição</label>
+          <textarea id="tarefaDescricao" class="form-textarea" placeholder="Descrição detalhada (opcional)" rows="3"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tarefaTipo">Tipo de Tarefa</label>
+            <select id="tarefaTipo" class="form-select">
+              <option value="">Selecione (opcional)</option>
+              {% for tipo in tipos_tarefa %}
+                <option value="{{ tipo.id }}" data-prazo="{{ tipo.prazo_dias }}">{{ tipo.nome }} ({{ tipo.prazo_dias }} dias)</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="tarefaPrioridade">Prioridade *</label>
+            <select id="tarefaPrioridade" class="form-select" required>
+              {% for value, label in prioridades %}
+                <option value="{{ value }}" {% if value == 'MEDIA' %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tarefaResponsavel">Responsável *</label>
+            <select id="tarefaResponsavel" class="form-select" required>
+              <option value="">Selecione...</option>
+              {% for colaborador in colaboradores %}
+                <option value="{{ colaborador.id }}">{{ colaborador.get_full_name|default:colaborador.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="tarefaDataPrazo">Data de Prazo</label>
+            <input type="date" id="tarefaDataPrazo" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="tarefaObservacoes">Observações</label>
+          <textarea id="tarefaObservacoes" class="form-textarea" placeholder="Observações adicionais (opcional)" rows="2"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-cancelar" id="btnCancelarTarefa">Cancelar</button>
+      <button type="button" class="btn-salvar" id="btnSalvarTarefa">Salvar Tarefa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Detalhes da Tarefa -->
+<div class="modal-overlay" id="modalDetalhesTarefa">
+  <div class="modal-content modal-detalhes">
+    <div class="modal-header">
+      <h2 id="detalhesCodigo">TAR-00000000-0000</h2>
+      <button type="button" class="modal-close" id="btnFecharDetalhes">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="detalhes-grid">
+        <div class="detalhe-item">
+          <span class="detalhe-label">Título</span>
+          <span class="detalhe-valor" id="detalhesTitulo">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Descrição</span>
+          <span class="detalhe-valor" id="detalhesDescricao">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Status</span>
+          <span class="detalhe-valor" id="detalhesStatus">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Prioridade</span>
+          <span class="detalhe-valor" id="detalhesPrioridade">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Tipo</span>
+          <span class="detalhe-valor" id="detalhesTipo">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Responsável</span>
+          <span class="detalhe-valor" id="detalhesResponsavel">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Criado por</span>
+          <span class="detalhe-valor" id="detalhesCriadoPor">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Data de Prazo</span>
+          <span class="detalhe-valor" id="detalhesDataPrazo">-</span>
+        </div>
+        <div class="detalhe-item">
+          <span class="detalhe-label">Data de Criação</span>
+          <span class="detalhe-valor" id="detalhesDataCriacao">-</span>
+        </div>
+        <div class="detalhe-item detalhe-full">
+          <span class="detalhe-label">Observações</span>
+          <span class="detalhe-valor" id="detalhesObservacoes">-</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn-cancelar" id="btnCancelarDetalhes">Fechar</button>
+      <button type="button" class="btn-editar" id="btnEditarTarefa">Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Dados do usuário atual
+  window.USUARIO_ATUAL = {
+    id: {{ request.user.id }},
+    username: '{{ request.user.username }}',
+    nome: '{{ request.user.get_full_name|default:request.user.username }}'
+  };
+  
+  // URLs das APIs
+  window.TAREFAS_URLS = {
+    listar: '{% url "operacao:tarefas-api-listar" %}',
+    criar: '{% url "operacao:tarefas-api-criar" %}',
+    obter: '{% url "operacao:tarefas-api-obter" %}',
+    atualizar: '{% url "operacao:tarefas-api-atualizar" %}',
+    atualizarStatus: '{% url "operacao:tarefas-api-atualizar-status" %}',
+    excluir: '{% url "operacao:tarefas-api-excluir" %}',
+    tipos: '{% url "operacao:tarefas-api-tipos" %}',
+    colaboradores: '{% url "operacao:tarefas-api-colaboradores" %}'
+  };
+  
+  // CSRF Token
+  window.CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<script src="{% static 'js/tarefas_kanban.js' %}"></script>
+{% endblock %}

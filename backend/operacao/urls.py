@@ -4,6 +4,7 @@ from . import views
 from . import upload_views
 from . import triagem_views
 from . import protocolo_views
+from . import tarefas_views
 
 app_name = 'operacao'
 
@@ -228,5 +229,51 @@ urlpatterns = [
         'protocolo/enviar-email/',
         protocolo_views.EnviarEmailMedicoView.as_view(),
         name='protocolo-enviar-email',
+    ),
+    # Sistema de Tarefas (Kanban)
+    path(
+        'tarefas/',
+        tarefas_views.TarefasKanbanView.as_view(),
+        name='tarefas-kanban',
+    ),
+    path(
+        'tarefas/api/listar/',
+        tarefas_views.ListarTarefasAPIView.as_view(),
+        name='tarefas-api-listar',
+    ),
+    path(
+        'tarefas/api/criar/',
+        tarefas_views.CriarTarefaAPIView.as_view(),
+        name='tarefas-api-criar',
+    ),
+    path(
+        'tarefas/api/obter/',
+        tarefas_views.ObterTarefaAPIView.as_view(),
+        name='tarefas-api-obter',
+    ),
+    path(
+        'tarefas/api/atualizar/',
+        tarefas_views.AtualizarTarefaAPIView.as_view(),
+        name='tarefas-api-atualizar',
+    ),
+    path(
+        'tarefas/api/atualizar-status/',
+        tarefas_views.AtualizarStatusTarefaAPIView.as_view(),
+        name='tarefas-api-atualizar-status',
+    ),
+    path(
+        'tarefas/api/excluir/',
+        tarefas_views.ExcluirTarefaAPIView.as_view(),
+        name='tarefas-api-excluir',
+    ),
+    path(
+        'tarefas/api/tipos/',
+        tarefas_views.ListarTiposTarefaAPIView.as_view(),
+        name='tarefas-api-tipos',
+    ),
+    path(
+        'tarefas/api/colaboradores/',
+        tarefas_views.ListarColaboradoresAPIView.as_view(),
+        name='tarefas-api-colaboradores',
     ),
 ]
