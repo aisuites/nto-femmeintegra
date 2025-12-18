@@ -1960,3 +1960,345 @@ class RetornarEtapaView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro ao retornar para etapa anterior.'},
                 status=500
             )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='GET'), name='dispatch')
+class ValidarMedicoCompletoView(LoginRequiredMixin, View):
+    """
+    Validação completa de médico com fallback.
+    
+    Fluxo:
+    1. Tenta API FEMME (retorna destino)
+    2. Se falhar, tenta API KORUS (verifica se médico existe)
+    3. Retorna código específico do erro
+    
+    GET /operacao/triagem/validar-medico-completo/?crm=XXX&uf_crm=YY
+    
+    Response (sucesso - médico com destino):
+        {
+            "status": "success",
+            "medico": {
+                "id_medico": "123",
+                "nome_medico": "NOME",
+                "crm": "12345",
+                "uf_crm": "SP",
+                "endereco": "LOGRADOURO",
+                "destino": "INTERNET"
+            }
+        }
+    
+    Response (erro - médico existe mas sem destino):
+        {
+            "status": "error",
+            "code": "medico_sem_destino",
+            "message": "Médico encontrado na base, mas sem destino configurado.",
+            "medico": {
+                "id": 123,
+                "nome": "NOME",
+                "crm": "12345",
+                "uf": "SP"
+            }
+        }
+    
+    Response (erro - médico não encontrado):
+        {
+            "status": "error",
+            "code": "medico_nao_encontrado",
+            "message": "Médico não encontrado na base."
+        }
+    """
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        crm = request.GET.get('crm', '').strip()
+        uf_crm = request.GET.get('uf_crm', '').strip().upper()
+        
+        if not crm:
+            return JsonResponse(
+                {'status': 'error', 'code': 'validation', 'message': 'CRM não informado.'},
+                status=400
+            )
+        
+        if not uf_crm:
+            return JsonResponse(
+                {'status': 'error', 'code': 'validation', 'message': 'UF do CRM não informada.'},
+                status=400
+            )
+        
+        # ETAPA 1: Tentar API FEMME (retorna destino)
+        try:
+            femme_client = get_femme_client()
+            response_femme = femme_client.buscar_medico(crm, uf_crm)
+            
+            if response_femme.success and response_femme.data:
+                medicos = response_femme.data
+                if medicos and len(medicos) > 0:
+                    med = medicos[0]
+                    destino = med.get('destino', '')
+                    
+                    # Verificar se tem destino
+                    if destino:
+                        # Sucesso completo - médico com destino
+                        logger.info(f"Médico validado com destino - CRM: {crm}-{uf_crm}, Destino: {destino}")
+                        return JsonResponse({
+                            'status': 'success',
+                            'medico': {
+                                'id_medico': med.get('id_medico', ''),
+                                'nome_medico': med.get('nome_medico', ''),
+                                'crm': med.get('crm', crm),
+                                'uf_crm': med.get('uf_crm', uf_crm).upper(),
+                                'endereco': med.get('logradouro', ''),
+                                'destino': destino,
+                            }
+                        })
+                    else:
+                        # Médico existe na FEMME mas sem destino
+                        logger.warning(f"Médico sem destino - CRM: {crm}-{uf_crm}")
+                        return JsonResponse({
+                            'status': 'error',
+                            'code': 'medico_sem_destino',
+                            'message': 'Médico encontrado na base, mas sem destino configurado.',
+                            'medico': {
+                                'id_medico': med.get('id_medico', ''),
+                                'nome_medico': med.get('nome_medico', ''),
+                                'crm': med.get('crm', crm),
+                                'uf_crm': med.get('uf_crm', uf_crm).upper(),
+                                'endereco': med.get('logradouro', ''),
+                            }
+                        }, status=200)  # 200 pois não é erro de servidor
+        except Exception as e:
+            logger.warning(f"Erro ao consultar API FEMME: {str(e)}")
+            # Continua para tentar API KORUS
+        
+        # ETAPA 2: API FEMME falhou - tentar API KORUS para verificar se médico existe
+        try:
+            korus_client = get_korus_client()
+            response_korus = korus_client.buscar_medico_por_crm(crm, uf_crm)
+            
+            if response_korus.success:
+                medico_korus = response_korus.data.get('medico', {})
+                # Médico existe na KORUS mas não na FEMME (ou sem destino)
+                logger.warning(f"Médico encontrado na KORUS mas não na FEMME - CRM: {crm}-{uf_crm}")
+                return JsonResponse({
+                    'status': 'error',
+                    'code': 'medico_sem_destino',
+                    'message': 'Médico encontrado na base, mas sem destino configurado.',
+                    'medico': {
+                        'id': medico_korus.get('id', ''),
+                        'nome_medico': medico_korus.get('nome', ''),
+                        'crm': medico_korus.get('crm', crm),
+                        'uf_crm': medico_korus.get('uf', uf_crm).upper(),
+                    }
+                }, status=200)
+            
+            # Verificar se é caso de múltiplos médicos
+            if response_korus.data and response_korus.data.get('quantidade', 0) > 1:
+                return JsonResponse({
+                    'status': 'error',
+                    'code': 'medico_duplicado',
+                    'message': response_korus.error,
+                    'medicos': response_korus.data.get('medicos', []),
+                    'quantidade': response_korus.data.get('quantidade', 0)
+                }, status=200)
+                
+        except Exception as e:
+            logger.error(f"Erro ao consultar API KORUS: {str(e)}", exc_info=True)
+        
+        # ETAPA 3: Médico não encontrado em nenhuma base
+        logger.warning(f"Médico não encontrado - CRM: {crm}-{uf_crm}")
+        return JsonResponse({
+            'status': 'error',
+            'code': 'medico_nao_encontrado',
+            'message': 'Médico não encontrado na base.'
+        }, status=404)
+
+
+@method_decorator(ratelimit(key='user', rate='10/m', method='POST'), name='dispatch')
+class RegistrarPendenciaMedicoView(LoginRequiredMixin, View):
+    """
+    Registra pendência de médico (sem destino ou não cadastrado).
+    Cria pendência, envia email, cria tarefa e notificação.
+    
+    POST /operacao/triagem/registrar-pendencia-medico/
+    Body: {
+        "requisicao_id": 123,
+        "tipo_pendencia": "medico_sem_destino" ou "medico_nao_encontrado",
+        "crm": "12345",
+        "uf_crm": "SP",
+        "nome_medico": "NOME DO MÉDICO" (opcional)
+    }
+    """
+    login_url = 'admin:login'
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'JSON inválido.'},
+                status=400
+            )
+        
+        requisicao_id = data.get('requisicao_id')
+        tipo_pendencia_codigo = data.get('tipo_pendencia', '')
+        crm = data.get('crm', '').strip()
+        uf_crm = data.get('uf_crm', '').strip().upper()
+        nome_medico = data.get('nome_medico', '').strip()
+        
+        if not requisicao_id:
+            return JsonResponse(
+                {'status': 'error', 'message': 'ID da requisição não informado.'},
+                status=400
+            )
+        
+        if not tipo_pendencia_codigo:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Tipo de pendência não informado.'},
+                status=400
+            )
+        
+        try:
+            requisicao = DadosRequisicao.objects.select_related('status').get(id=requisicao_id)
+        except DadosRequisicao.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Requisição não encontrada.'},
+                status=404
+            )
+        
+        # Mapear tipo de pendência
+        tipo_pendencia_map = {
+            'medico_sem_destino': 19,  # MÉDICO SEM DESTINO
+            'medico_nao_encontrado': 7,  # MÉDICO NÃO CADASTRADO
+        }
+        
+        tipo_pendencia_id = tipo_pendencia_map.get(tipo_pendencia_codigo)
+        if not tipo_pendencia_id:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Tipo de pendência inválido.'},
+                status=400
+            )
+        
+        try:
+            tipo_pendencia = TipoPendencia.objects.get(id=tipo_pendencia_id)
+        except TipoPendencia.DoesNotExist:
+            return JsonResponse(
+                {'status': 'error', 'message': 'Tipo de pendência não encontrado no sistema.'},
+                status=500
+            )
+        
+        # 1. Criar pendência
+        pendencia, created = Pendencia.objects.get_or_create(
+            requisicao=requisicao,
+            tipo_pendencia=tipo_pendencia,
+            defaults={
+                'cod_barras_requisicao': requisicao.cod_req,
+                'observacao': f"CRM: {crm}-{uf_crm}" + (f" - {nome_medico}" if nome_medico else ""),
+                'created_by': request.user,
+            }
+        )
+        
+        if created:
+            logger.info(f"Pendência criada - Requisição: {requisicao.cod_req}, Tipo: {tipo_pendencia.descricao}")
+        
+        # 2. Marcar flag de problema com médico
+        requisicao.flag_problema_medico = True
+        
+        # 3. Salvar CRM e UF mesmo com problema
+        requisicao.crm = crm
+        requisicao.uf_crm = uf_crm
+        if nome_medico:
+            requisicao.nome_medico = nome_medico
+        
+        # 4. Alterar status para PENDÊNCIA
+        try:
+            status_pendencia = StatusRequisicao.objects.get(id=StatusRequisicao.STATUS_PENDENCIA)
+            requisicao.status = status_pendencia
+        except StatusRequisicao.DoesNotExist:
+            logger.warning("Status PENDÊNCIA não encontrado")
+        
+        requisicao.updated_by = request.user
+        requisicao.save()
+        
+        # 5. Enviar email
+        email_enviado = False
+        try:
+            from core.models import ConfiguracaoEmail
+            from core.services.email_service import get_email_service
+            
+            config_email = ConfiguracaoEmail.objects.filter(
+                tipo=tipo_pendencia_codigo,
+                ativo=True
+            ).first()
+            
+            if config_email:
+                email_service = get_email_service()
+                contexto = {
+                    'crm': crm,
+                    'uf': uf_crm,
+                    'nome_medico': nome_medico or 'Não informado',
+                    'requisicao': requisicao.cod_req,
+                    'usuario': request.user.get_full_name() or request.user.username,
+                    'data': datetime.now().strftime('%d/%m/%Y %H:%M'),
+                }
+                
+                assunto = config_email.renderizar_assunto(contexto)
+                corpo = config_email.renderizar_corpo(contexto)
+                
+                email_service.enviar_email(
+                    destinatarios=config_email.get_emails_destino_list(),
+                    assunto=assunto,
+                    corpo_html=corpo,
+                    reply_to=config_email.email_resposta or None
+                )
+                email_enviado = True
+                logger.info(f"Email enviado para pendência de médico - CRM: {crm}-{uf_crm}")
+        except Exception as e:
+            logger.error(f"Erro ao enviar email de pendência de médico: {str(e)}", exc_info=True)
+        
+        # 6. Criar tarefa automática via EventoTarefa
+        tarefa_criada = False
+        try:
+            evento_codigo = 'MEDICO_NAO_ENCONTRADO' if tipo_pendencia_codigo == 'medico_nao_encontrado' else 'MEDICO_SEM_DESTINO'
+            evento = EventoTarefa.objects.filter(codigo_evento=evento_codigo, ativo=True).first()
+            
+            if evento:
+                tarefa = evento.criar_tarefa(
+                    usuario_origem=request.user,
+                    contexto={
+                        'crm': crm,
+                        'uf': uf_crm,
+                        'nome_medico': nome_medico or 'Não informado',
+                        'requisicao': requisicao.cod_req,
+                    }
+                )
+                if tarefa:
+                    tarefa_criada = True
+                    logger.info(f"Tarefa criada para pendência de médico - CRM: {crm}-{uf_crm}")
+        except Exception as e:
+            logger.error(f"Erro ao criar tarefa de pendência de médico: {str(e)}", exc_info=True)
+        
+        # 7. Criar notificação
+        notificacao_criada = False
+        try:
+            from operacao.models import Notificacao
+            
+            Notificacao.objects.create(
+                usuario=request.user,
+                tipo='pendencia',
+                titulo=f"Pendência registrada: {tipo_pendencia.descricao}",
+                mensagem=f"Requisição {requisicao.cod_req} - CRM: {crm}-{uf_crm}",
+                lida=False,
+                created_by=request.user,
+            )
+            notificacao_criada = True
+        except Exception as e:
+            logger.error(f"Erro ao criar notificação: {str(e)}", exc_info=True)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Pendência registrada com sucesso.',
+            'pendencia_id': pendencia.id,
+            'email_enviado': email_enviado,
+            'tarefa_criada': tarefa_criada,
+            'notificacao_criada': notificacao_criada,
+        })

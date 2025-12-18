@@ -192,6 +192,7 @@ class ConfiguracaoEmail(TimeStampedModel):
     class TipoEmail(models.TextChoices):
         MEDICO_DUPLICADO = 'medico_duplicado', 'Médico Duplicado'
         MEDICO_NAO_ENCONTRADO = 'medico_nao_encontrado', 'Médico Não Encontrado'
+        MEDICO_SEM_DESTINO = 'medico_sem_destino', 'Médico Sem Destino'
         NOTIFICACAO_GERAL = 'notificacao_geral', 'Notificação Geral'
     
     tipo = models.CharField(
