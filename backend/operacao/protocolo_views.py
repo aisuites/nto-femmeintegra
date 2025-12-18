@@ -50,10 +50,21 @@ class CadastroProtocoloView(LoginRequiredMixin, TemplateView):
             ativo=True
         ).select_related('unidade', 'origem').order_by('nome')
         
-        # Unidade padrão do usuário (se houver)
+        # Unidade padrão: EXTERNOS (ou a do usuário se configurada)
         context['unidade_padrao'] = None
-        if hasattr(self.request.user, 'unidade_padrao'):
+        if hasattr(self.request.user, 'unidade_padrao') and self.request.user.unidade_padrao:
             context['unidade_padrao'] = self.request.user.unidade_padrao
+        else:
+            # Buscar unidade EXTERNOS como padrão
+            unidade_externos = Unidade.objects.filter(
+                codigo__iexact='EXTERNOS', ativo=True
+            ).first()
+            if not unidade_externos:
+                # Tentar pelo nome se não encontrar pelo código
+                unidade_externos = Unidade.objects.filter(
+                    nome__icontains='EXTERNOS', ativo=True
+                ).first()
+            context['unidade_padrao'] = unidade_externos
         
         # Lista de UFs para o dropdown
         context['ufs'] = [

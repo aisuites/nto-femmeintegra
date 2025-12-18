@@ -55,7 +55,8 @@
     // Estado do modal de email
     emailTipo: '',
     medicosEncontrados: [],
-    emailResposta: ''  // Reply-To configurado no template
+    emailResposta: '',  // Reply-To configurado no template
+    emailEnviado: false  // Flag para permitir salvar após envio de email
   };
 
   // ============================================
@@ -224,6 +225,15 @@
   // ============================================
   
   function setupMedicoListeners() {
+    // CRM - apenas números
+    const crmInput = elements.crmMedico();
+    if (crmInput) {
+      crmInput.addEventListener('input', (e) => {
+        // Remove tudo que não for número
+        e.target.value = e.target.value.replace(/\D/g, '');
+      });
+    }
+    
     // Dropdown UF
     const ufInput = elements.ufCrm();
     const ufWrapper = elements.ufCrmWrapper();
@@ -736,8 +746,9 @@
       erros.push('Selecione a UF do CRM.');
     }
     
-    if (!nomeMedico) {
-      erros.push('Valide o médico antes de salvar.');
+    // Validar médico: precisa estar validado OU ter enviado email de pendência
+    if (!nomeMedico && !state.emailEnviado) {
+      erros.push('Valide o médico antes de salvar ou envie um email de pendência.');
     }
     
     if (!state.arquivoFile) {
@@ -993,6 +1004,9 @@
       
       if (data.status === 'success') {
         console.log('[CadastroProtocolo] Email enviado com sucesso');
+        
+        // Marcar que email foi enviado (permite salvar sem médico validado)
+        state.emailEnviado = true;
         
         // Fechar modal
         fecharModalEmail();
