@@ -1345,3 +1345,196 @@ class Tarefa(TimeStampedModel):
         if not self.data_prazo:
             return None
         return (self.data_prazo - timezone.now().date()).days
+
+
+class EventoTarefa(TimeStampedModel):
+    """
+    Configuração de tarefas automáticas criadas por eventos do sistema.
+    Permite personalizar via Admin: título, descrição, prioridade, responsável.
+    
+    Variáveis disponíveis nos templates:
+    - {crm}: CRM do médico
+    - {uf}: UF do CRM
+    - {protocolo}: Número do protocolo
+    - {usuario}: Nome do usuário que disparou o evento
+    - {data}: Data atual formatada
+    """
+    
+    class ResponsavelTipo(models.TextChoices):
+        EMAIL_DESTINO = 'EMAIL_DESTINO', 'Destinatário do Email (ConfiguracaoEmail)'
+        USUARIO_ACAO = 'USUARIO_ACAO', 'Usuário que realizou a ação'
+        USUARIO_FIXO = 'USUARIO_FIXO', 'Usuário específico'
+    
+    # Identificação do evento
+    codigo_evento = models.CharField(
+        'Código do Evento',
+        max_length=50,
+        unique=True,
+        help_text='Código único do evento (ex: MEDICO_NAO_ENCONTRADO)',
+    )
+    nome = models.CharField(
+        'Nome do Evento',
+        max_length=150,
+        help_text='Nome descritivo do evento',
+    )
+    descricao_evento = models.TextField(
+        'Descrição do Evento',
+        blank=True,
+        default='',
+        help_text='Quando este evento é disparado',
+    )
+    
+    # Configuração da tarefa a ser criada
+    tipo_tarefa = models.ForeignKey(
+        TipoTarefa,
+        on_delete=models.PROTECT,
+        related_name='eventos',
+        verbose_name='Tipo de Tarefa',
+        help_text='Tipo da tarefa que será criada',
+    )
+    titulo_template = models.CharField(
+        'Template do Título',
+        max_length=200,
+        help_text='Título da tarefa. Use {crm}, {uf}, {protocolo}, {usuario}, {data}',
+    )
+    descricao_template = models.TextField(
+        'Template da Descrição',
+        blank=True,
+        default='',
+        help_text='Descrição da tarefa. Use {crm}, {uf}, {protocolo}, {usuario}, {data}',
+    )
+    prioridade = models.CharField(
+        'Prioridade',
+        max_length=20,
+        choices=Tarefa.Prioridade.choices,
+        default=Tarefa.Prioridade.MEDIA,
+        help_text='Prioridade da tarefa criada',
+    )
+    
+    # Configuração do responsável
+    responsavel_tipo = models.CharField(
+        'Tipo de Responsável',
+        max_length=20,
+        choices=ResponsavelTipo.choices,
+        default=ResponsavelTipo.EMAIL_DESTINO,
+        help_text='Como determinar o responsável pela tarefa',
+    )
+    responsavel_fixo = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='eventos_tarefa_responsavel',
+        verbose_name='Responsável Fixo',
+        null=True,
+        blank=True,
+        help_text='Usuário fixo (apenas se Tipo = Usuário específico)',
+    )
+    tipo_email = models.CharField(
+        'Tipo de Email (ConfiguracaoEmail)',
+        max_length=50,
+        blank=True,
+        default='',
+        help_text='Tipo do email para buscar destinatário (ex: medico_nao_encontrado)',
+    )
+    
+    # Controle
+    ativo = models.BooleanField(
+        'Ativo',
+        default=True,
+        help_text='Se desativado, o evento não criará tarefas',
+    )
+    
+    class Meta:
+        ordering = ['nome']
+        verbose_name = 'Evento de Tarefa Automática'
+        verbose_name_plural = 'Eventos de Tarefas Automáticas'
+    
+    def __str__(self) -> str:
+        status = '✓' if self.ativo else '✗'
+        return f'{status} {self.nome} → {self.tipo_tarefa.nome}'
+    
+    def criar_tarefa(self, dados: dict, usuario_acao=None) -> 'Tarefa':
+        """
+        Cria uma tarefa baseada neste evento.
+        
+        Args:
+            dados: Dicionário com variáveis para substituição (crm, uf, protocolo, etc)
+            usuario_acao: Usuário que disparou o evento (para ResponsavelTipo.USUARIO_ACAO)
+        
+        Returns:
+            Tarefa criada
+        """
+        from datetime import datetime
+        from core.models import ConfiguracaoEmail
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        
+        # Preparar dados para substituição
+        dados_sub = {
+            'crm': dados.get('crm', ''),
+            'uf': dados.get('uf', ''),
+            'protocolo': dados.get('protocolo', ''),
+            'usuario': usuario_acao.get_full_name() if usuario_acao else '',
+            'data': datetime.now().strftime('%d/%m/%Y'),
+            **dados  # Permite dados extras
+        }
+        
+        # Substituir variáveis nos templates
+        titulo = self.titulo_template.format(**dados_sub)
+        descricao = self.descricao_template.format(**dados_sub)
+        
+        # Determinar responsável
+        responsavel = None
+        
+        if self.responsavel_tipo == self.ResponsavelTipo.USUARIO_FIXO:
+            responsavel = self.responsavel_fixo
+        
+        elif self.responsavel_tipo == self.ResponsavelTipo.USUARIO_ACAO:
+            responsavel = usuario_acao
+        
+        elif self.responsavel_tipo == self.ResponsavelTipo.EMAIL_DESTINO:
+            # Buscar usuário pelo email de destino da configuração
+            if self.tipo_email:
+                try:
+                    config = ConfiguracaoEmail.objects.get(tipo=self.tipo_email, ativo=True)
+                    emails = config.get_emails_destino_list()
+                    if emails:
+                        # Tentar encontrar usuário com esse email
+                        responsavel = User.objects.filter(email__in=emails, is_active=True).first()
+                except ConfiguracaoEmail.DoesNotExist:
+                    pass
+        
+        # Se não encontrou responsável, usar o usuário da ação
+        if not responsavel:
+            responsavel = usuario_acao
+        
+        # Criar a tarefa
+        tarefa = Tarefa.objects.create(
+            titulo=titulo,
+            descricao=descricao,
+            tipo=self.tipo_tarefa,
+            status=Tarefa.Status.A_FAZER,
+            prioridade=self.prioridade,
+            origem=Tarefa.Origem.SISTEMA,
+            criado_por=None,  # Sistema
+            responsavel=responsavel,
+            protocolo_id=dados.get('protocolo_id'),
+            requisicao_id=dados.get('requisicao_id'),
+            observacoes=f'Tarefa criada automaticamente pelo evento: {self.nome}',
+        )
+        
+        # Criar notificação para o responsável
+        if responsavel:
+            Notificacao.objects.create(
+                usuario=responsavel,
+                tipo='TAREFA',
+                titulo='Nova tarefa automática',
+                mensagem=f'Uma tarefa foi criada automaticamente: {tarefa.titulo}',
+                dados={
+                    'tarefa_id': tarefa.id,
+                    'tarefa_codigo': tarefa.codigo,
+                    'evento': self.codigo_evento,
+                }
+            )
+        
+        return tarefa

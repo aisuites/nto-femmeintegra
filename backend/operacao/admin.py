@@ -3,6 +3,7 @@ from django.core.cache import cache
 
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
+    EventoTarefa,
     LogAlteracaoAmostra,
     LogRecebimento,
     MotivoArmazenamentoInadequado,
@@ -526,3 +527,41 @@ class TarefaAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'tipo', 'responsavel', 'criado_por', 'protocolo', 'requisicao'
         )
+
+
+@admin.register(EventoTarefa)
+class EventoTarefaAdmin(admin.ModelAdmin):
+    """Admin para configurar tarefas automáticas por eventos do sistema."""
+    list_display = (
+        'nome', 'codigo_evento', 'tipo_tarefa', 'prioridade', 
+        'responsavel_tipo', 'ativo', 'created_at_formatted'
+    )
+    list_filter = ('ativo', 'prioridade', 'responsavel_tipo', 'tipo_tarefa')
+    search_fields = ('codigo_evento', 'nome', 'titulo_template', 'descricao_template')
+    ordering = ('nome',)
+    list_editable = ('ativo', 'prioridade')
+    list_per_page = 20
+    
+    fieldsets = (
+        ('Identificação do Evento', {
+            'fields': ('codigo_evento', 'nome', 'descricao_evento', 'ativo'),
+            'description': 'Defina o código único do evento que dispara a criação da tarefa.'
+        }),
+        ('Configuração da Tarefa', {
+            'fields': ('tipo_tarefa', 'titulo_template', 'descricao_template', 'prioridade'),
+            'description': 'Configure como a tarefa será criada. Use variáveis: {crm}, {uf}, {protocolo}, {usuario}, {data}'
+        }),
+        ('Responsável', {
+            'fields': ('responsavel_tipo', 'responsavel_fixo', 'tipo_email'),
+            'description': 'Defina quem receberá a tarefa criada automaticamente.'
+        }),
+    )
+    
+    def created_at_formatted(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%d/%m/%Y %H:%M')
+        return '-'
+    created_at_formatted.short_description = 'Criado em'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('tipo_tarefa', 'responsavel_fixo')
