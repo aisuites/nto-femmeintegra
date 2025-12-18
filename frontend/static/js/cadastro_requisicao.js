@@ -109,11 +109,14 @@ function formatarTelefone(tel) {
 function formatarData(dataInput) {
   if (!dataInput) return '';
   
-  let data;
-  
   // Se já está no formato yyyy-mm-dd, retornar diretamente
   if (/^\d{4}-\d{2}-\d{2}$/.test(dataInput)) {
     return dataInput;
+  }
+  
+  // Se está no formato yyyy-mm-ddThh:mm:ss (ISO com timestamp), extrair apenas a data
+  if (/^\d{4}-\d{2}-\d{2}T/.test(dataInput)) {
+    return dataInput.split('T')[0];
   }
   
   // Se está no formato dd/mm/yyyy (Receita Federal)
@@ -124,7 +127,7 @@ function formatarData(dataInput) {
   
   // Tentar parsear como ISO
   try {
-    data = new Date(dataInput + 'T00:00:00');
+    const data = new Date(dataInput);
     if (isNaN(data.getTime())) {
       return '';
     }
@@ -507,7 +510,15 @@ async function consultarCpfKorus() {
       nomePaciente.value = pac.nome || '';
       dataNascimento.value = pac.data_nascimento ? formatarData(pac.data_nascimento) : '';
       emailPaciente.value = pac.email || '';
-      sexoPaciente.value = pac.sexo || '';
+      
+      // Converter sexo de 'Feminino'/'Masculino' para 'F'/'M'
+      let sexoValor = pac.sexo || '';
+      if (sexoValor.toLowerCase() === 'feminino') {
+        sexoValor = 'F';
+      } else if (sexoValor.toLowerCase() === 'masculino') {
+        sexoValor = 'M';
+      }
+      sexoPaciente.value = sexoValor;
       
       console.log('[Cadastro] Campos preenchidos - nome:', nomePaciente.value, 'dataNasc:', dataNascimento.value, 'sexo:', sexoPaciente.value);
       
