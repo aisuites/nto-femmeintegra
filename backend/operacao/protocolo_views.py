@@ -382,7 +382,9 @@ class SalvarProtocoloView(LoginRequiredMixin, View):
             if not uf_crm or len(uf_crm) != 2:
                 erros.append('UF do CRM inválida.')
             
-            if not nome_medico:
+            # Nome do médico é obrigatório apenas se médico foi validado
+            # Se não foi validado, significa que foi enviado email de pendência
+            if not nome_medico and medico_validado:
                 erros.append('Nome do médico não informado.')
             
             if not arquivo_url:

@@ -1001,7 +1001,9 @@ class Protocolo(AuditModel):
     nome_medico = models.CharField(
         'Nome do Médico',
         max_length=200,
-        help_text='Nome completo do médico',
+        blank=True,
+        default='',
+        help_text='Nome completo do médico (vazio se pendente de validação)',
     )
     medico_validado = models.BooleanField(
         'Médico Validado',
