@@ -22,6 +22,10 @@
           <input type="checkbox" id="filtroMinhasTarefas" checked>
           <span>Minhas tarefas</span>
         </label>
+        <label class="filtro-checkbox">
+          <input type="checkbox" id="filtroTarefasDelegadas">
+          <span>Tarefas que deleguei</span>
+        </label>
         <select id="filtroResponsavel" class="filtro-select" style="display: none;">
           <option value="">Todos os responsáveis</option>
           {% for colaborador in colaboradores %}

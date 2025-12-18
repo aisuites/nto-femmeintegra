@@ -12,6 +12,7 @@
     tarefas: [],
     filtros: {
       minhasTarefas: true,
+      tarefasDelegadas: false,
       responsavelId: null,
       prioridade: null,
       tipoId: null,
@@ -26,6 +27,7 @@
   const elements = {
     // Filtros
     filtroMinhasTarefas: () => document.getElementById('filtroMinhasTarefas'),
+    filtroTarefasDelegadas: () => document.getElementById('filtroTarefasDelegadas'),
     filtroResponsavel: () => document.getElementById('filtroResponsavel'),
     filtroPrioridade: () => document.getElementById('filtroPrioridade'),
     filtroTipo: () => document.getElementById('filtroTipo'),
@@ -97,6 +99,11 @@
     const filtroMinhas = elements.filtroMinhasTarefas();
     if (filtroMinhas) {
       filtroMinhas.addEventListener('change', handleFiltroMinhasTarefas);
+    }
+    
+    const filtroDelegadas = elements.filtroTarefasDelegadas();
+    if (filtroDelegadas) {
+      filtroDelegadas.addEventListener('change', handleFiltroTarefasDelegadas);
     }
     
     const filtroResp = elements.filtroResponsavel();
@@ -290,6 +297,11 @@
     carregarTarefas();
   }
 
+  function handleFiltroTarefasDelegadas(e) {
+    state.filtros.tarefasDelegadas = e.target.checked;
+    carregarTarefas();
+  }
+
   function handleFiltroChange() {
     state.filtros.responsavelId = elements.filtroResponsavel()?.value || null;
     state.filtros.prioridade = elements.filtroPrioridade()?.value || null;
@@ -313,6 +325,10 @@
         params.append('minhas_tarefas', 'true');
       } else if (state.filtros.responsavelId) {
         params.append('responsavel_id', state.filtros.responsavelId);
+      }
+      
+      if (state.filtros.tarefasDelegadas) {
+        params.append('tarefas_delegadas', 'true');
       }
       
       if (state.filtros.prioridade) {

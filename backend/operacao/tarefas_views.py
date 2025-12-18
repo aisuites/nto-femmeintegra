@@ -57,6 +57,7 @@ class ListarTarefasAPIView(View):
             prioridade = request.GET.get('prioridade')
             tipo_id = request.GET.get('tipo_id')
             minhas_tarefas = request.GET.get('minhas_tarefas') == 'true'
+            tarefas_delegadas = request.GET.get('tarefas_delegadas') == 'true'
             
             # Query base
             tarefas = Tarefa.objects.select_related(
@@ -68,6 +69,14 @@ class ListarTarefasAPIView(View):
                 tarefas = tarefas.filter(responsavel=request.user)
             elif responsavel_id:
                 tarefas = tarefas.filter(responsavel_id=responsavel_id)
+            
+            # Filtro: tarefas que o usuário criou para outros (delegou)
+            if tarefas_delegadas and request.user.is_authenticated:
+                tarefas = tarefas.filter(
+                    criado_por=request.user
+                ).exclude(
+                    responsavel=request.user
+                )
             
             if status:
                 tarefas = tarefas.filter(status=status)
