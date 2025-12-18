@@ -206,12 +206,6 @@ function limparFormulario() {
   checkFrascoTrocado.checked = false;
   checkMaterialNaoAnalisado.checked = false;
   
-  // Desabilitar dropdown de motivo (select antigo, se existir)
-  if (selectMotivoArmazenamento) {
-    selectMotivoArmazenamento.disabled = true;
-    selectMotivoArmazenamento.value = '';
-  }
-  
   // Limpar multiselect de motivos de armazenamento inadequado
   if (multiselectMotivo) {
     // Desmarcar todos os checkboxes

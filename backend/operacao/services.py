@@ -25,13 +25,13 @@ logger = logging.getLogger(__name__)
 # ============================================
 
 # Status que bloqueiam novo recebimento de requisição
-# Adicione ou remova códigos conforme necessário
+# Requisições com estes status já passaram pelo recebimento e não podem ser recebidas novamente
 STATUS_BLOQUEIO_RECEBIMENTO = [
     '2',   # RECEBIDO - Requisição já foi recebida e finalizada
-    # '3',   # CAIXA LIDERANÇA - Descomentar quando implementado
-    # '4',   # CAIXA BO - Descomentar quando implementado
-    # '7',   # TRIAGEM1-OK - Descomentar quando implementado
-    # '8',   # TRIAGEM2-OK - Descomentar quando implementado
+    '7',   # TRIAGEM1-OK - Passou pela triagem etapa 1
+    '8',   # TRIAGEM2-OK - Passou pela triagem etapa 2
+    '12',  # CADASTRADA - Requisição já foi cadastrada
+    '99',  # REJEITADA - Requisição foi rejeitada
 ]
 
 
