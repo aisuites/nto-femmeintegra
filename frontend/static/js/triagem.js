@@ -351,11 +351,11 @@ btnLocalizar.addEventListener('click', async () => {
         carregarRequisicao(data.requisicao);
       }
     } else if (data.status === 'not_found') {
+      limparFormulario();
       mostrarMensagemErroLocalizacao(data.message || 'Requisição não encontrada no sistema.');
-      limparFormulario();
     } else if (data.status === 'not_eligible') {
-      mostrarMensagemErroLocalizacao(data.message);
       limparFormulario();
+      mostrarMensagemErroLocalizacao(data.message);
     } else {
       mostrarMensagemErroLocalizacao(data.message || 'Erro ao localizar requisição.');
     }
