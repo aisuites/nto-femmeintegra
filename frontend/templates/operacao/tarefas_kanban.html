@@ -7,8 +7,9 @@
 <link rel="stylesheet" href="{% static 'css/tarefas_kanban.css' %}" />
 {% endblock %}
 
-{% block content %}
-<div class="tarefas-container">
+{% block main_content %}
+<div class="page">
+  <section class="tarefas-wrapper">
   <!-- Header -->
   <div class="tarefas-header">
     <div class="header-left">
@@ -93,6 +94,7 @@
       </div>
     </div>
   </div>
+  </section>
 </div>
 
 <!-- Modal: Nova Tarefa -->
@@ -229,7 +231,7 @@
 <div id="toastContainer"></div>
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
 <script>
   // Dados do usuário atual
   window.USUARIO_ATUAL = {

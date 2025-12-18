@@ -3,11 +3,10 @@
    ============================================ */
 
 /* Container Principal */
-.tarefas-container {
+.tarefas-wrapper {
   padding: 24px;
   max-width: 100%;
   min-height: calc(100vh - 120px);
-  background: #f8fafc;
 }
 
 /* Header */
