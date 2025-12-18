@@ -414,6 +414,9 @@ class SalvarProtocoloView(LoginRequiredMixin, View):
                     status=404
                 )
             
+            # Definir status baseado na validação do médico
+            status_protocolo = Protocolo.Status.PROCESSADO if medico_validado else Protocolo.Status.PENDENTE
+            
             # Criar protocolo
             protocolo = Protocolo.objects.create(
                 unidade=unidade,
@@ -426,6 +429,7 @@ class SalvarProtocoloView(LoginRequiredMixin, View):
                 arquivo_url=arquivo_url,
                 arquivo_nome=arquivo_nome or 'documento.pdf',
                 observacao=observacao,
+                status=status_protocolo,
                 created_by=request.user,
                 updated_by=request.user,
             )

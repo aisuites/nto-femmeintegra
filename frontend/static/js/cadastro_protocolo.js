@@ -843,18 +843,32 @@
   }
 
   function showAlertSucesso(message) {
-    const alert = elements.alertSucesso();
-    const messageEl = elements.alertSucessoMessage();
-    if (alert && messageEl) {
-      messageEl.textContent = message;
-      alert.style.display = 'block';
+    // Criar toast no canto superior direito (padrão do sistema)
+    const existingToast = document.querySelector('.toast-protocolo');
+    if (existingToast) {
+      existingToast.remove();
     }
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast-protocolo';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Scroll para o topo
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Remover após 4 segundos
+    setTimeout(() => {
+      toast.classList.add('toast-hide');
+      setTimeout(() => toast.remove(), 300);
+    }, 4000);
   }
 
   function hideAlertSucesso() {
-    const alert = elements.alertSucesso();
-    if (alert) {
-      alert.style.display = 'none';
+    const toast = document.querySelector('.toast-protocolo');
+    if (toast) {
+      toast.classList.add('toast-hide');
+      setTimeout(() => toast.remove(), 300);
     }
   }
 
