@@ -135,13 +135,45 @@ function formatarData(dataInput) {
   }
 }
 
-function mostrarAlerta(elemento, mensagemElemento, mensagem) {
+// Variável para controlar timeout dos alertas
+let alertaTimeouts = {};
+
+function mostrarAlerta(elemento, mensagemElemento, mensagem, tipo = 'error') {
   mensagemElemento.textContent = mensagem;
   elemento.classList.add('alert--visible');
+  
+  // Aplicar cor baseada no tipo
+  if (tipo === 'success') {
+    elemento.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
+    elemento.style.borderLeftColor = '#28a745';
+    elemento.style.color = '#155724';
+  } else {
+    // error ou not_found
+    elemento.style.background = 'linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%)';
+    elemento.style.borderLeftColor = '#dc3545';
+    elemento.style.color = '#721c24';
+  }
+  
+  // Limpar timeout anterior se existir
+  const elementoId = elemento.id;
+  if (alertaTimeouts[elementoId]) {
+    clearTimeout(alertaTimeouts[elementoId]);
+  }
+  
+  // Auto-ocultar após 4 segundos
+  alertaTimeouts[elementoId] = setTimeout(() => {
+    ocultarAlerta(elemento);
+  }, 4000);
 }
 
 function ocultarAlerta(elemento) {
   elemento.classList.remove('alert--visible');
+  // Limpar timeout se existir
+  const elementoId = elemento.id;
+  if (alertaTimeouts[elementoId]) {
+    clearTimeout(alertaTimeouts[elementoId]);
+    delete alertaTimeouts[elementoId];
+  }
 }
 
 function ocultarTodosAlertas() {
@@ -408,23 +440,20 @@ async function validarMedico() {
       enderecoMedico.value = medico.endereco || '';
       destinoMedico.value = medico.destino || '';
       medicoValidado = true;
-      mostrarAlerta(alertMedico, alertMedicoMessage, '✅ Médico validado com sucesso!');
-      alertMedico.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
-      alertMedico.style.borderLeftColor = '#28a745';
-      alertMedico.style.color = '#155724';
+      mostrarAlerta(alertMedico, alertMedicoMessage, '✅ Médico validado com sucesso!', 'success');
     } else if (data.status === 'not_found') {
-      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Médico não encontrado.');
+      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Médico não encontrado.', 'error');
       medicoValidado = false;
     } else if (data.status === 'multiple') {
-      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Múltiplos médicos encontrados.');
+      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Múltiplos médicos encontrados.', 'error');
       medicoValidado = false;
     } else {
-      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao validar médico.');
+      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao validar médico.', 'error');
       medicoValidado = false;
     }
   } catch (error) {
     console.error('Erro ao validar médico:', error);
-    mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro de conexão ao validar médico.');
+    mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro de conexão ao validar médico.', 'error');
     medicoValidado = false;
   } finally {
     btnValidaMedico.disabled = false;
@@ -455,8 +484,9 @@ async function consultarCpfKorus() {
   sexoPaciente.value = '';
   
   try {
-    // API usa GET com query params
-    const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${encodeURIComponent(cpf)}`, {
+    // API usa GET com query params - incluir requisicao_id para salvar no banco
+    const reqId = requisicaoAtual ? requisicaoAtual.id : '';
+    const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${encodeURIComponent(cpf)}&requisicao_id=${reqId}`, {
       method: 'GET',
       headers: {
         'X-CSRFToken': csrfToken,
@@ -477,16 +507,13 @@ async function consultarCpfKorus() {
       if (pac.sexo) {
         sexoPaciente.value = pac.sexo;
       }
-      mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na base Korus!');
-      alertCpf.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
-      alertCpf.style.borderLeftColor = '#28a745';
-      alertCpf.style.color = '#155724';
+      mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na base Korus!', 'success');
     } else {
-      mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na base Korus.');
+      mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na base Korus.', 'error');
     }
   } catch (error) {
     console.error('Erro ao consultar CPF Korus:', error);
-    mostrarAlerta(alertCpf, alertCpfMessage, 'Erro de conexão ao consultar CPF.');
+    mostrarAlerta(alertCpf, alertCpfMessage, 'Erro de conexão ao consultar CPF.', 'error');
   } finally {
     btnCpfKorus.disabled = false;
     btnCpfKorus.textContent = 'CPF Korus';
@@ -510,8 +537,9 @@ async function consultarCpfReceita() {
   dataNascimento.value = '';
   
   try {
-    // API usa GET com query params
-    const response = await fetch(`/operacao/triagem/consultar-cpf-receita/?cpf=${encodeURIComponent(cpf)}`, {
+    // API usa GET com query params - incluir requisicao_id para salvar no banco
+    const reqId = requisicaoAtual ? requisicaoAtual.id : '';
+    const response = await fetch(`/operacao/triagem/consultar-cpf-receita/?cpf=${encodeURIComponent(cpf)}&requisicao_id=${reqId}`, {
       method: 'GET',
       headers: {
         'X-CSRFToken': csrfToken,
@@ -526,16 +554,13 @@ async function consultarCpfReceita() {
       if (pac.data_nascimento) {
         dataNascimento.value = formatarData(pac.data_nascimento);
       }
-      mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na Receita Federal!');
-      alertCpf.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
-      alertCpf.style.borderLeftColor = '#28a745';
-      alertCpf.style.color = '#155724';
+      mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na Receita Federal!', 'success');
     } else {
-      mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na Receita Federal.');
+      mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na Receita Federal.', 'error');
     }
   } catch (error) {
     console.error('Erro ao consultar CPF Receita:', error);
-    mostrarAlerta(alertCpf, alertCpfMessage, 'Erro de conexão ao consultar CPF.');
+    mostrarAlerta(alertCpf, alertCpfMessage, 'Erro de conexão ao consultar CPF.', 'error');
   } finally {
     btnCpfReceita.disabled = false;
     btnCpfReceita.textContent = 'CPF Receita';
