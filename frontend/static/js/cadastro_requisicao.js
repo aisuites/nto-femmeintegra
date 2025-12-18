@@ -106,10 +106,33 @@ function formatarTelefone(tel) {
   return tel.substring(0, 15);
 }
 
-function formatarData(dataISO) {
-  if (!dataISO) return '';
-  const data = new Date(dataISO + 'T00:00:00');
-  return data.toISOString().split('T')[0];
+function formatarData(dataInput) {
+  if (!dataInput) return '';
+  
+  let data;
+  
+  // Se já está no formato yyyy-mm-dd, retornar diretamente
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dataInput)) {
+    return dataInput;
+  }
+  
+  // Se está no formato dd/mm/yyyy (Receita Federal)
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataInput)) {
+    const partes = dataInput.split('/');
+    return `${partes[2]}-${partes[1]}-${partes[0]}`;
+  }
+  
+  // Tentar parsear como ISO
+  try {
+    data = new Date(dataInput + 'T00:00:00');
+    if (isNaN(data.getTime())) {
+      return '';
+    }
+    return data.toISOString().split('T')[0];
+  } catch (e) {
+    console.warn('Erro ao formatar data:', dataInput, e);
+    return '';
+  }
 }
 
 function mostrarAlerta(elemento, mensagemElemento, mensagem) {
@@ -425,6 +448,12 @@ async function consultarCpfKorus() {
   btnCpfKorus.disabled = true;
   btnCpfKorus.textContent = 'Consultando...';
   
+  // Zerar campos na tela antes de consultar (evita dados antigos se API falhar)
+  nomePaciente.value = '';
+  dataNascimento.value = '';
+  emailPaciente.value = '';
+  sexoPaciente.value = '';
+  
   try {
     // API usa GET com query params
     const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${encodeURIComponent(cpf)}`, {
@@ -475,6 +504,10 @@ async function consultarCpfReceita() {
   ocultarAlerta(alertCpf);
   btnCpfReceita.disabled = true;
   btnCpfReceita.textContent = 'Consultando...';
+  
+  // Zerar campos na tela antes de consultar (evita dados antigos se API falhar)
+  nomePaciente.value = '';
+  dataNascimento.value = '';
   
   try {
     // API usa GET com query params
