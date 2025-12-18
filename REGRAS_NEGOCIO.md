@@ -26,6 +26,7 @@
 16. [Segurança](#16-segurança)
 17. [Sistema de Notificações](#17-sistema-de-notificações)
 18. [Transferência de Requisições](#18-transferência-de-requisições)
+19. [Cadastro de Protocolo](#19-cadastro-de-protocolo)
 
 ---
 
@@ -1958,6 +1959,227 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 - **Renumeração**: Seções antigas 2-11 renumeradas para 4-13
 - **Documentação**: 9 subseções com 30+ regras de negócio do scanner
 - **Referências**: Todas as regras incluem localização exata no código
+
+---
+
+## 19. CADASTRO DE PROTOCOLO
+
+### 19.1. Visão Geral
+
+#### Descrição
+- **Objetivo**: Permitir o cadastro de protocolos de requisições médicas com digitalização de documentos.
+- **Acesso**: Menu Operacional > Cadastro Protocolo
+- **URL**: `/operacao/protocolo/`
+- **Arquivos Principais**:
+  - Backend: `backend/operacao/protocolo_views.py`
+  - Frontend: `frontend/static/js/cadastro_protocolo.js`
+  - Template: `frontend/templates/operacao/cadastro_protocolo.html`
+  - CSS: `frontend/static/css/cadastro_protocolo.css`
+
+---
+
+### 19.2. Seleção de Unidade
+
+#### Regra: Unidade Obrigatória
+- **Descrição**: O usuário DEVE selecionar uma unidade antes de salvar o protocolo.
+- **Validação**: Frontend e backend validam antes de salvar.
+- **Mensagem**: "Selecione uma unidade."
+
+#### Regra: Unidade Padrão EXTERNOS
+- **Descrição**: A unidade "EXTERNOS" é pré-selecionada automaticamente ao carregar a página.
+- **Comportamento**: Se nenhuma unidade estiver selecionada (ex: após reset), seleciona EXTERNOS.
+- **Código**: `frontend/static/js/cadastro_protocolo.js:139-147` (função `initializeState`)
+
+```javascript
+if (!unidadeChecked) {
+  const externosInput = document.querySelector('input[name="unidade_origem"][data-unidade-nome="EXTERNOS"]');
+  if (externosInput) {
+    externosInput.checked = true;
+    externosInput.closest('.unit-card')?.classList.add('unit-card--selected');
+  }
+}
+```
+
+---
+
+### 19.3. Portador/Representante
+
+#### Regra: Portador Obrigatório
+- **Descrição**: O usuário DEVE selecionar um portador/representante antes de salvar.
+- **Validação**: Frontend e backend validam antes de salvar.
+- **Mensagem**: "Selecione um portador/representante."
+
+#### Regra: Filtro por Unidade
+- **Descrição**: Ao selecionar uma unidade, o dropdown de portadores é filtrado automaticamente.
+- **Comportamento**: Apenas portadores vinculados à unidade selecionada são exibidos.
+- **Código**: `frontend/static/js/cadastro_protocolo.js:186-213` (função `filterPortadoresByUnidade`)
+
+#### Regra: Origem Automática
+- **Descrição**: Ao selecionar um portador, o campo "Origem" é preenchido automaticamente.
+- **Comportamento**: Campo origem é readonly e atualizado via JavaScript.
+
+---
+
+### 19.4. Dados do Médico
+
+#### Regra: CRM Obrigatório
+- **Descrição**: O número do CRM é obrigatório para salvar o protocolo.
+- **Validação**: Frontend aceita apenas números (input numérico).
+- **Código**: `frontend/static/js/cadastro_protocolo.js:145-151` (listener de input)
+
+```javascript
+crmInput.addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '');
+});
+```
+
+#### Regra: UF-CRM Obrigatória
+- **Descrição**: A UF do CRM é obrigatória e deve ter exatamente 2 caracteres.
+- **Validação**: Backend valida `len(uf_crm) == 2`.
+- **Interface**: Campo com dropdown customizado e seta indicadora.
+
+#### Regra: Validação de Médico via API
+- **Descrição**: Ao clicar em "Valida Médico", sistema consulta API externa para validar CRM.
+- **Endpoint**: `POST /operacao/protocolo/validar-medico/`
+- **Fluxos Possíveis**:
+  1. **Médico encontrado (único)**: Preenche nome automaticamente, marca `medicoValidado=true`
+  2. **Múltiplos médicos**: Abre modal de email para notificar duplicidade
+  3. **Médico não encontrado**: Abre modal de email para solicitar cadastro
+- **Código**: `backend/operacao/protocolo_views.py:125-200`
+
+#### Regra: Nome do Médico Condicional
+- **Descrição**: Nome do médico é obrigatório APENAS se médico foi validado com sucesso.
+- **Comportamento**: Se médico não validado (email enviado), permite salvar sem nome.
+- **Código**: `backend/operacao/protocolo_views.py:385-388`
+
+```python
+if not nome_medico and medico_validado:
+    erros.append('Nome do médico não informado.')
+```
+
+---
+
+### 19.5. Upload de Arquivo
+
+#### Regra: Arquivo Obrigatório
+- **Descrição**: É obrigatório anexar um arquivo (imagem ou PDF) ao protocolo.
+- **Formatos Aceitos**: PDF, JPG, JPEG, PNG
+- **Tamanho Máximo**: 10MB
+- **Código**: `frontend/static/js/cadastro_protocolo.js:445-450`
+
+#### Regra: Conversão Automática para PDF
+- **Descrição**: Imagens (JPG, JPEG, PNG) são convertidas automaticamente para PDF.
+- **Biblioteca**: jsPDF
+- **Código**: `frontend/static/js/cadastro_protocolo.js:498-566` (função `convertImageToPdf`)
+
+#### Regra: Upload para AWS S3
+- **Descrição**: Arquivos são enviados para AWS S3 via signed URL.
+- **Fluxo**:
+  1. Obter signed URL do backend (`POST /operacao/protocolo/signed-url/`)
+  2. Upload direto para S3 usando PUT
+  3. Salvar protocolo com URL do arquivo
+- **Código**: `frontend/static/js/cadastro_protocolo.js:609-663` (função `uploadFileToS3`)
+
+#### Regra: Nomenclatura de Arquivo
+- **Descrição**: Arquivo é renomeado com padrão: `IDREQ_REQ-{UNIDADE}-{TIMESTAMP}.pdf`
+- **Exemplo**: `IDREQ_REQ-TESTE-999_20251218163603.pdf`
+
+---
+
+### 19.6. Sistema de Email
+
+#### Regra: Templates de Email Configuráveis
+- **Descrição**: Templates de email são configurados via Django Admin.
+- **Tipos**:
+  - `medico_duplicado`: Notificar médico duplicado
+  - `medico_nao_encontrado`: Solicitar cadastro de médico
+- **Admin**: Core > Configurações de Email
+
+#### Regra: Reply-To Configurável
+- **Descrição**: Email de resposta (Reply-To) é configurável por template.
+- **Campo**: `ConfiguracaoEmail.email_resposta`
+- **Comportamento**: Se configurado, emails enviados terão este Reply-To.
+
+#### Regra: Assinatura Automática
+- **Descrição**: Emails enviados incluem assinatura automática com nome do usuário.
+- **Formato**:
+```
+---
+Enviado por: {Nome do Usuário}
+Sistema: FEMME Integra
+```
+
+#### Regra: Preservação de Quebras de Linha
+- **Descrição**: Quebras de linha no corpo do email são preservadas.
+- **Conversão**: `\n` → `<br>\n` no HTML
+
+---
+
+### 19.7. Status do Protocolo
+
+#### Regra: Status Inicial
+- **Descrição**: Status do protocolo depende da validação do médico.
+- **Regras**:
+  - `medico_validado=True` → Status **PROCESSADO**
+  - `medico_validado=False` → Status **PENDENTE**
+- **Código**: `backend/operacao/protocolo_views.py:417-418`
+
+```python
+status_protocolo = Protocolo.Status.PROCESSADO if medico_validado else Protocolo.Status.PENDENTE
+```
+
+#### Regra: Geração de Código
+- **Descrição**: Código do protocolo é gerado automaticamente.
+- **Formato**: `PROT-YYYYMMDD-NNNN`
+- **Exemplo**: `PROT-20251218-0001`
+
+---
+
+### 19.8. Feedback Visual
+
+#### Regra: Toast de Sucesso
+- **Descrição**: Mensagem de sucesso aparece como toast no canto superior direito.
+- **Estilo**: Fundo verde gradiente, animação slide-in
+- **Duração**: 4 segundos
+- **Código**: `frontend/static/js/cadastro_protocolo.js:845-865`
+
+#### Regra: Scroll para Topo
+- **Descrição**: Após salvar com sucesso, página rola automaticamente para o topo.
+- **Código**: `window.scrollTo({ top: 0, behavior: 'smooth' })`
+
+#### Regra: Reset Automático
+- **Descrição**: Após salvar com sucesso, formulário é limpo após 2 segundos.
+- **Comportamento**: Unidade EXTERNOS é re-selecionada automaticamente.
+
+---
+
+### 19.9. Validações de Frontend
+
+| Campo | Validação | Mensagem |
+|-------|-----------|----------|
+| Unidade | Obrigatório | "Selecione uma unidade." |
+| Portador | Obrigatório | "Selecione um portador/representante." |
+| CRM | Obrigatório, apenas números | "Informe o CRM." |
+| UF-CRM | Obrigatório, 2 caracteres | "Informe a UF do CRM." |
+| Nome Médico | Obrigatório se validado | "Valide o médico ou envie email de notificação." |
+| Arquivo | Obrigatório | "Carregue um arquivo." |
+
+---
+
+### 19.10. Validações de Backend
+
+| Campo | Validação | Status HTTP |
+|-------|-----------|-------------|
+| `unidade_id` | Obrigatório | 400 |
+| `portador_id` | Obrigatório | 400 |
+| `crm` | Obrigatório | 400 |
+| `uf_crm` | Obrigatório, 2 caracteres | 400 |
+| `nome_medico` | Obrigatório se `medico_validado=True` | 400 |
+| `arquivo_url` | Obrigatório | 400 |
+| Unidade não encontrada | FK inválida | 404 |
+| Portador não encontrado | FK inválida | 404 |
+
+---
 
 ### Versão 1.2 (08/12/2024)
 - **Alteração**: Geração de código de requisição mudou de sequencial baseado em data (`REQ-YYYYMMDD-NNNN`) para código alfanumérico aleatório (10 caracteres)

@@ -134,10 +134,24 @@
 
   function initializeState() {
     // Verificar unidade já selecionada
-    const unidadeChecked = document.querySelector('input[name="unidade_origem"]:checked');
+    let unidadeChecked = document.querySelector('input[name="unidade_origem"]:checked');
+    
+    // Se nenhuma unidade selecionada, selecionar EXTERNOS por padrão
+    if (!unidadeChecked) {
+      const externosInput = document.querySelector('input[name="unidade_origem"][data-unidade-nome="EXTERNOS"]');
+      if (externosInput) {
+        externosInput.checked = true;
+        externosInput.closest('.unit-card')?.classList.add('unit-card--selected');
+        unidadeChecked = externosInput;
+      }
+    }
+    
     if (unidadeChecked) {
       state.unidadeId = unidadeChecked.value;
       elements.unidadeSelecionada().value = unidadeChecked.value;
+      
+      // Marcar card como selecionado
+      unidadeChecked.closest('.unit-card')?.classList.add('unit-card--selected');
       
       // Filtrar portadores pela unidade pré-selecionada
       filterPortadoresByUnidade(unidadeChecked.value);
