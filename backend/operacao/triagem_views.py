@@ -1360,12 +1360,30 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
         # campos raiz: matricula, convenio, plano
         pessoa_fisica = dados_api.get('pessoaFisica', {}) or {}
         contato = dados_api.get('contato', {}) or {}
+        telefones = dados_api.get('telefones', []) or []
+        
+        # Extrair telefone com preferência para celular
+        telefone = ''
+        telefone_celular = None
+        telefone_outro = None
+        for tel in telefones:
+            ddd = tel.get('ddd', '')
+            numero = tel.get('numero', '')
+            tipo = tel.get('tipoTelefone', '').lower()
+            if ddd and numero:
+                tel_formatado = f"({ddd}) {numero}"
+                if 'celular' in tipo:
+                    telefone_celular = tel_formatado
+                elif not telefone_outro:
+                    telefone_outro = tel_formatado
+        telefone = telefone_celular or telefone_outro or ''
         
         paciente = {
             'nome': pessoa_fisica.get('nome', '') or '',
             'data_nascimento': pessoa_fisica.get('dataNascimento', '') or '',
             'email': contato.get('email', '') or '',
             'sexo': pessoa_fisica.get('sexo', '') or '',
+            'telefone': telefone,
             'matricula': dados_api.get('matricula', '') or '',
             'convenio': dados_api.get('convenio', '') or '',
             'plano': dados_api.get('plano', '') or '',
@@ -1402,6 +1420,8 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
                     requisicao.email_paciente = paciente['email']
                 if paciente['sexo']:
                     requisicao.sexo_paciente = paciente['sexo']
+                if paciente['telefone']:
+                    requisicao.telefone_paciente = paciente['telefone']
                 if paciente['matricula']:
                     requisicao.matricula_paciente = paciente['matricula']
                 if paciente['convenio']:

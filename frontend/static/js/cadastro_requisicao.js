@@ -520,7 +520,12 @@ async function consultarCpfKorus() {
       }
       sexoPaciente.value = sexoValor;
       
-      console.log('[Cadastro] Campos preenchidos - nome:', nomePaciente.value, 'dataNasc:', dataNascimento.value, 'sexo:', sexoPaciente.value);
+      // Preencher telefone
+      if (pac.telefone) {
+        telefonePaciente.value = pac.telefone;
+      }
+      
+      console.log('[Cadastro] Campos preenchidos - nome:', nomePaciente.value, 'dataNasc:', dataNascimento.value, 'sexo:', sexoPaciente.value, 'telefone:', telefonePaciente.value);
       
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na base Korus!', 'success');
     } else {
