@@ -64,19 +64,28 @@ class ListarTarefasAPIView(View):
                 'tipo', 'responsavel', 'criado_por', 'protocolo', 'requisicao'
             )
             
-            # Aplicar filtros
-            if minhas_tarefas and request.user.is_authenticated:
+            # Aplicar filtros de responsabilidade
+            # Se ambos marcados, usar OR para mostrar minhas tarefas + tarefas que deleguei
+            if minhas_tarefas and tarefas_delegadas and request.user.is_authenticated:
+                from django.db.models import Q
+                tarefas = tarefas.filter(
+                    Q(responsavel=request.user) |  # Minhas tarefas
+                    Q(criado_por=request.user, origem='GESTOR')  # Tarefas que deleguei (excluindo próprias)
+                ).exclude(
+                    # Excluir tarefas que criei para mim mesmo (origem PROPRIO)
+                    Q(criado_por=request.user, responsavel=request.user, origem='PROPRIO')
+                ).distinct()
+            elif minhas_tarefas and request.user.is_authenticated:
                 tarefas = tarefas.filter(responsavel=request.user)
-            elif responsavel_id:
-                tarefas = tarefas.filter(responsavel_id=responsavel_id)
-            
-            # Filtro: tarefas que o usuário criou para outros (delegou)
-            if tarefas_delegadas and request.user.is_authenticated:
+            elif tarefas_delegadas and request.user.is_authenticated:
+                # Tarefas que criei para outros (não para mim)
                 tarefas = tarefas.filter(
                     criado_por=request.user
                 ).exclude(
                     responsavel=request.user
                 )
+            elif responsavel_id:
+                tarefas = tarefas.filter(responsavel_id=responsavel_id)
             
             if status:
                 tarefas = tarefas.filter(status=status)

@@ -1053,8 +1053,18 @@
         // Fechar modal
         fecharModalEmail();
         
-        // Mostrar mensagem de sucesso
-        showAlertMedico('Email enviado com sucesso! O protocolo pode ser salvo como pendente.');
+        // Atualizar contador de notificações no header (se tarefa foi criada)
+        if (data.tarefa_criada && window.Notificacoes) {
+          window.Notificacoes.atualizarContador();
+        }
+        
+        // Mostrar mensagem de sucesso (incluindo info da tarefa se criada)
+        let mensagem = 'Email enviado com sucesso!';
+        if (data.tarefa_criada) {
+          mensagem += ` Tarefa ${data.tarefa_criada.codigo} criada automaticamente.`;
+        }
+        mensagem += ' O protocolo pode ser salvo como pendente.';
+        showAlertMedico(mensagem);
         
       } else {
         showModalEmailAlert(data.message || 'Erro ao enviar email.');
