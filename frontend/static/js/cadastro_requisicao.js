@@ -477,11 +477,14 @@ async function consultarCpfKorus() {
   btnCpfKorus.disabled = true;
   btnCpfKorus.textContent = 'Consultando...';
   
-  // Zerar campos na tela antes de consultar (evita dados antigos se API falhar)
+  // Zerar TODOS os campos do paciente na tela antes de consultar
   nomePaciente.value = '';
   dataNascimento.value = '';
   emailPaciente.value = '';
   sexoPaciente.value = '';
+  dataDum.value = '';
+  telefonePaciente.value = '';
+  checkSexoAConfirmar.checked = false;
   
   try {
     // API usa GET com query params - incluir requisicao_id para salvar no banco
@@ -494,19 +497,20 @@ async function consultarCpfKorus() {
     });
     
     const data = await response.json();
+    console.log('[Cadastro] Resposta CPF Korus:', data);
     
     if (data.status === 'success' && data.paciente) {
       const pac = data.paciente;
+      console.log('[Cadastro] Dados do paciente:', pac);
+      
+      // Preencher campos imediatamente
       nomePaciente.value = pac.nome || '';
-      if (pac.data_nascimento) {
-        dataNascimento.value = formatarData(pac.data_nascimento);
-      }
-      if (pac.email) {
-        emailPaciente.value = pac.email;
-      }
-      if (pac.sexo) {
-        sexoPaciente.value = pac.sexo;
-      }
+      dataNascimento.value = pac.data_nascimento ? formatarData(pac.data_nascimento) : '';
+      emailPaciente.value = pac.email || '';
+      sexoPaciente.value = pac.sexo || '';
+      
+      console.log('[Cadastro] Campos preenchidos - nome:', nomePaciente.value, 'dataNasc:', dataNascimento.value, 'sexo:', sexoPaciente.value);
+      
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na base Korus!', 'success');
     } else {
       mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na base Korus.', 'error');
@@ -532,9 +536,14 @@ async function consultarCpfReceita() {
   btnCpfReceita.disabled = true;
   btnCpfReceita.textContent = 'Consultando...';
   
-  // Zerar campos na tela antes de consultar (evita dados antigos se API falhar)
+  // Zerar TODOS os campos do paciente na tela antes de consultar
   nomePaciente.value = '';
   dataNascimento.value = '';
+  emailPaciente.value = '';
+  sexoPaciente.value = '';
+  dataDum.value = '';
+  telefonePaciente.value = '';
+  checkSexoAConfirmar.checked = false;
   
   try {
     // API usa GET com query params - incluir requisicao_id para salvar no banco
@@ -547,13 +556,16 @@ async function consultarCpfReceita() {
     });
     
     const data = await response.json();
+    console.log('[Cadastro] Resposta CPF Receita:', data);
     
     if (data.status === 'success' && data.paciente) {
       const pac = data.paciente;
+      console.log('[Cadastro] Dados do paciente Receita:', pac);
+      
+      // Preencher campos imediatamente
       nomePaciente.value = pac.nome || '';
-      if (pac.data_nascimento) {
-        dataNascimento.value = formatarData(pac.data_nascimento);
-      }
+      dataNascimento.value = pac.data_nascimento ? formatarData(pac.data_nascimento) : '';
+      
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na Receita Federal!', 'success');
     } else {
       mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na Receita Federal.', 'error');
