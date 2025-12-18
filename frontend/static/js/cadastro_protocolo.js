@@ -454,7 +454,7 @@
     state.arquivoNome = file.name;
     
     // Mostrar arquivo na lista
-    renderUploadedFile(file, 'pending');
+    renderUploadedFile(file);
     
     // Se for imagem, converter para PDF
     if (file.type.startsWith('image/')) {
@@ -462,13 +462,11 @@
     }
   }
 
-  function renderUploadedFile(file, status) {
+  function renderUploadedFile(file) {
     const container = elements.uploadFilesContainer();
     if (!container) return;
     
     const fileSize = formatFileSize(file.size);
-    const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'uploading';
-    const statusText = status === 'success' ? '✓ Pronto' : status === 'error' ? '✗ Erro' : '⏳ Aguardando...';
     
     container.innerHTML = `
       <div class="upload-file-item" data-filename="${file.name}">
@@ -477,7 +475,6 @@
           <div class="file-name">${file.name}</div>
           <div class="file-size">${fileSize}</div>
         </div>
-        <span class="file-status ${statusClass}">${statusText}</span>
         <button class="btn-remove-file" type="button" title="Remover arquivo">✕</button>
       </div>
     `;
@@ -492,13 +489,10 @@
     });
   }
 
+  // Função removida - status de upload não é mais exibido
   function updateFileStatus(status) {
-    const container = elements.uploadFilesContainer();
-    const statusEl = container?.querySelector('.file-status');
-    if (statusEl) {
-      statusEl.className = 'file-status ' + status;
-      statusEl.textContent = status === 'success' ? '✓ Pronto' : status === 'error' ? '✗ Erro' : '⏳ Enviando...';
-    }
+    // Status visual removido para simplificar UX
+    // Erros serão mostrados na área de alertas
   }
 
   async function convertImageToPdf(imageFile) {
@@ -563,7 +557,7 @@
       console.log('[CadastroProtocolo] Imagem convertida para PDF:', pdfFileName);
       
       // Atualizar visual
-      renderUploadedFile(pdfFile, 'pending');
+      renderUploadedFile(pdfFile);
       
     } catch (error) {
       console.error('[CadastroProtocolo] Erro ao converter imagem:', error);
@@ -691,23 +685,28 @@
     if (!confirm('Deseja realmente cancelar? Todos os dados serão perdidos.')) {
       return;
     }
-    
+    resetFormulario();
+  }
+  
+  function resetFormulario() {
     // Resetar estado
-    state = {
-      unidadeId: null,
-      portadorId: null,
-      origemId: null,
-      crm: '',
-      ufCrm: '',
-      nomeMedico: '',
-      medicoValidado: false,
-      arquivoUrl: '',
-      arquivoNome: '',
-      arquivoFile: null,
-      uploading: false
-    };
+    state.unidadeId = null;
+    state.portadorId = null;
+    state.origemId = null;
+    state.crm = '';
+    state.ufCrm = '';
+    state.nomeMedico = '';
+    state.medicoValidado = false;
+    state.arquivoUrl = '';
+    state.arquivoNome = '';
+    state.arquivoFile = null;
+    state.uploading = false;
+    state.emailTipo = '';
+    state.medicosEncontrados = [];
+    state.emailResposta = '';
+    state.emailEnviado = false;
     
-    // Resetar formulário
+    // Resetar formulário visual
     document.querySelectorAll('.unit-card').forEach(card => {
       card.classList.remove('unit-card--selected');
       card.querySelector('input').checked = false;
@@ -730,6 +729,9 @@
     // Resetar estilos
     elements.crmMedico().style.borderColor = '';
     elements.ufCrm().style.borderColor = '';
+    
+    // Re-selecionar unidade padrão (EXTERNOS) e filtrar portadores
+    initializeState();
   }
 
   async function handleSalvar() {
@@ -806,9 +808,9 @@
       if (data.status === 'success') {
         showAlertSucesso(`Protocolo ${data.protocolo.codigo} cadastrado com sucesso!`);
         
-        // Limpar formulário após 2 segundos
+        // Limpar formulário após 2 segundos (sem confirmação)
         setTimeout(() => {
-          handleCancelar();
+          resetFormulario();
         }, 2000);
         
       } else {
