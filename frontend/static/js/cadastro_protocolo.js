@@ -51,7 +51,10 @@
     arquivoUrl: '',
     arquivoNome: '',
     arquivoFile: null,
-    uploading: false
+    uploading: false,
+    // Estado do modal de email
+    emailTipo: '',
+    medicosEncontrados: []
   };
 
   // ============================================
@@ -87,6 +90,18 @@
     // Alertas gerais
     alertGeral: () => document.getElementById('protocolo_alert_geral'),
     alertGeralMessage: () => document.getElementById('protocolo_alert_geral_message'),
+    
+    // Modal de email
+    modalEmailOverlay: () => document.getElementById('modal-email-overlay'),
+    modalEmailTitulo: () => document.getElementById('modal-email-titulo'),
+    emailDestinatarios: () => document.getElementById('email-destinatarios'),
+    emailAssunto: () => document.getElementById('email-assunto'),
+    emailCorpo: () => document.getElementById('email-corpo'),
+    modalEmailAlert: () => document.getElementById('modal-email-alert'),
+    modalEmailAlertMessage: () => document.getElementById('modal-email-alert-message'),
+    btnFecharModalEmail: () => document.getElementById('btn-fechar-modal-email'),
+    btnCancelarEmail: () => document.getElementById('btn-cancelar-email'),
+    btnEnviarEmail: () => document.getElementById('btn-enviar-email'),
     alertSucesso: () => document.getElementById('protocolo_alert_sucesso'),
     alertSucessoMessage: () => document.getElementById('protocolo_alert_sucesso_message'),
     
@@ -107,6 +122,7 @@
     setupMedicoListeners();
     setupUploadListeners();
     setupActionListeners();
+    setupModalEmailListeners();
     
     // Inicializar estado com valores do DOM
     initializeState();
@@ -317,7 +333,7 @@
         // ERRO - Múltiplos médicos encontrados
         console.warn('[CadastroProtocolo] Múltiplos médicos encontrados:', data.quantidade);
         
-        // Salvar dados para uso no modal de email (futuro)
+        // Salvar dados para uso no modal de email
         state.crm = crm;
         state.ufCrm = uf;
         state.medicosEncontrados = data.medicos || [];
@@ -326,12 +342,14 @@
         elements.crmMedico().style.borderColor = 'var(--femme-orange, #ffc107)';
         elements.ufCrm().style.borderColor = 'var(--femme-orange, #ffc107)';
         
-        // Mostrar mensagem com detalhes
+        // Mostrar mensagem com detalhes e botão para enviar email
         const medicosNomes = data.medicos?.map(m => m.nome).join(', ') || '';
         showAlertMedico(
-          `${data.message} Médicos: ${medicosNomes}. ` +
-          `Em breve será possível enviar email para resolver esta pendência.`
+          `${data.message} Médicos: ${medicosNomes}.`
         );
+        
+        // Abrir modal de email automaticamente
+        abrirModalEmail('medico_duplicado', 'Notificar Médico Duplicado');
         
       } else if (data.code === 'not_found') {
         // ERRO - Médico não encontrado
@@ -339,15 +357,18 @@
         
         state.crm = crm;
         state.ufCrm = uf;
+        state.medicosEncontrados = [];
         
         // Visual de erro
         elements.crmMedico().style.borderColor = 'var(--femme-red, #dc3545)';
         elements.ufCrm().style.borderColor = 'var(--femme-red, #dc3545)';
         
         showAlertMedico(
-          data.message || 'Médico não encontrado na base. ' +
-          'Verifique os dados ou solicite o cadastro do médico.'
+          data.message || 'Médico não encontrado na base.'
         );
+        
+        // Abrir modal de email automaticamente
+        abrirModalEmail('medico_nao_encontrado', 'Solicitar Cadastro de Médico');
         
       } else {
         // Outro erro
@@ -806,6 +827,198 @@
 
   function hideAlertSucesso() {
     const alert = elements.alertSucesso();
+    if (alert) {
+      alert.style.display = 'none';
+    }
+  }
+
+  // ============================================
+  // MODAL DE EMAIL
+  // ============================================
+  
+  function setupModalEmailListeners() {
+    // Fechar modal
+    const btnFechar = elements.btnFecharModalEmail();
+    const btnCancelar = elements.btnCancelarEmail();
+    const btnEnviar = elements.btnEnviarEmail();
+    
+    if (btnFechar) {
+      btnFechar.addEventListener('click', fecharModalEmail);
+    }
+    
+    if (btnCancelar) {
+      btnCancelar.addEventListener('click', fecharModalEmail);
+    }
+    
+    if (btnEnviar) {
+      btnEnviar.addEventListener('click', handleEnviarEmail);
+    }
+    
+    // Fechar ao clicar no overlay
+    const overlay = elements.modalEmailOverlay();
+    if (overlay) {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          fecharModalEmail();
+        }
+      });
+    }
+    
+    // Fechar com ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && overlay?.style.display !== 'none') {
+        fecharModalEmail();
+      }
+    });
+  }
+
+  async function abrirModalEmail(tipo, titulo) {
+    console.log('[CadastroProtocolo] Abrindo modal de email:', tipo);
+    
+    state.emailTipo = tipo;
+    
+    // Atualizar título do modal
+    const tituloEl = elements.modalEmailTitulo();
+    if (tituloEl) {
+      tituloEl.textContent = titulo || 'Enviar Email';
+    }
+    
+    // Buscar template do backend
+    try {
+      const medicosJson = JSON.stringify(state.medicosEncontrados || []);
+      const params = new URLSearchParams({
+        tipo: tipo,
+        crm: state.crm || '',
+        uf: state.ufCrm || '',
+        medicos: medicosJson
+      });
+      
+      const response = await fetch(
+        AppConfig.buildApiUrl('/operacao/protocolo/email-template/') + '?' + params.toString(),
+        {
+          method: 'GET',
+          headers: AppConfig.getDefaultHeaders()
+        }
+      );
+      
+      const data = await response.json();
+      
+      if (data.status === 'success' && data.template) {
+        // Preencher campos do modal
+        elements.emailDestinatarios().value = data.template.destinatarios?.join(', ') || '';
+        elements.emailAssunto().value = data.template.assunto || '';
+        elements.emailCorpo().value = data.template.corpo || '';
+      } else {
+        // Template não configurado - usar valores padrão
+        console.warn('[CadastroProtocolo] Template não encontrado:', data.message);
+        
+        elements.emailDestinatarios().value = '';
+        elements.emailAssunto().value = tipo === 'medico_duplicado' 
+          ? `[FEMME Integra] Médico Duplicado - CRM ${state.crm}/${state.ufCrm}`
+          : `[FEMME Integra] Médico Não Encontrado - CRM ${state.crm}/${state.ufCrm}`;
+        
+        let corpoDefault = tipo === 'medico_duplicado'
+          ? `Prezados,\n\nFoi identificado um problema no cadastro de médico:\n\nCRM: ${state.crm}\nUF: ${state.ufCrm}\n\nExistem múltiplos médicos cadastrados com este CRM/UF.\n\nMédicos encontrados:\n${state.medicosEncontrados?.map(m => `- ${m.nome}`).join('\n') || 'N/A'}\n\nPor favor, verifiquem e corrijam o cadastro.\n\nAtenciosamente.`
+          : `Prezados,\n\nFoi identificado um problema no cadastro de médico:\n\nCRM: ${state.crm}\nUF: ${state.ufCrm}\n\nO médico não foi encontrado na base de dados.\n\nPor favor, verifiquem se o médico precisa ser cadastrado ou se os dados estão corretos.\n\nAtenciosamente.`;
+        
+        elements.emailCorpo().value = corpoDefault;
+      }
+      
+    } catch (error) {
+      console.error('[CadastroProtocolo] Erro ao buscar template:', error);
+      // Usar valores padrão em caso de erro
+      elements.emailDestinatarios().value = '';
+      elements.emailAssunto().value = `[FEMME Integra] Problema com Médico - CRM ${state.crm}/${state.ufCrm}`;
+      elements.emailCorpo().value = `Prezados,\n\nFoi identificado um problema com o médico CRM ${state.crm}/${state.ufCrm}.\n\nPor favor, verifiquem.\n\nAtenciosamente.`;
+    }
+    
+    // Esconder alerta do modal
+    hideModalEmailAlert();
+    
+    // Mostrar modal
+    elements.modalEmailOverlay().style.display = 'flex';
+  }
+
+  function fecharModalEmail() {
+    elements.modalEmailOverlay().style.display = 'none';
+    hideModalEmailAlert();
+  }
+
+  async function handleEnviarEmail() {
+    const destinatarios = elements.emailDestinatarios().value.trim();
+    const assunto = elements.emailAssunto().value.trim();
+    const corpo = elements.emailCorpo().value.trim();
+    
+    // Validações
+    if (!destinatarios) {
+      showModalEmailAlert('Informe pelo menos um destinatário.');
+      return;
+    }
+    
+    if (!assunto) {
+      showModalEmailAlert('Informe o assunto do email.');
+      return;
+    }
+    
+    if (!corpo) {
+      showModalEmailAlert('Informe o corpo do email.');
+      return;
+    }
+    
+    // Desabilitar botão
+    const btnEnviar = elements.btnEnviarEmail();
+    btnEnviar.disabled = true;
+    btnEnviar.textContent = 'Enviando...';
+    
+    try {
+      const response = await fetch(AppConfig.buildApiUrl('/operacao/protocolo/enviar-email/'), {
+        method: 'POST',
+        headers: AppConfig.getDefaultHeaders(),
+        body: JSON.stringify({
+          tipo: state.emailTipo,
+          destinatarios: destinatarios.split(',').map(e => e.trim()),
+          assunto: assunto,
+          corpo: corpo,
+          crm: state.crm,
+          uf: state.ufCrm
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        console.log('[CadastroProtocolo] Email enviado com sucesso');
+        
+        // Fechar modal
+        fecharModalEmail();
+        
+        // Mostrar mensagem de sucesso
+        showAlertMedico('Email enviado com sucesso! O protocolo pode ser salvo como pendente.');
+        
+      } else {
+        showModalEmailAlert(data.message || 'Erro ao enviar email.');
+      }
+      
+    } catch (error) {
+      console.error('[CadastroProtocolo] Erro ao enviar email:', error);
+      showModalEmailAlert('Erro de conexão ao enviar email.');
+    } finally {
+      btnEnviar.disabled = false;
+      btnEnviar.textContent = 'Enviar Email';
+    }
+  }
+
+  function showModalEmailAlert(message) {
+    const alert = elements.modalEmailAlert();
+    const messageEl = elements.modalEmailAlertMessage();
+    if (alert && messageEl) {
+      messageEl.textContent = message;
+      alert.style.display = 'block';
+    }
+  }
+
+  function hideModalEmailAlert() {
+    const alert = elements.modalEmailAlert();
     if (alert) {
       alert.style.display = 'none';
     }

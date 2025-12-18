@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from .models import MenuItem
+from .models import MenuItem, ConfiguracaoEmail, LogEnvioEmail
 
 
 class MenuItemAdminForm(forms.ModelForm):
@@ -95,3 +95,64 @@ class MenuItemAdmin(admin.ModelAdmin):
         """Ordena para mostrar hierarquia corretamente."""
         qs = super().get_queryset(request)
         return qs.select_related('parent')
+
+
+@admin.register(ConfiguracaoEmail)
+class ConfiguracaoEmailAdmin(admin.ModelAdmin):
+    """Admin para configuração de templates de email."""
+    list_display = ['nome', 'tipo', 'email_destino', 'ativo', 'updated_at']
+    list_filter = ['tipo', 'ativo']
+    search_fields = ['nome', 'email_destino', 'assunto_padrao']
+    list_editable = ['ativo']
+    ordering = ['tipo']
+    
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('tipo', 'nome', 'ativo')
+        }),
+        ('Destinatários', {
+            'fields': ('email_destino',),
+            'description': 'Separe múltiplos emails por vírgula.'
+        }),
+        ('Template', {
+            'fields': ('assunto_padrao', 'corpo_padrao'),
+            'description': 'Use placeholders: {crm}, {uf}, {medicos}, {usuario}, {data}'
+        }),
+    )
+
+
+@admin.register(LogEnvioEmail)
+class LogEnvioEmailAdmin(admin.ModelAdmin):
+    """Admin para visualização de logs de envio de email."""
+    list_display = ['created_at', 'tipo', 'descricao', 'destinatario', 'status', 'enviado_por']
+    list_filter = ['status', 'tipo', 'created_at']
+    search_fields = ['tipo', 'descricao', 'destinatario', 'assunto']
+    readonly_fields = ['created_at', 'updated_at', 'tipo', 'descricao', 'destinatario', 'assunto', 'corpo', 'status', 'erro_mensagem', 'enviado_em', 'enviado_por']
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Informações', {
+            'fields': ('tipo', 'descricao', 'status', 'enviado_em', 'enviado_por')
+        }),
+        ('Email', {
+            'fields': ('destinatario', 'assunto', 'corpo')
+        }),
+        ('Erro', {
+            'fields': ('erro_mensagem',),
+            'classes': ('collapse',)
+        }),
+        ('Auditoria', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False

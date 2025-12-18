@@ -219,4 +219,14 @@ urlpatterns = [
         protocolo_views.SalvarProtocoloView.as_view(),
         name='protocolo-salvar',
     ),
+    path(
+        'protocolo/email-template/',
+        protocolo_views.ObterTemplateEmailView.as_view(),
+        name='protocolo-email-template',
+    ),
+    path(
+        'protocolo/enviar-email/',
+        protocolo_views.EnviarEmailMedicoView.as_view(),
+        name='protocolo-enviar-email',
+    ),
 ]

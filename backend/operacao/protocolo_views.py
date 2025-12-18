@@ -20,6 +20,8 @@ from django_ratelimit.decorators import ratelimit
 
 from core.config import get_aws_signed_url_api, get_file_url
 from core.services.external_api import get_korus_client
+from core.services.email_service import get_email_service
+from core.models import ConfiguracaoEmail
 from .models import (
     Origem,
     PortadorRepresentante,
@@ -408,5 +410,181 @@ class SalvarProtocoloView(LoginRequiredMixin, View):
             logger.exception(f"Erro ao salvar protocolo: {e}")
             return JsonResponse(
                 {'status': 'error', 'message': 'Erro interno ao salvar protocolo.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='30/m', method='GET'), name='dispatch')
+class ObterTemplateEmailView(LoginRequiredMixin, View):
+    """
+    Obtém template de email para pré-preenchimento do modal.
+    
+    GET /operacao/protocolo/email-template/?tipo=medico_duplicado
+    
+    Response:
+        {
+            "status": "success",
+            "template": {
+                "destinatarios": ["email@example.com"],
+                "assunto": "Assunto padrão",
+                "corpo": "Corpo padrão com {placeholders}"
+            }
+        }
+    """
+    
+    login_url = 'admin:login'
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            tipo = request.GET.get('tipo', '')
+            crm = request.GET.get('crm', '')
+            uf = request.GET.get('uf', '')
+            medicos_json = request.GET.get('medicos', '[]')
+            
+            if not tipo:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Tipo de email não informado.'},
+                    status=400
+                )
+            
+            # Buscar configuração
+            config = ConfiguracaoEmail.objects.filter(tipo=tipo, ativo=True).first()
+            
+            if not config:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Template de email não configurado para tipo: {tipo}'
+                }, status=404)
+            
+            # Preparar contexto para renderização
+            contexto = {
+                'crm': crm,
+                'uf': uf,
+                'medicos': medicos_json,
+                'usuario': request.user.get_full_name() or request.user.username,
+                'data': datetime.now().strftime('%d/%m/%Y %H:%M')
+            }
+            
+            # Renderizar template
+            assunto = config.renderizar_assunto(contexto)
+            corpo = config.renderizar_corpo(contexto)
+            
+            return JsonResponse({
+                'status': 'success',
+                'template': {
+                    'destinatarios': config.get_emails_destino_list(),
+                    'assunto': assunto,
+                    'corpo': corpo
+                }
+            })
+            
+        except Exception as e:
+            logger.exception(f"Erro ao obter template de email: {e}")
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro ao obter template.'},
+                status=500
+            )
+
+
+@method_decorator(ratelimit(key='user', rate='10/m', method='POST'), name='dispatch')
+class EnviarEmailMedicoView(LoginRequiredMixin, View):
+    """
+    Envia email sobre problema com médico (duplicado ou não encontrado).
+    
+    POST /operacao/protocolo/enviar-email/
+    Body:
+        {
+            "tipo": "medico_duplicado",
+            "destinatarios": ["email@example.com"],
+            "assunto": "Assunto do email",
+            "corpo": "Corpo do email",
+            "crm": "12345",
+            "uf": "SP"
+        }
+    
+    Response:
+        {
+            "status": "success",
+            "message": "Email enviado com sucesso.",
+            "log_id": 123
+        }
+    """
+    
+    login_url = 'admin:login'
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            
+            tipo = data.get('tipo', '')
+            destinatarios = data.get('destinatarios', [])
+            assunto = data.get('assunto', '').strip()
+            corpo = data.get('corpo', '').strip()
+            crm = data.get('crm', '')
+            uf = data.get('uf', '')
+            
+            # Validações
+            if not tipo:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Tipo de email não informado.'},
+                    status=400
+                )
+            
+            if not destinatarios:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Destinatário(s) não informado(s).'},
+                    status=400
+                )
+            
+            if not assunto:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Assunto não informado.'},
+                    status=400
+                )
+            
+            if not corpo:
+                return JsonResponse(
+                    {'status': 'error', 'message': 'Corpo do email não informado.'},
+                    status=400
+                )
+            
+            # Garantir que destinatarios é uma lista
+            if isinstance(destinatarios, str):
+                destinatarios = [d.strip() for d in destinatarios.split(',') if d.strip()]
+            
+            # Enviar email
+            email_service = get_email_service()
+            result = email_service.enviar_customizado(
+                tipo='Cadastro Protocolo',
+                descricao=tipo,
+                destinatarios=destinatarios,
+                assunto=assunto,
+                corpo=corpo,
+                usuario=request.user
+            )
+            
+            if result['success']:
+                logger.info(f"Email enviado: tipo={tipo}, crm={crm}, uf={uf}, user={request.user.username}")
+                return JsonResponse({
+                    'status': 'success',
+                    'message': result['message'],
+                    'log_id': result.get('log_id')
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': result['message'],
+                    'log_id': result.get('log_id')
+                }, status=500)
+            
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {'status': 'error', 'message': 'JSON inválido.'},
+                status=400
+            )
+        except Exception as e:
+            logger.exception(f"Erro ao enviar email: {e}")
+            return JsonResponse(
+                {'status': 'error', 'message': 'Erro interno ao enviar email.'},
                 status=500
             )
