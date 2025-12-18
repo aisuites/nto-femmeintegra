@@ -426,21 +426,27 @@ async function consultarCpfKorus() {
   btnCpfKorus.textContent = 'Consultando...';
   
   try {
-    const response = await fetch('/operacao/triagem/consultar-cpf-korus/', {
-      method: 'POST',
+    // API usa GET com query params
+    const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${encodeURIComponent(cpf)}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'X-CSRFToken': csrfToken,
       },
-      body: JSON.stringify({ cpf }),
     });
     
     const data = await response.json();
     
-    if (data.status === 'success') {
-      nomePaciente.value = data.nome || '';
-      if (data.data_nascimento) {
-        dataNascimento.value = formatarData(data.data_nascimento);
+    if (data.status === 'success' && data.paciente) {
+      const pac = data.paciente;
+      nomePaciente.value = pac.nome || '';
+      if (pac.data_nascimento) {
+        dataNascimento.value = formatarData(pac.data_nascimento);
+      }
+      if (pac.email) {
+        emailPaciente.value = pac.email;
+      }
+      if (pac.sexo) {
+        sexoPaciente.value = pac.sexo;
       }
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na base Korus!');
       alertCpf.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
@@ -471,21 +477,21 @@ async function consultarCpfReceita() {
   btnCpfReceita.textContent = 'Consultando...';
   
   try {
-    const response = await fetch('/operacao/triagem/consultar-cpf-receita/', {
-      method: 'POST',
+    // API usa GET com query params
+    const response = await fetch(`/operacao/triagem/consultar-cpf-receita/?cpf=${encodeURIComponent(cpf)}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'X-CSRFToken': csrfToken,
       },
-      body: JSON.stringify({ cpf }),
     });
     
     const data = await response.json();
     
-    if (data.status === 'success') {
-      nomePaciente.value = data.nome || '';
-      if (data.data_nascimento) {
-        dataNascimento.value = formatarData(data.data_nascimento);
+    if (data.status === 'success' && data.paciente) {
+      const pac = data.paciente;
+      nomePaciente.value = pac.nome || '';
+      if (pac.data_nascimento) {
+        dataNascimento.value = formatarData(pac.data_nascimento);
       }
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na Receita Federal!');
       alertCpf.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
