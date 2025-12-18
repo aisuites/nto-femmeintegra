@@ -2,11 +2,11 @@ from django.db import migrations
 
 
 def populate_menu_items(apps, schema_editor):
-    """Popula os itens de menu iniciais baseados no sidebar atual."""
+    """Popula os itens de menu iniciais."""
     MenuItem = apps.get_model('core', 'MenuItem')
     
     # Dashboard (nível superior)
-    dashboard = MenuItem.objects.create(
+    MenuItem.objects.create(
         titulo='Dashboard',
         icone='🏠',
         url_name='core:dashboard',
@@ -22,7 +22,7 @@ def populate_menu_items(apps, schema_editor):
         url_name='',
         ordem=20,
         ativo=True,
-        roles_permitidos=[],
+        roles_permitidos=[],  # Todos podem ver
     )
     
     # Subitens de Operacional
@@ -33,7 +33,7 @@ def populate_menu_items(apps, schema_editor):
         parent=operacional,
         ordem=10,
         ativo=True,
-        roles_permitidos=['recebimento', 'admin'],
+        roles_permitidos=[],  # Permissão controlada pelo grupo
     )
     
     MenuItem.objects.create(
@@ -43,38 +43,38 @@ def populate_menu_items(apps, schema_editor):
         parent=operacional,
         ordem=20,
         ativo=True,
-        roles_permitidos=['triagem', 'admin'],
+        roles_permitidos=[],  # Permissão controlada pelo grupo
     )
     
+    # Pendência (nível superior)
     MenuItem.objects.create(
-        titulo='Pendências',
+        titulo='Pendência',
         icone='⏱',
         url_name='',  # Ainda não implementado
-        parent=operacional,
-        ordem=30,
-        ativo=True,
-        roles_permitidos=['triagem', 'gestao', 'admin'],
-    )
-    
-    # Gestão (grupo)
-    gestao = MenuItem.objects.create(
-        titulo='Gestão',
-        icone='📊',
-        url_name='',
         ordem=30,
         ativo=True,
         divisor_antes=True,
-        roles_permitidos=['gestao', 'admin'],
+        roles_permitidos=[],
     )
     
-    # Atendimento (grupo)
-    atendimento = MenuItem.objects.create(
-        titulo='Atendimento',
-        icone='💬',
+    # Gestão (nível superior)
+    MenuItem.objects.create(
+        titulo='Gestão',
+        icone='📊',
         url_name='',
         ordem=40,
         ativo=True,
-        roles_permitidos=['atendimento', 'admin'],
+        roles_permitidos=[],
+    )
+    
+    # Atendimento (nível superior)
+    MenuItem.objects.create(
+        titulo='Atendimento',
+        icone='💬',
+        url_name='',
+        ordem=50,
+        ativo=True,
+        roles_permitidos=[],
     )
 
 
