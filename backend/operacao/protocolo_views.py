@@ -233,26 +233,53 @@ class ObterSignedUrlProtocoloView(LoginRequiredMixin, View):
             # Gerar process_id único para o protocolo
             process_id = f"protocolo_{timestamp}_{unique_id}"
             
-            # Chamar API Lambda
-            payload = {
+            # Chamar API Lambda - formato igual ao upload_views.py
+            # A API espera: { process_id, files: [{ name, type, filename }] }
+            lambda_payload = {
                 'process_id': process_id,
-                'filename': filename,
-                'content_type': content_type
+                'files': [
+                    {
+                        'name': filename.replace('.pdf', ''),
+                        'type': content_type,
+                        'filename': filename
+                    }
+                ]
             }
+            
+            logger.info(f"[SignedURL] Chamando API: {aws_signed_url_api}")
+            logger.info(f"[SignedURL] Payload: {lambda_payload}")
             
             try:
                 response = requests.post(
                     aws_signed_url_api,
-                    json=payload,
+                    json=lambda_payload,
+                    headers={
+                        'Content-Type': 'application/json',
+                        'User-Agent': 'FEMME-Integra/1.0'
+                    },
                     timeout=15
                 )
                 
+                logger.info(f"[SignedURL] Response status: {response.status_code}")
+                logger.info(f"[SignedURL] Response body: {response.text[:500]}")
+                
                 if response.status_code == 200:
-                    result = response.json()
+                    lambda_data = response.json()
                     
-                    # Extrair dados da resposta
-                    signed_url = result.get('signed_url') or result.get('url')
-                    file_key = result.get('file_key') or result.get('key')
+                    # A API retorna um objeto com o nome do arquivo como chave
+                    # Formato: { "filename": { "key": "...", "url": "...", "name": "..." } }
+                    if not lambda_data or len(lambda_data) == 0:
+                        logger.error("Nenhum arquivo retornado pela API Lambda")
+                        return JsonResponse(
+                            {'status': 'error', 'message': 'Erro ao gerar URL de upload.'},
+                            status=500
+                        )
+                    
+                    # Extrair dados do primeiro arquivo
+                    file_name_key = list(lambda_data.keys())[0]
+                    file_data = lambda_data[file_name_key]
+                    signed_url = file_data.get('url')
+                    file_key = file_data.get('key') or f"processing/{process_id}/{filename}"
                     
                     if signed_url:
                         # Construir URL final do arquivo
@@ -267,7 +294,7 @@ class ObterSignedUrlProtocoloView(LoginRequiredMixin, View):
                             'expires_in': 3600
                         })
                     else:
-                        logger.error(f"Resposta da API sem signed_url: {result}")
+                        logger.error(f"URL não encontrada na resposta da API Lambda: {lambda_data}")
                         return JsonResponse(
                             {'status': 'error', 'message': 'Erro ao obter URL de upload.'},
                             status=500

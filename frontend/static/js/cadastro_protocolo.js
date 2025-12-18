@@ -138,6 +138,9 @@
     if (unidadeChecked) {
       state.unidadeId = unidadeChecked.value;
       elements.unidadeSelecionada().value = unidadeChecked.value;
+      
+      // Filtrar portadores pela unidade pré-selecionada
+      filterPortadoresByUnidade(unidadeChecked.value);
     }
   }
 
@@ -609,27 +612,32 @@
     }
     
     console.log('[CadastroProtocolo] Iniciando upload para S3...');
+    console.log('[CadastroProtocolo] Arquivo:', state.arquivoFile.name, state.arquivoFile.size, 'bytes');
     updateFileStatus('uploading');
     
     try {
       // 1. Obter signed URL
-      const signedUrlResponse = await fetch(
-        AppConfig.buildApiUrl('/operacao/protocolo/signed-url/') + '?content_type=application/pdf',
-        {
-          method: 'GET',
-          headers: AppConfig.getDefaultHeaders()
-        }
-      );
+      const apiUrl = AppConfig.buildApiUrl('/operacao/protocolo/signed-url/') + '?content_type=application/pdf';
+      console.log('[CadastroProtocolo] Chamando API signed URL:', apiUrl);
       
+      const signedUrlResponse = await fetch(apiUrl, {
+        method: 'GET',
+        headers: AppConfig.getDefaultHeaders()
+      });
+      
+      console.log('[CadastroProtocolo] Resposta signed URL status:', signedUrlResponse.status);
       const signedUrlData = await signedUrlResponse.json();
+      console.log('[CadastroProtocolo] Resposta signed URL data:', signedUrlData);
       
       if (signedUrlData.status !== 'success') {
         throw new Error(signedUrlData.message || 'Erro ao obter URL de upload.');
       }
       
       const { signed_url, file_url } = signedUrlData;
+      console.log('[CadastroProtocolo] Signed URL obtida:', signed_url?.substring(0, 100) + '...');
       
       // 2. Upload direto para S3
+      console.log('[CadastroProtocolo] Iniciando PUT para S3...');
       const uploadResponse = await fetch(signed_url, {
         method: 'PUT',
         headers: {
@@ -638,7 +646,11 @@
         body: state.arquivoFile
       });
       
+      console.log('[CadastroProtocolo] Resposta S3 status:', uploadResponse.status);
+      
       if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('[CadastroProtocolo] Erro S3:', errorText);
         throw new Error('Erro ao enviar arquivo para o servidor.');
       }
       
