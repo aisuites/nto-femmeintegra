@@ -233,9 +233,9 @@
 <script>
   // Dados do usuário atual
   window.USUARIO_ATUAL = {
-    id: {{ request.user.id }},
-    username: '{{ request.user.username }}',
-    nome: '{{ request.user.get_full_name|default:request.user.username }}'
+    id: {{ request.user.id|default:"null" }},
+    username: '{{ request.user.username|default:"" }}',
+    nome: '{{ request.user.get_full_name|default:request.user.username|default:"" }}'
   };
   
   // URLs das APIs
