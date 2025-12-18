@@ -612,11 +612,36 @@ class EnviarEmailMedicoView(LoginRequiredMixin, View):
             
             if result['success']:
                 logger.info(f"Email enviado: tipo={tipo}, crm={crm}, uf={uf}, user={request.user.username}")
-                return JsonResponse({
+                
+                # Criar tarefa automática se configurada para este tipo de evento
+                tarefa_criada = None
+                if tipo == 'medico_nao_encontrado':
+                    tarefa_criada = self._criar_tarefa_evento(
+                        'MEDICO_NAO_ENCONTRADO', 
+                        {'crm': crm, 'uf': uf}, 
+                        request.user
+                    )
+                elif tipo == 'medico_duplicado':
+                    tarefa_criada = self._criar_tarefa_evento(
+                        'MEDICO_DUPLICADO', 
+                        {'crm': crm, 'uf': uf}, 
+                        request.user
+                    )
+                
+                response_data = {
                     'status': 'success',
                     'message': result['message'],
                     'log_id': result.get('log_id')
-                })
+                }
+                
+                if tarefa_criada:
+                    response_data['tarefa_criada'] = {
+                        'codigo': tarefa_criada.codigo,
+                        'titulo': tarefa_criada.titulo
+                    }
+                    response_data['message'] += f' Tarefa {tarefa_criada.codigo} criada automaticamente.'
+                
+                return JsonResponse(response_data)
             else:
                 return JsonResponse({
                     'status': 'error',
@@ -635,3 +660,22 @@ class EnviarEmailMedicoView(LoginRequiredMixin, View):
                 {'status': 'error', 'message': 'Erro interno ao enviar email.'},
                 status=500
             )
+    
+    def _criar_tarefa_evento(self, codigo_evento: str, dados: dict, usuario) -> 'Tarefa':
+        """
+        Cria tarefa automática baseada em EventoTarefa configurado.
+        Retorna None se evento não existir ou estiver desativado.
+        """
+        from operacao.models import EventoTarefa
+        
+        try:
+            evento = EventoTarefa.objects.get(codigo_evento=codigo_evento, ativo=True)
+            tarefa = evento.criar_tarefa(dados=dados, usuario_acao=usuario)
+            logger.info(f"Tarefa automática criada: {tarefa.codigo} para evento {codigo_evento}")
+            return tarefa
+        except EventoTarefa.DoesNotExist:
+            logger.debug(f"EventoTarefa não encontrado ou desativado: {codigo_evento}")
+            return None
+        except Exception as e:
+            logger.exception(f"Erro ao criar tarefa automática para evento {codigo_evento}: {e}")
+            return None
