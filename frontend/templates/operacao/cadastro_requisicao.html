@@ -117,20 +117,21 @@
       </div>
     </div>
 
-    <div class="row two">
-      <div class="field">
+    <div class="row sexo-row">
+      <div class="field field-sexo">
         <label class="label-strong">Sexo</label>
         <select id="sexo-paciente">
           <option value="">Selecione...</option>
           <option value="F">Feminino</option>
           <option value="M">Masculino</option>
         </select>
-        <label class="checkbox-item" style="margin-top:6px; width:max-content;">
+      </div>
+      <div class="field field-checkbox-confirmar">
+        <label class="check-inline check-a-confirmar">
           <input type="checkbox" id="check-sexo-a-confirmar" />
-          <span>A confirmar</span>
+          A confirmar
         </label>
       </div>
-      <div class="field"></div>
     </div>
 
     <div class="divider"></div>
@@ -324,6 +325,6 @@
 
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_scripts %}
 <script src="{% static 'js/cadastro_requisicao.js' %}"></script>
 {% endblock %}

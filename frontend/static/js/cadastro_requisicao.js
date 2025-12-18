@@ -90,6 +90,7 @@ function getCookie(name) {
 const csrfToken = getCookie('csrftoken');
 
 function formatarCPF(cpf) {
+  if (!cpf) return '';
   cpf = cpf.replace(/\D/g, '');
   if (cpf.length <= 3) return cpf;
   if (cpf.length <= 6) return cpf.replace(/(\d{3})(\d+)/, '$1.$2');
@@ -215,8 +216,8 @@ function carregarDadosRequisicao(data) {
   reqBarrasDisplay.textContent = data.cod_barras_req;
   unidadeNomeDisplay.textContent = data.unidade_nome || '---';
   
-  // Preencher campos CPF
-  cpfPaciente.value = data.cpf_paciente || '';
+  // Preencher campos CPF (com máscara)
+  cpfPaciente.value = formatarCPF(data.cpf_paciente);
   nomePaciente.value = data.nome_paciente || '';
   checkProblemaCpf.checked = data.flag_problema_cpf || false;
   
@@ -368,21 +369,21 @@ async function validarMedico() {
   btnValidaMedico.textContent = 'Validando...';
   
   try {
-    const response = await fetch('/operacao/triagem/validar-medico/', {
-      method: 'POST',
+    // API usa GET com query params
+    const response = await fetch(`/operacao/triagem/validar-medico/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
         'X-CSRFToken': csrfToken,
       },
-      body: JSON.stringify({ crm, uf_crm: uf }),
     });
     
     const data = await response.json();
     
-    if (data.status === 'success') {
-      nomeMedico.value = data.nome || '';
-      enderecoMedico.value = data.endereco || '';
-      destinoMedico.value = data.destino || '';
+    if (data.status === 'success' && data.medicos && data.medicos.length > 0) {
+      const medico = data.medicos[0];
+      nomeMedico.value = medico.nome_medico || '';
+      enderecoMedico.value = medico.endereco || '';
+      destinoMedico.value = medico.destino || '';
       medicoValidado = true;
       mostrarAlerta(alertMedico, alertMedicoMessage, '✅ Médico validado com sucesso!');
       alertMedico.style.background = 'linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%)';
@@ -509,6 +510,8 @@ async function consultarCpfReceita() {
 async function localizarRequisicao() {
   const codBarras = inputCodBarras.value.trim();
   
+  console.log('[Cadastro] Iniciando localização, código:', codBarras);
+  
   if (!codBarras) {
     mostrarMensagemErroLocalizacao('Digite ou bipe o código de barras da requisição.');
     return;
@@ -518,7 +521,10 @@ async function localizarRequisicao() {
   btnLocalizar.disabled = true;
   btnLocalizar.textContent = '🔄 Localizando...';
   
+  console.log('[Cadastro] CSRF Token:', csrfToken);
+  
   try {
+    console.log('[Cadastro] Fazendo fetch para /operacao/cadastro/localizar/');
     const response = await fetch('/operacao/cadastro/localizar/', {
       method: 'POST',
       headers: {
@@ -528,7 +534,9 @@ async function localizarRequisicao() {
       body: JSON.stringify({ cod_barras: codBarras }),
     });
     
+    console.log('[Cadastro] Response status:', response.status);
     const data = await response.json();
+    console.log('[Cadastro] Response data:', data);
     
     if (data.status === 'success') {
       ocultarMensagemErroLocalizacao();
@@ -664,8 +672,18 @@ function mostrarToastSucesso(mensagem) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Cadastro] DOMContentLoaded - Inicializando...');
+  console.log('[Cadastro] btnLocalizar:', btnLocalizar);
+  console.log('[Cadastro] inputCodBarras:', inputCodBarras);
+  
+  if (!btnLocalizar) {
+    console.error('[Cadastro] ERRO: btnLocalizar não encontrado!');
+    return;
+  }
+  
   // Localizar requisição
   btnLocalizar.addEventListener('click', localizarRequisicao);
+  console.log('[Cadastro] Event listener adicionado ao btnLocalizar');
   
   inputCodBarras.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
@@ -747,13 +765,26 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // TODO: Implementar visualização de imagem
     const modal = document.getElementById('modal-ver-imagem');
     const container = document.getElementById('imagem-requisicao-container');
     
     if (requisicaoAtual.arquivos && requisicaoAtual.arquivos.length > 0) {
       const arquivo = requisicaoAtual.arquivos[0];
-      container.innerHTML = `<iframe src="${arquivo.url}" style="width:100%;height:500px;border:none;"></iframe>`;
+      const url = arquivo.url_arquivo || arquivo.url;
+      const nome = arquivo.nome_arquivo || 'arquivo';
+      const isPdf = nome.toLowerCase().endsWith('.pdf');
+      
+      if (isPdf) {
+        // Para PDF, usar embed ou object para melhor compatibilidade
+        container.innerHTML = `
+          <object data="${url}" type="application/pdf" style="width:100%;height:600px;">
+            <p>Não foi possível exibir o PDF. <a href="${url}" target="_blank">Clique aqui para abrir em nova aba</a>.</p>
+          </object>
+        `;
+      } else {
+        // Para imagens
+        container.innerHTML = `<img src="${url}" style="max-width:100%;max-height:600px;" alt="Imagem da requisição" />`;
+      }
     } else {
       container.innerHTML = '<p class="text-muted">Nenhuma imagem disponível para esta requisição.</p>';
     }

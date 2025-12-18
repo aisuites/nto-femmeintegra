@@ -422,6 +422,29 @@ input[readonly] {
   gap: 12px;
 }
 
+/* Row Sexo - campo sexo com mesma largura do DUM + checkbox ao lado */
+.row.sexo-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.field-sexo {
+  flex: 0 0 calc(25% - 9px); /* Mesma largura do DUM (1/4 da row.four) */
+}
+
+.field-checkbox-confirmar {
+  display: flex;
+  align-items: center;
+}
+
+.check-a-confirmar {
+  margin-bottom: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
 .field-actions {
   display: flex;
   flex-direction: column;
