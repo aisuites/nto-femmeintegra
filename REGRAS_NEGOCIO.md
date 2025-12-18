@@ -1904,8 +1904,8 @@ if requisicao.status.codigo not in ['1', '10']:  # ABERTO NTO ou EM TRÂNSITO
 
 ---
 
-**Última Atualização**: 17/12/2025  
-**Versão**: 1.4  
+**Última Atualização**: 18/12/2024  
+**Versão**: 1.5  
 **Responsável**: Equipe de Desenvolvimento FEMME INTEGRA
 
 ---
