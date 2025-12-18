@@ -2159,7 +2159,12 @@ async function consultarCpfReceita() {
 }
 
 /**
- * Valida médico por CRM e UF na API FEMME
+ * Variável para armazenar problema de médico atual (para o modal)
+ */
+let problemaMedicoAtual = null;
+
+/**
+ * Valida médico por CRM e UF usando API unificada (FEMME + fallback KORUS)
  */
 async function validarMedico() {
   const crm = crmMedico ? crmMedico.value.trim() : '';
@@ -2194,7 +2199,8 @@ async function validarMedico() {
   if (destinoMedico) destinoMedico.value = '';
   
   try {
-    const response = await fetch(`/operacao/triagem/validar-medico/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
+    // Usar API unificada que faz fallback automático
+    const response = await fetch(`/operacao/triagem/validar-medico-completo/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -2204,24 +2210,47 @@ async function validarMedico() {
     
     const data = await response.json();
     
-    console.log('Resposta API Médico:', response.status, data);
+    console.log('[Triagem] Resposta validação médico:', response.status, data);
     
-    if (!response.ok || data.status === 'error') {
-      mostrarAlerta(data.message || 'Erro ao validar médico.', 'medico');
-      return;
-    }
-    
-    if (data.status === 'success' && data.medicos && data.medicos.length > 0) {
-      if (data.total === 1) {
-        // Apenas 1 endereço: salvar direto
-        const medico = data.medicos[0];
-        await salvarMedico(medico);
-      } else {
-        // Múltiplos endereços: abrir modal para seleção
-        abrirModalSelecaoMedicos(data.medicos);
-      }
+    if (data.status === 'success' && data.medico) {
+      // Sucesso - médico validado com destino
+      const medico = data.medico;
+      await salvarMedico({
+        id_medico: medico.id_medico,
+        nome_medico: medico.nome_medico,
+        crm: medico.crm,
+        uf_crm: medico.uf_crm,
+        endereco: medico.endereco,
+        destino: medico.destino
+      });
+      // Desmarcar checkbox de problema com médico se existir
+      const checkProblemaMedico = document.getElementById('check-problema-medico');
+      if (checkProblemaMedico) checkProblemaMedico.checked = false;
+    } else if (data.code === 'medico_sem_destino') {
+      // Médico existe mas sem destino - abrir modal
+      problemaMedicoAtual = {
+        tipo: 'medico_sem_destino',
+        crm: crm,
+        uf_crm: uf,
+        medico: data.medico || {},
+        mensagem: data.message
+      };
+      abrirModalProblemaMedico(problemaMedicoAtual);
+    } else if (data.code === 'medico_nao_encontrado') {
+      // Médico não encontrado - abrir modal
+      problemaMedicoAtual = {
+        tipo: 'medico_nao_encontrado',
+        crm: crm,
+        uf_crm: uf,
+        medico: null,
+        mensagem: data.message
+      };
+      abrirModalProblemaMedico(problemaMedicoAtual);
+    } else if (data.code === 'medico_duplicado') {
+      // Múltiplos médicos encontrados
+      mostrarAlerta(data.message || 'Múltiplos médicos encontrados. Verifique o CRM.', 'medico');
     } else {
-      mostrarAlerta('Médico não encontrado.', 'medico');
+      mostrarAlerta(data.message || 'Erro ao validar médico.', 'medico');
     }
     
   } catch (error) {
@@ -2232,6 +2261,133 @@ async function validarMedico() {
     if (btnValidaMedico) {
       btnValidaMedico.disabled = false;
       btnValidaMedico.textContent = 'Valida';
+    }
+  }
+}
+
+/**
+ * Abre modal de problema com médico
+ */
+function abrirModalProblemaMedico(problema) {
+  const modal = document.getElementById('modal-problema-medico');
+  const mensagemDiv = document.getElementById('modal-medico-mensagem');
+  const infoDiv = document.getElementById('modal-medico-info');
+  
+  if (!modal || !mensagemDiv || !infoDiv) return;
+  
+  // Definir mensagem
+  if (problema.tipo === 'medico_sem_destino') {
+    mensagemDiv.innerHTML = `
+      <strong>Médico encontrado, mas sem destino configurado.</strong><br>
+      <small>O médico existe na base, porém não possui um destino de entrega configurado.</small>
+    `;
+    mensagemDiv.className = 'alert alert-warning';
+  } else {
+    mensagemDiv.innerHTML = `
+      <strong>Médico não encontrado na base.</strong><br>
+      <small>Não foi possível localizar o médico com o CRM informado.</small>
+    `;
+    mensagemDiv.className = 'alert alert-danger';
+  }
+  
+  // Mostrar informações do médico se disponível
+  if (problema.medico && problema.medico.nome_medico) {
+    infoDiv.innerHTML = `
+      <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px;">
+        <p style="margin: 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
+        <p style="margin: 0;"><strong>Nome:</strong> ${problema.medico.nome_medico}</p>
+        ${problema.medico.endereco ? `<p style="margin: 0;"><strong>Endereço:</strong> ${problema.medico.endereco}</p>` : ''}
+      </div>
+    `;
+    infoDiv.style.display = 'block';
+  } else {
+    infoDiv.innerHTML = `
+      <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px;">
+        <p style="margin: 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
+      </div>
+    `;
+    infoDiv.style.display = 'block';
+  }
+  
+  modal.style.display = 'flex';
+}
+
+/**
+ * Fecha modal de problema com médico
+ */
+function fecharModalProblemaMedico() {
+  const modal = document.getElementById('modal-problema-medico');
+  if (modal) modal.style.display = 'none';
+  problemaMedicoAtual = null;
+}
+
+/**
+ * Registra pendência de médico e continua
+ */
+async function registrarPendenciaMedico() {
+  if (!problemaMedicoAtual || !requisicaoAtual) {
+    mostrarAlerta('Erro: dados insuficientes para registrar pendência.', 'medico');
+    fecharModalProblemaMedico();
+    return;
+  }
+  
+  const btnRegistrar = document.getElementById('btn-registrar-pendencia-medico');
+  if (btnRegistrar) {
+    btnRegistrar.disabled = true;
+    btnRegistrar.textContent = 'Registrando...';
+  }
+  
+  try {
+    const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify({
+        requisicao_id: requisicaoAtual.id,
+        tipo_pendencia: problemaMedicoAtual.tipo,
+        crm: problemaMedicoAtual.crm,
+        uf_crm: problemaMedicoAtual.uf_crm,
+        nome_medico: problemaMedicoAtual.medico?.nome_medico || '',
+      }),
+    });
+    
+    const data = await response.json();
+    console.log('[Triagem] Resposta registro pendência:', data);
+    
+    if (data.status === 'success') {
+      // Marcar checkbox de problema com médico se existir
+      const checkProblemaMedico = document.getElementById('check-problema-medico');
+      if (checkProblemaMedico) checkProblemaMedico.checked = true;
+      
+      // Preencher campos do médico se disponível
+      if (problemaMedicoAtual.medico) {
+        if (nomeMedico) nomeMedico.value = problemaMedicoAtual.medico.nome_medico || '';
+        if (enderecoMedico) enderecoMedico.value = problemaMedicoAtual.medico.endereco || '';
+      }
+      
+      // Limpar destino (não tem)
+      if (destinoMedico) destinoMedico.value = '';
+      
+      fecharModalProblemaMedico();
+      
+      // Mostrar mensagem de sucesso
+      let msgExtra = '';
+      if (data.email_enviado) msgExtra += ' Email enviado.';
+      if (data.tarefa_criada) msgExtra += ' Tarefa criada.';
+      
+      mostrarMensagemSucesso(`Pendência registrada com sucesso.${msgExtra}`);
+    } else {
+      mostrarAlerta(data.message || 'Erro ao registrar pendência.', 'medico');
+    }
+  } catch (error) {
+    console.error('Erro ao registrar pendência:', error);
+    mostrarAlerta('Erro de conexão ao registrar pendência.', 'medico');
+  } finally {
+    if (btnRegistrar) {
+      btnRegistrar.disabled = false;
+      btnRegistrar.textContent = '📋 Registrar Pendência e Continuar';
     }
   }
 }
@@ -3043,6 +3199,23 @@ if (checkProblemaMedico) {
       btnValidaMedico.disabled = checkProblemaMedico.checked;
     }
   });
+}
+
+// Modal Problema com Médico - Botões
+const btnFecharModalMedico = document.getElementById('btn-fechar-modal-medico');
+const btnCancelarModalMedico = document.getElementById('btn-cancelar-modal-medico');
+const btnRegistrarPendenciaMedico = document.getElementById('btn-registrar-pendencia-medico');
+
+if (btnFecharModalMedico) {
+  btnFecharModalMedico.addEventListener('click', fecharModalProblemaMedico);
+}
+
+if (btnCancelarModalMedico) {
+  btnCancelarModalMedico.addEventListener('click', fecharModalProblemaMedico);
+}
+
+if (btnRegistrarPendenciaMedico) {
+  btnRegistrarPendenciaMedico.addEventListener('click', registrarPendenciaMedico);
 }
 
 // Modal Seleção de Médicos - Botão fechar

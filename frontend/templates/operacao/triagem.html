@@ -743,6 +743,33 @@
   </div>
 </div>
 
+<!-- Modal: Problema com Médico -->
+<div id="modal-problema-medico" class="modal-overlay" style="display:none;">
+  <div class="modal-container" style="max-width:500px;">
+    <div class="modal-header" style="background: linear-gradient(135deg, #fff3e0 0%, #fff 100%);">
+      <h3 style="color: #e65100;">⚠️ Problema na Validação do Médico</h3>
+      <button type="button" class="modal-close-btn" id="btn-fechar-modal-medico" title="Fechar">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-medico-mensagem" class="alert alert-warning" style="margin-bottom: 1rem;">
+        <!-- Mensagem dinâmica -->
+      </div>
+      <div id="modal-medico-info" style="margin-bottom: 1rem;">
+        <!-- Informações do médico se encontrado -->
+      </div>
+      <p class="text-muted">O que deseja fazer?</p>
+    </div>
+    <div class="modal-footer" style="flex-direction: column; gap: 0.5rem;">
+      <button class="btn-pill-primary" type="button" id="btn-registrar-pendencia-medico" style="width: 100%;">
+        📋 Registrar Pendência e Continuar
+      </button>
+      <button class="btn-pill-ghost" type="button" id="btn-cancelar-modal-medico" style="width: 100%;">
+        Cancelar e Corrigir Dados
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Seleção de Médicos (múltiplos endereços) -->
 <div id="modal-selecao-medicos" class="modal-overlay" style="display:none;">
   <div class="modal-container" style="max-width:800px;">
