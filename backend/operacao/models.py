@@ -1151,6 +1151,7 @@ class Tarefa(TimeStampedModel):
     class Origem(models.TextChoices):
         SISTEMA = 'SISTEMA', 'Sistema'
         GESTOR = 'GESTOR', 'Gestor'
+        PROPRIO = 'PROPRIO', 'Próprio'
     
     # Identificação
     codigo = models.CharField(

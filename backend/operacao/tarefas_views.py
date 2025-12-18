@@ -200,6 +200,12 @@ class CriarTarefaAPIView(View):
                 data_prazo = timezone.now().date() + timedelta(days=tipo.prazo_dias)
             
             with transaction.atomic():
+                # Determinar origem: PROPRIO se criou para si mesmo, GESTOR se criou para outro
+                if request.user.is_authenticated and responsavel == request.user:
+                    origem_tarefa = Tarefa.Origem.PROPRIO
+                else:
+                    origem_tarefa = Tarefa.Origem.GESTOR
+                
                 # Criar tarefa
                 tarefa = Tarefa.objects.create(
                     titulo=titulo,
@@ -207,7 +213,7 @@ class CriarTarefaAPIView(View):
                     tipo=tipo,
                     status=Tarefa.Status.A_FAZER,
                     prioridade=prioridade,
-                    origem=Tarefa.Origem.GESTOR,
+                    origem=origem_tarefa,
                     criado_por=request.user if request.user.is_authenticated else None,
                     responsavel=responsavel,
                     data_prazo=data_prazo,
@@ -216,7 +222,7 @@ class CriarTarefaAPIView(View):
                     observacoes=observacoes,
                 )
                 
-                # Criar notificação para o responsável
+                # Criar notificação para o responsável (apenas se for outro usuário)
                 if responsavel != request.user:
                     Notificacao.objects.create(
                         usuario=responsavel,
