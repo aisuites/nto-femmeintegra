@@ -1312,6 +1312,7 @@ class ConsultarCPFKorusView(LoginRequiredMixin, View):
                 requisicao.data_nasc_paciente = None  # null=True, pode ser None
                 requisicao.sexo_paciente = ''  # null=False
                 requisicao.email_paciente = ''  # null=False
+                requisicao.telefone_paciente = ''  # null=False
                 requisicao.matricula_paciente = ''  # null=False
                 requisicao.convenio_paciente = ''  # null=False
                 requisicao.plano_paciente = ''  # null=False
@@ -1494,6 +1495,7 @@ class ConsultarCPFReceitaView(LoginRequiredMixin, View):
                 requisicao.data_nasc_paciente = None  # null=True, pode ser None
                 requisicao.sexo_paciente = ''  # null=False
                 requisicao.email_paciente = ''  # null=False
+                requisicao.telefone_paciente = ''  # null=False
                 requisicao.matricula_paciente = ''  # null=False
                 requisicao.convenio_paciente = ''  # null=False
                 requisicao.plano_paciente = ''  # null=False
