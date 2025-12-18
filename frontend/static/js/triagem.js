@@ -477,7 +477,9 @@ async function carregarArquivos() {
     const data = await response.json();
     
     if (data.status === 'success' && data.arquivos) {
-      atualizarListaArquivos(data.arquivos);
+      // Filtrar apenas arquivos do tipo REQUISIÇÃO (cod_tipo_arquivo = 1)
+      const arquivosRequisicao = data.arquivos.filter(arq => arq.cod_tipo_arquivo === 1);
+      atualizarListaArquivos(arquivosRequisicao);
     }
     
   } catch (error) {
