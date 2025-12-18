@@ -184,9 +184,6 @@ function limparFormulario() {
   // Limpar campo de busca
   inputCodBarras.value = '';
   
-  // Limpar mensagens de erro/sucesso
-  ocultarMensagemErroLocalizacao();
-  
   // Limpar campos Etapa 1
   reqId.value = '';
   reqCodBarras.value = '';
