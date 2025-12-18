@@ -116,12 +116,8 @@
     
     // Botão Nova Tarefa
     const btnNova = elements.btnNovaTarefa();
-    console.log('[TarefasKanban] Botão Nova Tarefa:', btnNova);
     if (btnNova) {
       btnNova.addEventListener('click', abrirModalNovaTarefa);
-      console.log('[TarefasKanban] Event listener adicionado ao botão Nova Tarefa');
-    } else {
-      console.warn('[TarefasKanban] Botão Nova Tarefa não encontrado!');
     }
     
     // Modal Nova Tarefa
@@ -443,7 +439,6 @@
   // MODAL NOVA TAREFA
   // ============================================
   function abrirModalNovaTarefa() {
-    console.log('[TarefasKanban] abrirModalNovaTarefa chamada');
     state.tarefaEditando = null;
     
     // Limpar formulário
