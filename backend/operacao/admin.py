@@ -12,6 +12,7 @@ from .models import (
     Notificacao,
     Origem,
     PortadorRepresentante,
+    Protocolo,
     DadosRequisicao,
     RequisicaoAmostra,
     RequisicaoArquivo,
@@ -409,3 +410,48 @@ class LogAlteracaoAmostraAdmin(admin.ModelAdmin):
     
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Protocolo)
+class ProtocoloAdmin(admin.ModelAdmin):
+    """Admin para gerenciamento de protocolos."""
+    list_display = (
+        'codigo',
+        'unidade',
+        'portador',
+        'crm',
+        'uf_crm',
+        'nome_medico',
+        'medico_validado',
+        'status',
+        'created_at',
+        'created_by',
+    )
+    list_filter = ('status', 'medico_validado', 'unidade', 'uf_crm', 'created_at')
+    search_fields = ('codigo', 'crm', 'nome_medico', 'portador__nome')
+    readonly_fields = ('codigo', 'created_at', 'updated_at', 'created_by', 'updated_by')
+    ordering = ('-created_at',)
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Identificação', {
+            'fields': ('codigo', 'status')
+        }),
+        ('Dados do Protocolo', {
+            'fields': ('unidade', 'portador', 'origem')
+        }),
+        ('Dados do Médico', {
+            'fields': ('crm', 'uf_crm', 'nome_medico', 'medico_validado')
+        }),
+        ('Arquivo', {
+            'fields': ('arquivo_nome', 'arquivo_url')
+        }),
+        ('Observações', {
+            'fields': ('observacao',),
+            'classes': ('collapse',)
+        }),
+        ('Auditoria', {
+            'fields': ('created_at', 'created_by', 'updated_at', 'updated_by'),
+            'classes': ('collapse',)
+        }),
+    )

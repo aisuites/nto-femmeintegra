@@ -1,0 +1,180 @@
+{% extends "base_app.html" %}
+{% load static %}
+
+{% block title %}Cadastro Protocolo – FEMME Integra{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/recebimento.css' %}" />
+<link rel="stylesheet" href="{% static 'css/cadastro_protocolo.css' %}" />
+{% endblock %}
+
+{% block main_content %}
+<div class="page">
+  <!-- BLOCO PRINCIPAL: FORM DE CADASTRO PROTOCOLO -->
+  <section class="protocolo-wrapper">
+    <div class="protocolo-header">
+      <div class="section-kicker">Cadastro Protocolo</div>
+    </div>
+
+    <!-- BLOCO 1 – UNIDADE -->
+    <div class="form-block">
+      <div class="block-title">1. Unidade</div>
+      <div class="units-grid">
+        {% if unidades %}
+          {% for unidade in unidades %}
+            <label class="unit-card {% if unidade_padrao and unidade.id == unidade_padrao.id %}unit-card--selected{% endif %}">
+              <input
+                  type="radio"
+                  name="unidade_origem"
+                  value="{{ unidade.id }}"
+                  data-unidade-nome="{{ unidade.nome }}"
+                  data-unidade-codigo="{{ unidade.codigo }}"
+                  {% if unidade_padrao and unidade.id == unidade_padrao.id %}checked{% endif %}
+              />
+              <span>{{ unidade.nome }}</span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <p class="info-inline">Cadastre unidades para habilitar esta etapa.</p>
+        {% endif %}
+      </div>
+      <input type="hidden" id="unidadeSelecionada" name="unidade_id" value="{{ unidade_padrao.id|default_if_none:'' }}">
+    </div>
+
+    <!-- BLOCO 2 – PORTADOR / REPRESENTANTE E ORIGEM -->
+    <div class="form-block">
+      <div class="block-title">2. Portador / Representante & Origem</div>
+
+      <div class="fields-grid">
+        <div class="field">
+          <div class="field-label-row">
+            <label for="campo_portador">Portador / Representante</label>
+          </div>
+          <select id="campo_portador">
+            <option value="">Selecione...</option>
+            {% for portador in portadores %}
+              <option
+                  value="{{ portador.id }}"
+                  data-unidade-id="{{ portador.unidade_id }}"
+                  data-origem="{{ portador.origem.descricao|default_if_none:'' }}"
+                  data-origem-id="{{ portador.origem_id }}"
+                  data-tipo="{{ portador.get_tipo_display }}"
+              >
+                {{ portador.nome }} ({{ portador.get_tipo_display }})
+              </option>
+            {% empty %}
+              <option value="" disabled>Nenhum portador cadastrado</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field">
+          <div class="field-label-row">
+            <label for="campo_origem">Origem</label>
+          </div>
+          <input type="text" id="campo_origem" readonly
+                 placeholder="Será preenchido automaticamente" />
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 3 – DADOS DO MÉDICO -->
+    <div class="form-block">
+      <div class="block-title">3. Dados do Médico</div>
+
+      <div class="row three">
+        <div class="field">
+          <label class="label-strong">CRM</label>
+          <input type="text" id="crm-medico" placeholder="Número do CRM" pattern="[0-9]*" inputmode="numeric" />
+        </div>
+
+        <div class="field">
+          <label class="label-strong">UF-CRM</label>
+          <div class="custom-dropdown-wrapper" id="uf-crm-wrapper">
+            <input type="text" id="uf-crm" placeholder="Digite ou selecione..." maxlength="2" style="text-transform: uppercase;" autocomplete="off" />
+            <div class="custom-dropdown-list" id="uf-crm-dropdown">
+              {% for uf in ufs %}
+              <div class="custom-dropdown-item" data-value="{{ uf }}">{{ uf }}</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="field field-actions">
+          <button class="btn btn-outline" type="button" id="btn-valida-medico" title="Validar médico via API">Valida Médico</button>
+        </div>
+      </div>
+
+      <!-- ÁREA DE ALERTA MÉDICO -->
+      <div class="alert alert-validacao" id="protocolo_alert_medico" role="alert" aria-live="assertive" style="display: none;">
+        <strong>Atenção!</strong>
+        <span id="protocolo_alert_medico_message"></span>
+      </div>
+
+      <!-- NOME DO MÉDICO -->
+      <div class="row">
+        <div class="field" id="nome_medico_field">
+          <label class="label-strong">Nome do médico</label>
+          <input type="text" id="nome-medico" readonly placeholder="Preenchido via API Valida Médico" />
+        </div>
+      </div>
+    </div>
+
+    <!-- BLOCO 4 – UPLOAD DE ARQUIVO (OBRIGATÓRIO) -->
+    <div class="form-block">
+      <div class="block-title">4. Upload de Arquivo <span class="text-danger">*</span></div>
+
+      <div class="row">
+        <div class="field">
+          <span class="label-strong">Upload imagem (obrigatório)</span>
+          <div class="scanner-box">
+            <div class="scanner-row">
+              <button class="btn btn-outline" type="button" id="btn-carregar-imagem">📁 Carregar Imagem</button>
+              <input type="file" id="input-upload-imagem" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" />
+            </div>
+            <!-- Arquivos aparecerão aqui dinamicamente -->
+            <div id="upload-files-container"></div>
+          </div>
+          <div class="info-inline" id="info-formatos-aceitos">
+            Selecione um arquivo. Formatos aceitos: PDF, JPG, JPEG, PNG. Imagens serão convertidas para PDF.
+          </div>
+        </div>
+      </div>
+
+      <!-- ÁREA DE ALERTA UPLOAD -->
+      <div class="alert alert-validacao" id="protocolo_alert_upload" role="alert" aria-live="assertive" style="display: none;">
+        <strong>Atenção!</strong>
+        <span id="protocolo_alert_upload_message"></span>
+      </div>
+    </div>
+
+    <!-- ÁREA DE ALERTA GERAL -->
+    <div class="alert alert-validacao" id="protocolo_alert_geral" role="alert" aria-live="assertive" style="display: none;">
+      <strong>Atenção!</strong>
+      <span id="protocolo_alert_geral_message"></span>
+    </div>
+
+    <!-- ÁREA DE SUCESSO -->
+    <div class="alert alert-success" id="protocolo_alert_sucesso" role="alert" aria-live="assertive" style="display: none;">
+      <strong>Sucesso!</strong>
+      <span id="protocolo_alert_sucesso_message"></span>
+    </div>
+
+    <!-- AÇÕES -->
+    <div class="step-actions">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-protocolo">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="btn-salvar-protocolo">SALVAR PROTOCOLO</button>
+    </div>
+
+  </section>
+</div>
+
+<!-- Hidden inputs -->
+<input type="hidden" id="csrf_token_input" value="{{ csrf_token }}">
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="{% static 'js/cadastro_protocolo.js' %}"></script>
+{% endblock %}

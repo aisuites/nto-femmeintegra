@@ -948,3 +948,136 @@ class RequisicaoArquivo(AuditModel):
     
     def __str__(self) -> str:
         return f'{self.cod_req} - {self.nome_arquivo}'
+
+
+class Protocolo(AuditModel):
+    """
+    Protocolo de cadastro de médico/requisição.
+    Armazena dados de unidade, portador, médico e arquivo digitalizado.
+    """
+    
+    class Status(models.TextChoices):
+        PENDENTE = 'PENDENTE', 'Pendente'
+        PROCESSADO = 'PROCESSADO', 'Processado'
+        CANCELADO = 'CANCELADO', 'Cancelado'
+    
+    codigo = models.CharField(
+        'Código do Protocolo',
+        max_length=30,
+        unique=True,
+        db_index=True,
+        help_text='Código único do protocolo (gerado automaticamente)',
+    )
+    unidade = models.ForeignKey(
+        Unidade,
+        on_delete=models.PROTECT,
+        related_name='protocolos',
+        verbose_name='Unidade',
+    )
+    portador = models.ForeignKey(
+        PortadorRepresentante,
+        on_delete=models.PROTECT,
+        related_name='protocolos',
+        verbose_name='Portador/Representante',
+    )
+    origem = models.ForeignKey(
+        Origem,
+        on_delete=models.PROTECT,
+        related_name='protocolos',
+        verbose_name='Origem',
+    )
+    
+    # Dados do médico
+    crm = models.CharField(
+        'CRM',
+        max_length=20,
+        help_text='Número do CRM do médico',
+    )
+    uf_crm = models.CharField(
+        'UF do CRM',
+        max_length=2,
+        help_text='Estado do CRM (ex: SP, RJ)',
+    )
+    nome_medico = models.CharField(
+        'Nome do Médico',
+        max_length=200,
+        help_text='Nome completo do médico',
+    )
+    medico_validado = models.BooleanField(
+        'Médico Validado',
+        default=False,
+        help_text='Indica se o médico foi validado via API',
+    )
+    
+    # Arquivo (obrigatório)
+    arquivo_url = models.CharField(
+        'URL do Arquivo',
+        max_length=500,
+        help_text='URL do arquivo PDF no S3',
+    )
+    arquivo_nome = models.CharField(
+        'Nome do Arquivo',
+        max_length=255,
+        help_text='Nome original do arquivo enviado',
+    )
+    
+    # Status
+    status = models.CharField(
+        'Status',
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDENTE,
+        db_index=True,
+    )
+    
+    # Observações
+    observacao = models.TextField(
+        'Observação',
+        blank=True,
+        default='',
+        help_text='Observações adicionais sobre o protocolo',
+    )
+    
+    class Meta:
+        db_table = 'operacao_protocolo'
+        ordering = ('-created_at',)
+        verbose_name = 'Protocolo'
+        verbose_name_plural = 'Protocolos'
+        indexes = [
+            models.Index(fields=['codigo']),
+            models.Index(fields=['status', '-created_at']),
+            models.Index(fields=['unidade', '-created_at']),
+            models.Index(fields=['crm', 'uf_crm']),
+        ]
+    
+    def __str__(self) -> str:
+        return f'{self.codigo} - {self.nome_medico}'
+    
+    def save(self, *args, **kwargs):
+        # Gerar código automaticamente se não existir
+        if not self.codigo:
+            self.codigo = self._gerar_codigo()
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def _gerar_codigo(cls):
+        """Gera código único no formato PROT-YYYYMMDD-XXXX"""
+        from datetime import datetime
+        hoje = datetime.now().strftime('%Y%m%d')
+        prefixo = f'PROT-{hoje}-'
+        
+        # Buscar último protocolo do dia
+        ultimo = cls.objects.filter(
+            codigo__startswith=prefixo
+        ).order_by('-codigo').first()
+        
+        if ultimo:
+            try:
+                ultimo_num = int(ultimo.codigo.split('-')[-1])
+                novo_num = ultimo_num + 1
+            except (ValueError, IndexError):
+                novo_num = 1
+        else:
+            novo_num = 1
+        
+        return f'{prefixo}{novo_num:04d}'

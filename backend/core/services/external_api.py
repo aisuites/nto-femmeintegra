@@ -208,6 +208,116 @@ class KorusAPIClient(ExternalAPIClient):
             logger.error(f"Erro inesperado na autenticação Korus: {str(e)}", exc_info=True)
             return False
     
+    def buscar_medico_por_crm(self, crm: str, uf: str) -> APIResponse:
+        """
+        Busca médico por CRM e UF na API Korus.
+        
+        Args:
+            crm: Número do CRM
+            uf: UF do CRM (ex: SP, RJ)
+        
+        Returns:
+            APIResponse com dados do médico ou erro.
+            - Se 1 médico: success=True, data={'medico': {...}, 'quantidade': 1}
+            - Se 0 médicos: success=False, error='Médico não encontrado'
+            - Se 2+ médicos: success=False, error='Múltiplos médicos encontrados', 
+                            data={'medicos': [...], 'quantidade': N}
+        """
+        # Limpar e validar parâmetros
+        crm_limpo = crm.strip()
+        uf_limpo = uf.strip().upper()
+        
+        if not crm_limpo:
+            return APIResponse(
+                success=False,
+                error='CRM não informado.'
+            )
+        
+        if not uf_limpo or len(uf_limpo) != 2:
+            return APIResponse(
+                success=False,
+                error='UF do CRM inválida. Informe 2 caracteres.'
+            )
+        
+        logger.info(f"Buscando médico por CRM: {crm_limpo}, UF: {uf_limpo}")
+        
+        response = self._make_request(
+            method='POST',
+            endpoint='/Medico',
+            data={'crm': crm_limpo, 'uf': uf_limpo},
+            require_auth=True
+        )
+        
+        logger.info(f"Resposta Korus Médico - success={response.success}, status={response.status_code}, data={response.data}, error={response.error}")
+        
+        # Tratar erro de requisição
+        if not response.success:
+            # Verificar se é 404 (não encontrado)
+            if response.status_code == 404:
+                return APIResponse(
+                    success=False,
+                    error='Médico não encontrado na base.',
+                    status_code=404
+                )
+            # Verificar se é 400 (bad request)
+            if response.status_code == 400:
+                detail = response.data.get('detail', '') if response.data else ''
+                return APIResponse(
+                    success=False,
+                    error=detail or 'Dados inválidos para consulta.',
+                    status_code=400
+                )
+            return response
+        
+        # Processar resposta de sucesso (lista de médicos)
+        medicos = response.data if isinstance(response.data, list) else []
+        quantidade = len(medicos)
+        
+        if quantidade == 0:
+            return APIResponse(
+                success=False,
+                error='Médico não encontrado na base.',
+                status_code=404
+            )
+        
+        if quantidade == 1:
+            medico = medicos[0]
+            return APIResponse(
+                success=True,
+                data={
+                    'medico': {
+                        'id': medico.get('id'),
+                        'nome': medico.get('nome', ''),
+                        'crm': medico.get('crm', ''),
+                        'uf': medico.get('uf', ''),
+                        'conselho': medico.get('conselho', '')
+                    },
+                    'quantidade': 1
+                },
+                status_code=200
+            )
+        
+        # Múltiplos médicos encontrados (situação de erro)
+        logger.warning(f"Múltiplos médicos encontrados para CRM={crm_limpo}, UF={uf_limpo}: {quantidade} registros")
+        return APIResponse(
+            success=False,
+            error=f'Múltiplos médicos encontrados ({quantidade} registros). É necessário verificar o cadastro.',
+            data={
+                'medicos': [
+                    {
+                        'id': m.get('id'),
+                        'nome': m.get('nome', ''),
+                        'crm': m.get('crm', ''),
+                        'uf': m.get('uf', ''),
+                        'conselho': m.get('conselho', '')
+                    }
+                    for m in medicos
+                ],
+                'quantidade': quantidade
+            },
+            status_code=200
+        )
+
     def buscar_paciente_por_cpf(self, cpf: str) -> APIResponse:
         """
         Busca dados de paciente por CPF na API Korus.

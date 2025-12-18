@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 from . import upload_views
 from . import triagem_views
+from . import protocolo_views
 
 app_name = 'operacao'
 
@@ -196,5 +197,26 @@ urlpatterns = [
         'debug/license/',
         views.DebugLicenseView.as_view(),
         name='debug-license',
+    ),
+    # Cadastro de Protocolo
+    path(
+        'protocolo/',
+        protocolo_views.CadastroProtocoloView.as_view(),
+        name='cadastro-protocolo',
+    ),
+    path(
+        'protocolo/validar-medico/',
+        protocolo_views.ValidarMedicoProtocoloView.as_view(),
+        name='protocolo-validar-medico',
+    ),
+    path(
+        'protocolo/signed-url/',
+        protocolo_views.ObterSignedUrlProtocoloView.as_view(),
+        name='protocolo-signed-url',
+    ),
+    path(
+        'protocolo/salvar/',
+        protocolo_views.SalvarProtocoloView.as_view(),
+        name='protocolo-salvar',
     ),
 ]
