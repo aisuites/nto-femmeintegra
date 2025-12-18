@@ -2181,6 +2181,197 @@ status_protocolo = Protocolo.Status.PROCESSADO if medico_validado else Protocolo
 
 ---
 
+---
+
+## 20. SISTEMA DE TAREFAS (KANBAN)
+
+### 20.1. Visão Geral
+
+O Sistema de Tarefas permite gerenciar atividades pendentes em formato Kanban com colunas de status. Suporta tarefas manuais (criadas por usuários) e automáticas (disparadas por eventos do sistema).
+
+**Acesso**: Menu Operacional → Tarefas
+
+---
+
+### 20.2. Modelos de Dados
+
+#### TipoTarefa
+Define categorias de tarefas com prazo padrão.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `codigo` | CharField(50) | Código único (ex: CADASTRO_MEDICO) |
+| `nome` | CharField(150) | Nome descritivo |
+| `descricao` | TextField | Descrição detalhada |
+| `prazo_dias` | PositiveInteger | Prazo padrão em dias |
+| `ativo` | Boolean | Se está disponível para uso |
+
+#### Tarefa
+Representa uma tarefa individual.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `codigo` | CharField(20) | Código único (TAR-YYYYMMDD-NNNN) |
+| `titulo` | CharField(200) | Título resumido |
+| `descricao` | TextField | Descrição detalhada |
+| `tipo` | FK(TipoTarefa) | Tipo da tarefa |
+| `status` | Enum | A_FAZER, EM_ANDAMENTO, CONCLUIDA, CANCELADA |
+| `prioridade` | Enum | BAIXA, MEDIA, ALTA, URGENTE |
+| `origem` | Enum | SISTEMA, GESTOR, PROPRIO |
+| `responsavel` | FK(User) | Usuário responsável |
+| `criado_por` | FK(User) | Quem criou (null se sistema) |
+| `data_prazo` | Date | Data limite |
+| `data_inicio` | DateTime | Quando iniciou (auto) |
+| `data_conclusao` | DateTime | Quando concluiu (auto) |
+| `protocolo` | FK(Protocolo) | Protocolo relacionado (opcional) |
+| `requisicao` | FK(DadosRequisicao) | Requisição relacionada (opcional) |
+
+#### EventoTarefa
+Configura tarefas automáticas disparadas por eventos do sistema.
+
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| `codigo_evento` | CharField(50) | Código único do evento |
+| `nome` | CharField(150) | Nome descritivo |
+| `tipo_tarefa` | FK(TipoTarefa) | Tipo da tarefa a criar |
+| `titulo_template` | CharField(200) | Template do título (com variáveis) |
+| `descricao_template` | TextField | Template da descrição |
+| `prioridade` | Enum | Prioridade da tarefa |
+| `responsavel_tipo` | Enum | EMAIL_DESTINO, USUARIO_ACAO, USUARIO_FIXO |
+| `responsavel_fixo` | FK(User) | Usuário fixo (se tipo = USUARIO_FIXO) |
+| `tipo_email` | CharField(50) | Tipo do email para buscar destinatário |
+| `ativo` | Boolean | Se o evento está ativo |
+
+**Variáveis disponíveis nos templates**: `{crm}`, `{uf}`, `{protocolo}`, `{usuario}`, `{data}`
+
+---
+
+### 20.3. Status e Fluxo
+
+```
+┌─────────────┐    ┌──────────────┐    ┌───────────┐
+│   A FAZER   │ → │ EM ANDAMENTO │ → │ CONCLUÍDA │
+└─────────────┘    └──────────────┘    └───────────┘
+       │                  │
+       └──────────────────┴──────────→ [CANCELADA]
+```
+
+- **A FAZER**: Tarefa aguardando início
+- **EM ANDAMENTO**: Tarefa em execução (data_inicio preenchida automaticamente)
+- **CONCLUÍDA**: Tarefa finalizada (data_conclusao preenchida automaticamente)
+- **CANCELADA**: Tarefa cancelada (não aparece no Kanban)
+
+---
+
+### 20.4. Origem das Tarefas
+
+| Origem | Descrição | Notificação |
+|--------|-----------|-------------|
+| **SISTEMA** | Criada automaticamente por evento | Sim, para responsável |
+| **GESTOR** | Criada por usuário para outro | Sim, para responsável |
+| **PROPRIO** | Criada pelo usuário para si mesmo | Não |
+
+---
+
+### 20.5. Filtros do Kanban
+
+| Filtro | Descrição |
+|--------|-----------|
+| **Minhas tarefas** | Tarefas onde sou responsável |
+| **Tarefas que deleguei** | Tarefas que criei para outros |
+| **Prioridade** | Filtrar por urgência |
+| **Tipo** | Filtrar por tipo de tarefa |
+| **Responsável** | Filtrar por usuário (quando "Minhas tarefas" desmarcado) |
+
+---
+
+### 20.6. APIs
+
+| Endpoint | Método | Descrição |
+|----------|--------|-----------|
+| `/operacao/tarefas/` | GET | Página Kanban |
+| `/operacao/tarefas/api/listar/` | GET | Listar tarefas (com filtros) |
+| `/operacao/tarefas/api/criar/` | POST | Criar nova tarefa |
+| `/operacao/tarefas/api/obter/` | GET | Obter detalhes de uma tarefa |
+| `/operacao/tarefas/api/atualizar/` | POST | Atualizar tarefa |
+| `/operacao/tarefas/api/atualizar-status/` | POST | Atualizar apenas status (drag & drop) |
+| `/operacao/tarefas/api/excluir/` | POST | Excluir tarefa |
+| `/operacao/tarefas/api/tipos/` | GET | Listar tipos de tarefa |
+| `/operacao/tarefas/api/colaboradores/` | GET | Listar colaboradores |
+
+---
+
+### 20.7. Tarefas Automáticas (EventoTarefa)
+
+#### Configuração via Admin
+Acesse: Django Admin → Operação → Eventos de Tarefas Automáticas
+
+#### Campos de Configuração
+
+1. **Identificação do Evento**
+   - `codigo_evento`: Código único usado no código para disparar
+   - `nome`: Nome amigável
+   - `ativo`: Ativar/desativar sem remover
+
+2. **Configuração da Tarefa**
+   - `tipo_tarefa`: Categoria da tarefa
+   - `titulo_template`: Título com variáveis (ex: "Cadastrar médico CRM {crm}/{uf}")
+   - `descricao_template`: Descrição detalhada
+   - `prioridade`: BAIXA, MEDIA, ALTA, URGENTE
+
+3. **Responsável**
+   - `EMAIL_DESTINO`: Busca usuário pelo email configurado em ConfiguracaoEmail
+   - `USUARIO_ACAO`: Usuário que disparou o evento
+   - `USUARIO_FIXO`: Usuário específico selecionado
+
+#### Exemplo de Uso no Código
+
+```python
+from operacao.models import EventoTarefa
+
+# Disparar evento de tarefa automática
+try:
+    evento = EventoTarefa.objects.get(codigo_evento='MEDICO_NAO_ENCONTRADO', ativo=True)
+    tarefa = evento.criar_tarefa(
+        dados={'crm': '12345', 'uf': 'SP'},
+        usuario_acao=request.user
+    )
+except EventoTarefa.DoesNotExist:
+    pass  # Evento não configurado ou desativado
+```
+
+---
+
+### 20.8. Notificações
+
+Tarefas geram notificações automáticas do tipo `TAREFA`:
+
+- **Tarefa manual para outro**: Notifica o responsável
+- **Tarefa automática**: Notifica o responsável determinado pelo EventoTarefa
+- **Tarefa para si mesmo**: Não gera notificação
+
+---
+
+### 20.9. Tipos de Tarefa Pré-cadastrados
+
+| Código | Nome | Prazo |
+|--------|------|-------|
+| `CADASTRO_MEDICO` | Cadastro de Médico | 3 dias |
+| `VERIFICAR_MEDICO` | Verificar Médico Duplicado | 2 dias |
+| `PROCESSAR_PROTOCOLO` | Processar Protocolo | 1 dia |
+| `ACOMPANHAMENTO` | Acompanhamento Geral | 5 dias |
+| `PENDENCIA` | Resolver Pendência | 2 dias |
+
+---
+
+### Versão 1.3 (18/12/2024)
+- **Nova funcionalidade**: Sistema de Tarefas com visualização Kanban
+- **Nova funcionalidade**: Tarefas manuais (GESTOR, PROPRIO) e automáticas (SISTEMA)
+- **Nova funcionalidade**: Filtro "Tarefas que deleguei" para gestores
+- **Nova funcionalidade**: EventoTarefa para configurar tarefas automáticas via Admin
+- **Nova funcionalidade**: Drag & drop para alterar status das tarefas
+- **Nova funcionalidade**: Notificações automáticas para tarefas delegadas
+
 ### Versão 1.2 (08/12/2024)
 - **Alteração**: Geração de código de requisição mudou de sequencial baseado em data (`REQ-YYYYMMDD-NNNN`) para código alfanumérico aleatório (10 caracteres)
 - **Alteração**: `LogRecebimento` agora é criado apenas ao finalizar kit (status RECEBIDO), não mais ao receber a requisição
