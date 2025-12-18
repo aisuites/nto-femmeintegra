@@ -491,6 +491,7 @@ class ListarArquivosRequisicaoView(LoginRequiredMixin, View):
                     'nome': arq.nome_arquivo,
                     'url': arq.url_arquivo,
                     'tipo': arq.tipo_arquivo.descricao,
+                    'cod_tipo_arquivo': arq.cod_tipo_arquivo,
                     'data_upload': arq.data_upload.isoformat()
                 }
                 for arq in arquivos
