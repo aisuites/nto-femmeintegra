@@ -799,6 +799,7 @@ class Notificacao(TimeStampedModel):
     """
     class Tipo(models.TextChoices):
         TRANSFERENCIA = 'TRANSFERENCIA', 'Transferência de Requisição'
+        TAREFA = 'TAREFA', 'Nova Tarefa'
         ALERTA = 'ALERTA', 'Alerta'
         INFO = 'INFO', 'Informação'
     

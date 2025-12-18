@@ -223,13 +223,13 @@ class CriarTarefaAPIView(View):
                 )
                 
                 # Criar notificação para o responsável (apenas se for outro usuário)
-                if responsavel != request.user:
+                if responsavel and responsavel != request.user:
                     Notificacao.objects.create(
                         usuario=responsavel,
                         tipo='TAREFA',
                         titulo='Nova tarefa atribuída',
                         mensagem=f'Você recebeu uma nova tarefa: {tarefa.titulo}',
-                        dados_extras={
+                        dados={
                             'tarefa_id': tarefa.id,
                             'tarefa_codigo': tarefa.codigo,
                             'criado_por': request.user.get_full_name() if request.user.is_authenticated else 'Sistema',
