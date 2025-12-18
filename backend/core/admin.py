@@ -1,3 +1,97 @@
 from django.contrib import admin
+from django import forms
+from .models import MenuItem
 
-# Register your models here.
+
+class MenuItemAdminForm(forms.ModelForm):
+    """Form customizado para seleção múltipla de roles."""
+    
+    ROLE_CHOICES = [
+        ('recebimento', 'Recebimento'),
+        ('triagem', 'Triagem'),
+        ('gestao', 'Gestão'),
+        ('atendimento', 'Atendimento'),
+        ('admin', 'Administração'),
+    ]
+    
+    roles_widget = forms.MultipleChoiceField(
+        choices=ROLE_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Roles permitidos',
+        help_text='Selecione os perfis que podem ver este item. Nenhum selecionado = todos podem ver.'
+    )
+    
+    class Meta:
+        model = MenuItem
+        fields = '__all__'
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Preencher o widget com os valores salvos
+        if self.instance and self.instance.pk:
+            self.fields['roles_widget'].initial = self.instance.roles_permitidos or []
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Converter seleção do widget para o campo JSON
+        instance.roles_permitidos = self.cleaned_data.get('roles_widget', [])
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(MenuItem)
+class MenuItemAdmin(admin.ModelAdmin):
+    form = MenuItemAdminForm
+    
+    list_display = [
+        'get_titulo_indentado',
+        'icone',
+        'url_name',
+        'parent',
+        'ordem',
+        'ativo',
+        'get_roles_display',
+    ]
+    list_filter = ['ativo', 'parent']
+    list_editable = ['ordem', 'ativo']
+    search_fields = ['titulo', 'url_name']
+    ordering = ['parent__ordem', 'parent__titulo', 'ordem', 'titulo']
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('titulo', 'icone', 'ordem', 'ativo')
+        }),
+        ('Navegação', {
+            'fields': ('url_name', 'url_externa', 'abrir_nova_aba'),
+            'description': 'Configure a URL do item. Deixe ambos vazios para criar um grupo.'
+        }),
+        ('Hierarquia', {
+            'fields': ('parent', 'divisor_antes'),
+        }),
+        ('Permissões', {
+            'fields': ('roles_widget',),
+            'description': 'Controle quais perfis de usuário podem ver este item.'
+        }),
+    )
+    
+    def get_titulo_indentado(self, obj):
+        """Exibe o título com indentação visual para submenus."""
+        if obj.parent:
+            return f"    └─ {obj.titulo}"
+        return f"📁 {obj.titulo}"
+    get_titulo_indentado.short_description = 'Título'
+    get_titulo_indentado.admin_order_field = 'titulo'
+    
+    def get_roles_display(self, obj):
+        """Exibe os roles de forma legível."""
+        if not obj.roles_permitidos:
+            return "Todos"
+        return ", ".join(obj.roles_permitidos)
+    get_roles_display.short_description = 'Visível para'
+    
+    def get_queryset(self, request):
+        """Ordena para mostrar hierarquia corretamente."""
+        qs = super().get_queryset(request)
+        return qs.select_related('parent')

@@ -1,0 +1,49 @@
+{% load menu_tags %}
+{% for node in menu_tree %}
+    {% with item=node.item children=node.children %}
+        {% if item.divisor_antes %}
+            <div class="sidebar-divider"></div>
+        {% endif %}
+        
+        {% if item.is_group %}
+            {# Item de grupo (sem URL) #}
+            <div class="sidebar-link">
+                <span class="icon">{{ item.icone }}</span>
+                <span>{{ item.titulo }}</span>
+            </div>
+        {% else %}
+            {# Item com link #}
+            <a class="sidebar-link {% menu_item_active item %}" 
+               href="{% get_menu_url item %}"
+               {% if item.abrir_nova_aba %}target="_blank" rel="noopener"{% endif %}>
+                <span class="icon">{{ item.icone }}</span>
+                <span>{{ item.titulo }}</span>
+            </a>
+        {% endif %}
+        
+        {# Renderizar filhos (submenus) #}
+        {% for child_node in children %}
+            {% with child=child_node.item %}
+                {% if child.divisor_antes %}
+                    <div class="sidebar-divider"></div>
+                {% endif %}
+                
+                {% if child.is_group %}
+                    <div class="sidebar-link subitem">
+                        <span class="icon">{{ child.icone }}</span>
+                        <span>{{ child.titulo }}</span>
+                    </div>
+                {% else %}
+                    <a class="sidebar-link subitem {% menu_item_active child %}" 
+                       href="{% get_menu_url child %}"
+                       {% if child.abrir_nova_aba %}target="_blank" rel="noopener"{% endif %}>
+                        <span class="icon">{{ child.icone }}</span>
+                        <span>{{ child.titulo }}</span>
+                    </a>
+                {% endif %}
+            {% endwith %}
+        {% endfor %}
+    {% endwith %}
+{% empty %}
+    <p class="sidebar-empty">Nenhum item de menu configurado.</p>
+{% endfor %}
