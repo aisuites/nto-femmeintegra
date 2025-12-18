@@ -2364,13 +2364,36 @@ Tarefas geram notificações automáticas do tipo `TAREFA`:
 
 ---
 
+### 20.10. Eventos Integrados
+
+#### Cadastro Protocolo
+Quando um email é enviado no Cadastro Protocolo, o sistema verifica se existe um `EventoTarefa` configurado e cria a tarefa automaticamente.
+
+| Tipo de Email | Código do Evento | Descrição |
+|---------------|------------------|-----------|
+| `medico_nao_encontrado` | `MEDICO_NAO_ENCONTRADO` | Médico não encontrado na base |
+| `medico_duplicado` | `MEDICO_DUPLICADO` | Múltiplos médicos com mesmo CRM |
+
+**Fluxo**:
+1. Usuário valida médico → não encontrado
+2. Modal de email abre automaticamente
+3. Usuário envia email
+4. Sistema cria tarefa automática (se EventoTarefa configurado)
+5. Notificação é enviada ao responsável
+6. Contador de notificações no header é atualizado
+
+---
+
 ### Versão 1.3 (18/12/2024)
 - **Nova funcionalidade**: Sistema de Tarefas com visualização Kanban
 - **Nova funcionalidade**: Tarefas manuais (GESTOR, PROPRIO) e automáticas (SISTEMA)
 - **Nova funcionalidade**: Filtro "Tarefas que deleguei" para gestores
+- **Nova funcionalidade**: Filtros combinados (minhas tarefas + delegadas funcionam juntos)
 - **Nova funcionalidade**: EventoTarefa para configurar tarefas automáticas via Admin
+- **Nova funcionalidade**: Integração EventoTarefa no Cadastro Protocolo (médico não encontrado/duplicado)
 - **Nova funcionalidade**: Drag & drop para alterar status das tarefas
 - **Nova funcionalidade**: Notificações automáticas para tarefas delegadas
+- **Nova funcionalidade**: Atualização do contador de notificações após criar tarefa automática
 
 ### Versão 1.2 (08/12/2024)
 - **Alteração**: Geração de código de requisição mudou de sequencial baseado em data (`REQ-YYYYMMDD-NNNN`) para código alfanumérico aleatório (10 caracteres)
