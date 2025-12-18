@@ -112,7 +112,8 @@ class EmailService:
                 destinatarios=destinatarios,
                 assunto=assunto,
                 corpo=corpo,
-                usuario=usuario
+                usuario=usuario,
+                reply_to=config.email_resposta or None  # Email de resposta configurado
             )
             
         except Exception as e:
@@ -130,7 +131,8 @@ class EmailService:
         assunto: str,
         corpo: str,
         usuario=None,
-        html: bool = True
+        html: bool = True,
+        reply_to: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Envia email customizado (usado pelo modal editável).
@@ -143,37 +145,58 @@ class EmailService:
             corpo: Corpo do email (pode ser HTML)
             usuario: Usuário que está enviando
             html: Se True, envia como HTML
+            reply_to: Email para respostas (se None, usa email do usuário)
         
         Returns:
             Dict com 'success', 'message' e 'log_id'
         """
+        # Adicionar assinatura automática com dados do usuário
+        corpo_com_assinatura = corpo
+        if usuario:
+            nome_usuario = usuario.get_full_name() or usuario.username
+            
+            assinatura = f"\n\n---\nEnviado por: {nome_usuario}"
+            assinatura += f"\nSistema: FEMME Integra"
+            
+            corpo_com_assinatura = corpo + assinatura
+        
         # Criar log antes de enviar
         log = LogEnvioEmail.objects.create(
             tipo=tipo,
             descricao=descricao,
             destinatario=', '.join(destinatarios),
             assunto=assunto,
-            corpo=corpo,
+            corpo=corpo_com_assinatura,
             status=LogEnvioEmail.StatusEnvio.PENDENTE,
             enviado_por=usuario
         )
         
         try:
+            # Determinar Reply-To
+            reply_to_email = reply_to
+            if not reply_to_email and usuario and usuario.email:
+                reply_to_email = usuario.email
+            
+            # Converter quebras de linha para HTML
+            corpo_html = corpo_com_assinatura.replace('\n', '<br>\n')
+            
             # Criar mensagem
             if html:
                 email = EmailMultiAlternatives(
                     subject=assunto,
-                    body=corpo,  # Versão texto
+                    body=corpo_com_assinatura,  # Versão texto
                     from_email=self.from_email,
-                    to=destinatarios
+                    to=destinatarios,
+                    reply_to=[reply_to_email] if reply_to_email else None
                 )
-                email.attach_alternative(corpo, "text/html")
+                email.attach_alternative(corpo_html, "text/html")
             else:
                 email = EmailMessage(
                     subject=assunto,
-                    body=corpo,
+                    body=corpo_com_assinatura,
                     from_email=self.from_email,
-                    to=destinatarios
+                    to=destinatarios,
+                    reply_to=[reply_to_email] if reply_to_email else None
                 )
             
             # Enviar
@@ -214,7 +237,7 @@ class EmailService:
             tipo: Tipo do email
         
         Returns:
-            Dict com 'destinatarios', 'assunto', 'corpo' ou None
+            Dict com 'destinatarios', 'assunto', 'corpo', 'email_resposta' ou None
         """
         try:
             config = ConfiguracaoEmail.objects.filter(tipo=tipo, ativo=True).first()
@@ -225,7 +248,8 @@ class EmailService:
             return {
                 'destinatarios': config.get_emails_destino_list(),
                 'assunto': config.assunto_padrao,
-                'corpo': config.corpo_padrao
+                'corpo': config.corpo_padrao,
+                'email_resposta': config.email_resposta or ''
             }
             
         except Exception as e:

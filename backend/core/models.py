@@ -210,6 +210,12 @@ class ConfiguracaoEmail(TimeStampedModel):
         'Email(s) Destino',
         help_text='Email(s) de destino separados por vírgula. Ex: email1@femme.com.br, email2@femme.com.br'
     )
+    email_resposta = models.EmailField(
+        'Email para Resposta (Reply-To)',
+        blank=True,
+        default='',
+        help_text='Email que receberá as respostas. Ex: gestora@femme.com.br. Se vazio, usa o email de envio padrão.'
+    )
     assunto_padrao = models.CharField(
         'Assunto Padrão',
         max_length=200,

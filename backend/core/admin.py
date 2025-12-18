@@ -111,8 +111,8 @@ class ConfiguracaoEmailAdmin(admin.ModelAdmin):
             'fields': ('tipo', 'nome', 'ativo')
         }),
         ('Destinatários', {
-            'fields': ('email_destino',),
-            'description': 'Separe múltiplos emails por vírgula.'
+            'fields': ('email_destino', 'email_resposta'),
+            'description': 'Separe múltiplos emails por vírgula. O email de resposta (Reply-To) é para onde as respostas serão enviadas.'
         }),
         ('Template', {
             'fields': ('assunto_padrao', 'corpo_padrao'),

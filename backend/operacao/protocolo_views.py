@@ -474,7 +474,8 @@ class ObterTemplateEmailView(LoginRequiredMixin, View):
                 'template': {
                     'destinatarios': config.get_emails_destino_list(),
                     'assunto': assunto,
-                    'corpo': corpo
+                    'corpo': corpo,
+                    'email_resposta': config.email_resposta or ''
                 }
             })
             
@@ -522,6 +523,7 @@ class EnviarEmailMedicoView(LoginRequiredMixin, View):
             corpo = data.get('corpo', '').strip()
             crm = data.get('crm', '')
             uf = data.get('uf', '')
+            reply_to = data.get('reply_to', '').strip()
             
             # Validações
             if not tipo:
@@ -560,7 +562,8 @@ class EnviarEmailMedicoView(LoginRequiredMixin, View):
                 destinatarios=destinatarios,
                 assunto=assunto,
                 corpo=corpo,
-                usuario=request.user
+                usuario=request.user,
+                reply_to=reply_to or None
             )
             
             if result['success']:

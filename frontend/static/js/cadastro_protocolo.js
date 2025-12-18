@@ -54,7 +54,8 @@
     uploading: false,
     // Estado do modal de email
     emailTipo: '',
-    medicosEncontrados: []
+    medicosEncontrados: [],
+    emailResposta: ''  // Reply-To configurado no template
   };
 
   // ============================================
@@ -908,10 +909,13 @@
         elements.emailDestinatarios().value = data.template.destinatarios?.join(', ') || '';
         elements.emailAssunto().value = data.template.assunto || '';
         elements.emailCorpo().value = data.template.corpo || '';
+        // Salvar email de resposta do template
+        state.emailResposta = data.template.email_resposta || '';
       } else {
         // Template não configurado - usar valores padrão
         console.warn('[CadastroProtocolo] Template não encontrado:', data.message);
         
+        state.emailResposta = '';  // Sem reply-to configurado
         elements.emailDestinatarios().value = '';
         elements.emailAssunto().value = tipo === 'medico_duplicado' 
           ? `[FEMME Integra] Médico Duplicado - CRM ${state.crm}/${state.ufCrm}`
@@ -980,7 +984,8 @@
           assunto: assunto,
           corpo: corpo,
           crm: state.crm,
-          uf: state.ufCrm
+          uf: state.ufCrm,
+          reply_to: state.emailResposta || ''
         })
       });
       
