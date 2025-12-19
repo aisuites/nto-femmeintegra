@@ -46,6 +46,8 @@ const DynamosoftScanner = (function() {
   let DWTObject = null;
   let scriptsCarregados = false;
   let eventListenersConfigurados = false;
+  let inicializacaoEmAndamento = false;
+  let inicializacaoPromise = null;
   
   // ============================================
   // UTILITÁRIOS PRIVADOS
@@ -694,15 +696,49 @@ const DynamosoftScanner = (function() {
       eventListenersConfigurados = true;
     }
     
-    // Carregar scripts se ainda não foram carregados
-    if (!scriptsCarregados) {
-      carregarScriptsDynamsoft()
-        .then(() => inicializarDynamsoft())
-        .catch(error => {
-          logError('Erro ao inicializar Dynamsoft:', error);
-          alert('❌ Erro ao carregar o scanner. Por favor, recarregue a página.');
-        });
+    // Se já está inicializado, não fazer nada
+    if (DWTObject) {
+      log('Scanner já inicializado');
+      return;
     }
+    
+    // Se já está em andamento, aguardar
+    if (inicializacaoEmAndamento && inicializacaoPromise) {
+      log('Inicialização já em andamento, aguardando...');
+      return;
+    }
+    
+    // Iniciar carregamento se ainda não foi feito
+    if (!scriptsCarregados) {
+      inicializarScanner();
+    }
+  }
+  
+  /**
+   * Inicializa o scanner de forma assíncrona
+   * Pode ser chamado no carregamento da página para pré-carregar
+   */
+  function inicializarScanner() {
+    if (inicializacaoEmAndamento || DWTObject) {
+      return inicializacaoPromise || Promise.resolve();
+    }
+    
+    inicializacaoEmAndamento = true;
+    log('Iniciando carregamento do scanner...');
+    
+    inicializacaoPromise = carregarScriptsDynamsoft()
+      .then(() => inicializarDynamsoft())
+      .then(() => {
+        log('Scanner pronto para uso');
+        inicializacaoEmAndamento = false;
+      })
+      .catch(error => {
+        logError('Erro ao inicializar Dynamsoft:', error);
+        inicializacaoEmAndamento = false;
+        inicializacaoPromise = null;
+      });
+    
+    return inicializacaoPromise;
   }
   
   function fecharModal() {
@@ -770,15 +806,26 @@ const DynamosoftScanner = (function() {
      * Inicializa o módulo do scanner
      * @param {string} license - Chave de licença do Dynamsoft
      * @param {boolean} debug - Habilitar logs de debug
+     * @param {boolean} preload - Pré-carregar scripts (default: true)
      */
-    init: function(license, debug = false) {
+    init: function(license, debug = false, preload = true) {
       CONFIG.license = license;
       CONFIG.debug = debug;
       
       log('Scanner inicializado', {
         license: license ? license.substring(0, 30) + '...' : 'VAZIA',
-        debug: debug
+        debug: debug,
+        preload: preload
       });
+      
+      // Pré-carregar scripts em background após um pequeno delay
+      // para não bloquear o carregamento inicial da página
+      if (preload) {
+        setTimeout(() => {
+          log('Pré-carregando scripts do scanner...');
+          inicializarScanner();
+        }, 2000); // Aguarda 2s após init para não competir com carregamento da página
+      }
     },
     
     /**
