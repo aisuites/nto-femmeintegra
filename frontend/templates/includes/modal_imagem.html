@@ -1,0 +1,36 @@
+<!-- Modal: Visualizar Imagem/PDF (Componente Reutilizável) -->
+<div class="modal-overlay" id="modal-ver-imagem" style="display: none;">
+  <div class="modal-content modal-lg">
+    <div class="modal-header">
+      <h3>📄 Visualizar Arquivo</h3>
+      <button class="modal-close" id="btn-fechar-modal-imagem" title="Fechar">×</button>
+    </div>
+    <div class="modal-body" style="padding: 0; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+      <!-- Loading -->
+      <div id="imagem-requisicao-loading" style="text-align: center; padding: 40px;">
+        <div class="spinner" style="width: 40px; height: 40px; margin: 0 auto 16px;"></div>
+        <p style="color: #666;">Carregando arquivo...</p>
+      </div>
+      
+      <!-- Container da Imagem -->
+      <div id="imagem-requisicao-container" style="display: none; width: 100%; text-align: center;">
+        <img id="imagem-requisicao" src="" alt="Imagem da requisição" 
+             style="max-width: 100%; max-height: 70vh; object-fit: contain;">
+      </div>
+      
+      <!-- Container do PDF -->
+      <div id="pdf-requisicao-container" style="display: none; width: 100%; height: 70vh;">
+        <iframe id="pdf-requisicao" src="" style="width: 100%; height: 100%; border: none;"></iframe>
+      </div>
+      
+      <!-- Erro -->
+      <div id="imagem-requisicao-erro" style="display: none; text-align: center; padding: 40px;">
+        <p style="color: #dc3545; font-size: 18px;">❌ Arquivo não encontrado</p>
+        <p style="color: #666;">Não foi possível carregar o arquivo desta requisição.</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="btn-fechar-imagem">Fechar</button>
+    </div>
+  </div>
+</div>
