@@ -136,12 +136,14 @@ select:focus {
 
 /* SPINNER */
 .spinner {
+  display: inline-block;
   width: 14px;
   height: 14px;
   border: 2px solid rgba(122, 61, 138, 0.3);
   border-radius: 50%;
   border-top-color: var(--femme-purple);
   animation: spin 0.8s linear infinite;
+  vertical-align: middle;
 }
 
 .btn-warning .spinner,
