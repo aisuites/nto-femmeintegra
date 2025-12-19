@@ -4,7 +4,7 @@ Etapa 1: Validação de amostras com verificação de impeditivos.
 """
 import json
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse
@@ -18,9 +18,11 @@ from core.services.external_api import get_korus_client, get_receita_client, get
 from .models import (
     AmostraMotivoArmazenamentoInadequado,
     DadosRequisicao,
+    EventoTarefa,
     LogAlteracaoAmostra,
     MotivoArmazenamentoInadequado,
     MotivoAlteracaoAmostra,
+    Notificacao,
     RequisicaoAmostra,
     RequisicaoPendencia,
     RequisicaoStatusHistorico,
@@ -2208,12 +2210,12 @@ class RegistrarPendenciaMedicoView(LoginRequiredMixin, View):
         if nome_medico:
             requisicao.nome_medico = nome_medico
         
-        # 4. Alterar status para PENDÊNCIA
+        # 4. Alterar status para PENDÊNCIA (ID 6)
         try:
-            status_pendencia = StatusRequisicao.objects.get(id=StatusRequisicao.STATUS_PENDENCIA)
+            status_pendencia = StatusRequisicao.objects.get(id=6)  # PENDÊNCIA
             requisicao.status = status_pendencia
         except StatusRequisicao.DoesNotExist:
-            logger.warning("Status PENDÊNCIA não encontrado")
+            logger.warning("Status PENDÊNCIA (ID 6) não encontrado")
         
         requisicao.updated_by = request.user
         requisicao.save()
@@ -2279,15 +2281,12 @@ class RegistrarPendenciaMedicoView(LoginRequiredMixin, View):
         # 7. Criar notificação
         notificacao_criada = False
         try:
-            from operacao.models import Notificacao
-            
             Notificacao.objects.create(
                 usuario=request.user,
                 tipo='pendencia',
                 titulo=f"Pendência registrada: {tipo_pendencia.descricao}",
                 mensagem=f"Requisição {requisicao.cod_req} - CRM: {crm}-{uf_crm}",
                 lida=False,
-                created_by=request.user,
             )
             notificacao_criada = True
         except Exception as e:
