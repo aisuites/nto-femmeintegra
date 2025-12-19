@@ -284,7 +284,20 @@ function carregarDadosRequisicao(data) {
   dataNascimento.value = formatarData(data.data_nasc_paciente);
   emailPaciente.value = data.email_paciente || '';
   telefonePaciente.value = data.telefone_paciente || '';
-  sexoPaciente.value = data.sexo_paciente || '';
+  
+  // Debug: verificar valor do sexo
+  console.log('[Cadastro] sexo_paciente do banco:', data.sexo_paciente, '| tipo:', typeof data.sexo_paciente);
+  
+  // Normalizar sexo para 'F' ou 'M' (pode vir como 'Feminino'/'Masculino' do banco)
+  let sexoValor = data.sexo_paciente || '';
+  if (sexoValor.toLowerCase() === 'feminino') {
+    sexoValor = 'F';
+  } else if (sexoValor.toLowerCase() === 'masculino') {
+    sexoValor = 'M';
+  }
+  sexoPaciente.value = sexoValor;
+  console.log('[Cadastro] sexoPaciente.value após normalização:', sexoPaciente.value);
+  
   checkSexoAConfirmar.checked = data.flag_sexo_a_confirmar || false;
   
   // Preencher campos médico
@@ -429,7 +442,7 @@ async function validarMedico() {
   
   ocultarAlerta(alertMedico);
   btnValidaMedico.disabled = true;
-  btnValidaMedico.textContent = 'Validando...';
+  btnValidaMedico.innerHTML = '<span class="spinner"></span> Validando...';
   
   try {
     // Usar API unificada que faz fallback automático
@@ -488,7 +501,7 @@ async function validarMedico() {
     medicoValidado = false;
   } finally {
     btnValidaMedico.disabled = false;
-    btnValidaMedico.textContent = 'Valida';
+    btnValidaMedico.innerHTML = 'Valida Médico';
   }
 }
 
@@ -498,17 +511,29 @@ function abrirModalProblemaMedico(problema) {
   const mensagemDiv = document.getElementById('modal-medico-mensagem');
   const infoDiv = document.getElementById('modal-medico-info');
   
-  // Definir mensagem
+  // Definir mensagem com badge de tipo de problema
   if (problema.tipo === 'medico_sem_destino') {
     mensagemDiv.innerHTML = `
-      <strong>Médico encontrado, mas sem destino configurado.</strong><br>
-      <small>O médico existe na base, porém não possui um destino de entrega configurado.</small>
+      <div style="margin-bottom: 8px;">
+        <span class="badge badge-warning">MÉDICO SEM DESTINO</span>
+      </div>
+      <strong>Médico encontrado na base, mas sem destino configurado.</strong><br>
+      <small>O cadastro do médico está incompleto - falta configurar o destino de entrega dos laudos.</small>
+      <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 11px;">
+        <strong>Ação:</strong> Será enviado email para o setor de cadastro solicitando a configuração do destino.
+      </div>
     `;
     mensagemDiv.className = 'alert alert-warning';
   } else {
     mensagemDiv.innerHTML = `
+      <div style="margin-bottom: 8px;">
+        <span class="badge badge-danger">MÉDICO NÃO CADASTRADO</span>
+      </div>
       <strong>Médico não encontrado na base.</strong><br>
-      <small>Não foi possível localizar o médico com o CRM informado.</small>
+      <small>Não foi possível localizar nenhum médico com o CRM informado em nenhuma das bases consultadas.</small>
+      <div style="margin-top: 8px; padding: 8px; background: #f8d7da; border-radius: 4px; font-size: 11px;">
+        <strong>Ação:</strong> Será enviado email para o setor de cadastro solicitando o cadastro do médico.
+      </div>
     `;
     mensagemDiv.className = 'alert alert-danger';
   }
@@ -516,17 +541,18 @@ function abrirModalProblemaMedico(problema) {
   // Mostrar informações do médico se disponível
   if (problema.medico && problema.medico.nome_medico) {
     infoDiv.innerHTML = `
-      <div class="info-box" style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px;">
-        <p style="margin: 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
-        <p style="margin: 0;"><strong>Nome:</strong> ${problema.medico.nome_medico}</p>
+      <div class="info-box" style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px; border-left: 3px solid var(--femme-purple);">
+        <p style="margin: 0 0 4px 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
+        <p style="margin: 0 0 4px 0;"><strong>Nome:</strong> ${problema.medico.nome_medico}</p>
         ${problema.medico.endereco ? `<p style="margin: 0;"><strong>Endereço:</strong> ${problema.medico.endereco}</p>` : ''}
       </div>
     `;
     infoDiv.style.display = 'block';
   } else {
     infoDiv.innerHTML = `
-      <div class="info-box" style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px;">
-        <p style="margin: 0;"><strong>CRM:</strong> ${problema.crm}-${problema.uf_crm}</p>
+      <div class="info-box" style="background: #f8f9fa; padding: 0.75rem; border-radius: 4px; border-left: 3px solid #dc3545;">
+        <p style="margin: 0;"><strong>CRM pesquisado:</strong> ${problema.crm}-${problema.uf_crm}</p>
+        <p style="margin: 4px 0 0 0; color: #6c757d; font-size: 11px;">Nenhum médico encontrado com este CRM.</p>
       </div>
     `;
     infoDiv.style.display = 'block';
@@ -550,7 +576,7 @@ async function registrarPendenciaMedico() {
   
   const btnRegistrar = document.getElementById('btn-registrar-pendencia-medico');
   btnRegistrar.disabled = true;
-  btnRegistrar.textContent = 'Registrando...';
+  btnRegistrar.innerHTML = '<span class="spinner"></span> Registrando...';
   
   try {
     const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
@@ -572,26 +598,33 @@ async function registrarPendenciaMedico() {
     console.log('[Cadastro] Resposta registro pendência:', data);
     
     if (data.status === 'success') {
-      // Marcar checkbox de problema com médico
-      checkProblemaMedico.checked = true;
-      
-      // Preencher campos do médico se disponível
-      if (problemaMedicoAtual.medico) {
-        nomeMedico.value = problemaMedicoAtual.medico.nome_medico || '';
-        enderecoMedico.value = problemaMedicoAtual.medico.endereco || '';
-      }
-      
-      // Limpar destino (não tem)
-      destinoMedico.value = '';
-      
       fecharModalProblemaMedico();
       
-      // Mostrar mensagem de sucesso
+      // Determinar tipo de problema para mensagem
+      const tipoPendencia = problemaMedicoAtual.tipo === 'medico_sem_destino' 
+        ? 'MÉDICO SEM DESTINO' 
+        : 'MÉDICO NÃO CADASTRADO';
+      
+      // Mostrar mensagem informando que virou PENDÊNCIA
       let msgExtra = '';
-      if (data.email_enviado) msgExtra += ' Email enviado.';
+      if (data.email_enviado) msgExtra += ' Email enviado ao setor de cadastro.';
       if (data.tarefa_criada) msgExtra += ' Tarefa criada.';
       
-      mostrarAlerta(alertMedico, alertMedicoMessage, `✅ Pendência registrada com sucesso.${msgExtra}`, 'success');
+      // Mostrar alerta de sucesso com informação clara
+      mostrarAlerta(alertMedico, alertMedicoMessage, 
+        `⚠️ Pendência "${tipoPendencia}" registrada. Requisição enviada para PENDÊNCIAS.${msgExtra}`, 
+        'warning'
+      );
+      
+      // Limpar formulário e ocultar container - requisição virou PENDÊNCIA
+      setTimeout(() => {
+        alert(`Requisição ${requisicaoAtual.cod_req} foi enviada para PENDÊNCIAS.\n\nMotivo: ${tipoPendencia}\n\nA requisição não pode continuar o fluxo normal até que a pendência seja resolvida.`);
+        limparFormulario();
+        cadastroContainer.style.display = 'none';
+        inputCodBarras.value = '';
+        inputCodBarras.focus();
+      }, 500);
+      
     } else {
       mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao registrar pendência.', 'error');
     }
@@ -600,7 +633,7 @@ async function registrarPendenciaMedico() {
     mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro de conexão ao registrar pendência.', 'error');
   } finally {
     btnRegistrar.disabled = false;
-    btnRegistrar.textContent = '📋 Registrar Pendência e Continuar';
+    btnRegistrar.innerHTML = '📋 Registrar Pendência';
   }
 }
 
