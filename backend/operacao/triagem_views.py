@@ -2187,13 +2187,12 @@ class RegistrarPendenciaMedicoView(LoginRequiredMixin, View):
             )
         
         # 1. Criar pendência
-        pendencia, created = Pendencia.objects.get_or_create(
+        pendencia, created = RequisicaoPendencia.objects.get_or_create(
             requisicao=requisicao,
             tipo_pendencia=tipo_pendencia,
             defaults={
-                'cod_barras_requisicao': requisicao.cod_req,
-                'observacao': f"CRM: {crm}-{uf_crm}" + (f" - {nome_medico}" if nome_medico else ""),
-                'created_by': request.user,
+                'codigo_barras': requisicao.cod_req,
+                'usuario': request.user,
             }
         )
         
