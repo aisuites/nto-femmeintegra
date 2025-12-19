@@ -531,6 +531,26 @@ async function validarMedico() {
     if (data.status === 'success' && data.medico) {
       // Sucesso - médico validado com destino
       const medico = data.medico;
+      
+      // Salvar dados do médico no banco de dados
+      await fetch('/operacao/triagem/salvar-medico/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+          requisicao_id: requisicaoAtual.id,
+          nome_medico: medico.nome_medico || '',
+          endereco_medico: medico.endereco || '',
+          destino_medico: medico.destino || '',
+          crm: medico.crm || crm,
+          uf_crm: medico.uf_crm || uf
+        })
+      });
+      console.log('[Cadastro] Dados do médico salvos no banco');
+      
+      // Preencher campos na tela
       nomeMedico.value = medico.nome_medico || '';
       enderecoMedico.value = medico.endereco || '';
       destinoMedico.value = medico.destino || '';
