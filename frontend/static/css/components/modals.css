@@ -192,14 +192,27 @@
    ============================================ */
 
 .spinner {
-  display: inline-block;
+  /* Dimensões fixas */
   width: 14px;
   height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  
+  /* Estilo do círculo */
   border: 2px solid rgba(122, 61, 138, 0.3);
   border-radius: 50%;
   border-top-color: var(--femme-purple, #7a3d8a);
+  
+  /* Animação */
   animation: spin 0.8s linear infinite;
-  vertical-align: middle;
+  
+  /* Flexbox compatibility - importante para botões */
+  display: inline-flex;
+  flex-shrink: 0;
+  align-self: center;
+  
+  /* Espaçamento quando dentro de botão com texto */
+  margin-right: 6px;
 }
 
 /* Spinner em botões com fundo colorido */
