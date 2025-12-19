@@ -328,11 +328,13 @@ function renderizarExames() {
     const row = document.createElement('div');
     row.className = 'exame-row';
     row.innerHTML = `
-      <div class="exame-actions">
-        <button type="button" class="btn-edit" title="Editar" data-index="${index}">✏️</button>
-        <button type="button" class="btn-delete" title="Excluir" data-index="${index}">🗑️</button>
+      <div class="exame-nome-col">
+        <span class="exame-nome">${exame.tipo_amostra_descricao || exame.descricao || '---'}</span>
+        <div class="exame-actions">
+          <button type="button" class="btn-edit" title="Editar" data-index="${index}">✏️</button>
+          <button type="button" class="btn-delete" title="Excluir" data-index="${index}">🗑️</button>
+        </div>
       </div>
-      <div class="exame-nome">${exame.tipo_amostra_descricao || exame.descricao || '---'}</div>
       <div class="exame-tipo-atendimento">${exame.tipo_atendimento_descricao || '---'}</div>
     `;
     examesGridBody.appendChild(row);

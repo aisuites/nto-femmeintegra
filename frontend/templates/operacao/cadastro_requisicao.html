@@ -57,24 +57,25 @@
 
     <div class="divider"></div>
 
-    <!-- BLOCO CPF -->
+    <!-- BLOCO DADOS DO PACIENTE -->
     <div class="section-title-sm">Dados do Paciente</div>
-    <div class="cpf-actions">
-      <div class="field">
-        <label class="label-strong">CPF Paciente</label>
-        <input type="text" id="cpf-paciente" placeholder="000.000.000-00" maxlength="14" />
+    
+    <!-- Box CPF + Ações -->
+    <div class="form-box">
+      <div class="cpf-actions-row">
+        <div class="field field-cpf">
+          <label class="label-strong">CPF Paciente</label>
+          <input type="text" id="cpf-paciente" placeholder="000.000.000-00" maxlength="14" />
+        </div>
+        <button class="btn btn-outline" type="button" id="btn-cpf-korus" title="Consultar CPF na base FEMME">CPF Korus</button>
+        <button class="btn btn-muted" type="button" id="btn-rodar-ocr" disabled title="API em desenvolvimento">Rodar OCR</button>
+        <button class="btn btn-outline" type="button" id="btn-cpf-receita" title="Consultar CPF na Receita Federal">CPF Receita</button>
+        <label class="check-inline">
+          <input type="checkbox" id="check-problema-cpf" />
+          Problema com CPF
+        </label>
+        <button class="btn btn-outline" type="button" id="btn-ver-imagem-requisicao" title="Ver imagem digitalizada da requisição">Ver imagem requisição</button>
       </div>
-
-      <button class="btn btn-outline" type="button" id="btn-cpf-korus" title="Consultar CPF na base FEMME">CPF Korus</button>
-      <button class="btn btn-muted" type="button" id="btn-rodar-ocr" disabled title="API em desenvolvimento">Rodar OCR</button>
-      <button class="btn btn-outline" type="button" id="btn-cpf-receita" title="Consultar CPF na Receita Federal">CPF Receita</button>
-
-      <label class="check-inline">
-        <input type="checkbox" id="check-problema-cpf" />
-        Problema com CPF
-      </label>
-
-      <button class="btn btn-outline" type="button" id="btn-ver-imagem-requisicao" title="Ver imagem digitalizada da requisição">Ver imagem requisição</button>
     </div>
 
     <!-- ÁREA DE ALERTA CPF -->
@@ -83,51 +84,41 @@
       <span id="cadastro_alert_cpf_message"></span>
     </div>
 
-    <!-- NOME PACIENTE -->
-    <div class="row">
-      <div class="field">
+    <!-- Box Dados do Paciente -->
+    <div class="form-box">
+      <div class="field field-full">
         <label class="label-strong">Nome paciente</label>
         <input type="text" id="nome-paciente" placeholder="Nome do paciente" />
       </div>
-    </div>
-
-    <!--<div class="divider"></div>-->
-
-    <!-- BLOCO DADOS PACIENTE -->
-    <!--<div class="section-title-sm">Dados do Paciente</div> -->
-    
-    <div class="row four">
-      <div class="field">
-        <label class="label-strong">DUM (Data Última Menstruação)</label>
-        <input type="date" id="data-dum" />
+      
+      <div class="form-row four-cols">
+        <div class="field">
+          <label class="label-strong">DUM (Data Última Menstruação)</label>
+          <input type="date" id="data-dum" />
+        </div>
+        <div class="field">
+          <label class="label-strong">Data de Nascimento</label>
+          <input type="date" id="data-nascimento" />
+        </div>
+        <div class="field">
+          <label class="label-strong">Email</label>
+          <input type="email" id="email-paciente" placeholder="email@exemplo.com" />
+        </div>
+        <div class="field">
+          <label class="label-strong">Telefone</label>
+          <input type="text" id="telefone-paciente" placeholder="(00) 00000-0000" maxlength="15" />
+        </div>
       </div>
 
-      <div class="field">
-        <label class="label-strong">Data de Nascimento</label>
-        <input type="date" id="data-nascimento" />
-      </div>
-
-      <div class="field">
-        <label class="label-strong">Email</label>
-        <input type="email" id="email-paciente" placeholder="email@exemplo.com" />
-      </div>
-
-      <div class="field">
-        <label class="label-strong">Telefone</label>
-        <input type="text" id="telefone-paciente" placeholder="(00) 00000-0000" maxlength="15" />
-      </div>
-    </div>
-
-    <div class="row sexo-row">
-      <div class="field field-sexo">
-        <label class="label-strong">Sexo</label>
-        <select id="sexo-paciente">
-          <option value="">Selecione...</option>
-          <option value="F">Feminino</option>
-          <option value="M">Masculino</option>
-        </select>
-      </div>
-      <div class="field field-checkbox-confirmar">
+      <div class="form-row sexo-row">
+        <div class="field field-sexo">
+          <label class="label-strong">Sexo</label>
+          <select id="sexo-paciente">
+            <option value="">Selecione...</option>
+            <option value="F">Feminino</option>
+            <option value="M">Masculino</option>
+          </select>
+        </div>
         <label class="check-inline check-a-confirmar">
           <input type="checkbox" id="check-sexo-a-confirmar" />
           A confirmar
@@ -140,50 +131,49 @@
     <!-- BLOCO DADOS MÉDICO -->
     <div class="section-title-sm">Dados do Médico</div>
 
-    <div class="row three">
-      <div class="field">
-        <label class="label-strong">CRM</label>
-        <input type="text" id="crm-medico" placeholder="Número do CRM" pattern="[0-9]*" inputmode="numeric" />
-      </div>
-
-      <div class="field">
-        <label class="label-strong">UF-CRM</label>
-        <div class="custom-dropdown-wrapper" id="uf-crm-wrapper">
-          <input type="text" id="uf-crm" placeholder="Digite ou selecione..." maxlength="2" style="text-transform: uppercase;" autocomplete="off" />
-          <div class="custom-dropdown-list" id="uf-crm-dropdown">
-            <div class="custom-dropdown-item" data-value="AC">AC</div>
-            <div class="custom-dropdown-item" data-value="AL">AL</div>
-            <div class="custom-dropdown-item" data-value="AM">AM</div>
-            <div class="custom-dropdown-item" data-value="AP">AP</div>
-            <div class="custom-dropdown-item" data-value="BA">BA</div>
-            <div class="custom-dropdown-item" data-value="CE">CE</div>
-            <div class="custom-dropdown-item" data-value="DF">DF</div>
-            <div class="custom-dropdown-item" data-value="ES">ES</div>
-            <div class="custom-dropdown-item" data-value="GO">GO</div>
-            <div class="custom-dropdown-item" data-value="MA">MA</div>
-            <div class="custom-dropdown-item" data-value="MG">MG</div>
-            <div class="custom-dropdown-item" data-value="MS">MS</div>
-            <div class="custom-dropdown-item" data-value="MT">MT</div>
-            <div class="custom-dropdown-item" data-value="PA">PA</div>
-            <div class="custom-dropdown-item" data-value="PB">PB</div>
-            <div class="custom-dropdown-item" data-value="PE">PE</div>
-            <div class="custom-dropdown-item" data-value="PI">PI</div>
-            <div class="custom-dropdown-item" data-value="PR">PR</div>
-            <div class="custom-dropdown-item" data-value="RJ">RJ</div>
-            <div class="custom-dropdown-item" data-value="RN">RN</div>
-            <div class="custom-dropdown-item" data-value="RO">RO</div>
-            <div class="custom-dropdown-item" data-value="RR">RR</div>
-            <div class="custom-dropdown-item" data-value="RS">RS</div>
-            <div class="custom-dropdown-item" data-value="SC">SC</div>
-            <div class="custom-dropdown-item" data-value="SE">SE</div>
-            <div class="custom-dropdown-item" data-value="SP">SP</div>
-            <div class="custom-dropdown-item" data-value="TO">TO</div>
+    <!-- Box CRM + Ações -->
+    <div class="form-box">
+      <div class="medico-actions-row">
+        <div class="field field-crm">
+          <label class="label-strong">CRM</label>
+          <input type="text" id="crm-medico" placeholder="Número do CRM" pattern="[0-9]*" inputmode="numeric" />
+        </div>
+        <div class="field field-uf">
+          <label class="label-strong">UF-CRM</label>
+          <div class="custom-dropdown-wrapper" id="uf-crm-wrapper">
+            <input type="text" id="uf-crm" placeholder="UF" maxlength="2" style="text-transform: uppercase;" autocomplete="off" />
+            <div class="custom-dropdown-list" id="uf-crm-dropdown">
+              <div class="custom-dropdown-item" data-value="AC">AC</div>
+              <div class="custom-dropdown-item" data-value="AL">AL</div>
+              <div class="custom-dropdown-item" data-value="AM">AM</div>
+              <div class="custom-dropdown-item" data-value="AP">AP</div>
+              <div class="custom-dropdown-item" data-value="BA">BA</div>
+              <div class="custom-dropdown-item" data-value="CE">CE</div>
+              <div class="custom-dropdown-item" data-value="DF">DF</div>
+              <div class="custom-dropdown-item" data-value="ES">ES</div>
+              <div class="custom-dropdown-item" data-value="GO">GO</div>
+              <div class="custom-dropdown-item" data-value="MA">MA</div>
+              <div class="custom-dropdown-item" data-value="MG">MG</div>
+              <div class="custom-dropdown-item" data-value="MS">MS</div>
+              <div class="custom-dropdown-item" data-value="MT">MT</div>
+              <div class="custom-dropdown-item" data-value="PA">PA</div>
+              <div class="custom-dropdown-item" data-value="PB">PB</div>
+              <div class="custom-dropdown-item" data-value="PE">PE</div>
+              <div class="custom-dropdown-item" data-value="PI">PI</div>
+              <div class="custom-dropdown-item" data-value="PR">PR</div>
+              <div class="custom-dropdown-item" data-value="RJ">RJ</div>
+              <div class="custom-dropdown-item" data-value="RN">RN</div>
+              <div class="custom-dropdown-item" data-value="RO">RO</div>
+              <div class="custom-dropdown-item" data-value="RR">RR</div>
+              <div class="custom-dropdown-item" data-value="RS">RS</div>
+              <div class="custom-dropdown-item" data-value="SC">SC</div>
+              <div class="custom-dropdown-item" data-value="SE">SE</div>
+              <div class="custom-dropdown-item" data-value="SP">SP</div>
+              <div class="custom-dropdown-item" data-value="TO">TO</div>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="field field-actions">
-        <button class="btn btn-outline" type="button" id="btn-valida-medico" title="Validar médico na API FEMME">Valida</button>
+        <button class="btn btn-outline btn-valida" type="button" id="btn-valida-medico" title="Validar médico na API FEMME">Valida</button>
         <label class="check-inline">
           <input type="checkbox" id="check-problema-medico" />
           Dados médico com problema
@@ -197,24 +187,21 @@
       <span id="cadastro_alert_medico_message"></span>
     </div>
 
-    <!-- NOME DO MÉDICO -->
-    <div class="row">
-      <div class="field">
+    <!-- Box Dados do Médico (readonly) -->
+    <div class="form-box">
+      <div class="field field-full">
         <label class="label-strong">Nome do médico</label>
         <input type="text" id="nome-medico" readonly placeholder="Preenchido via API Valida Médico" />
       </div>
-    </div>
-
-    <!-- ENDEREÇO + DESTINO -->
-    <div class="row two">
-      <div class="field">
-        <label class="label-strong">Endereço médico</label>
-        <input type="text" id="endereco-medico" readonly placeholder="Preenchido via API Valida Médico" />
-      </div>
-
-      <div class="field">
-        <label class="label-strong">Destino</label>
-        <input type="text" id="destino-medico" readonly placeholder="Preenchido via API Valida Médico" />
+      <div class="form-row two-cols">
+        <div class="field">
+          <label class="label-strong">Endereço médico</label>
+          <input type="text" id="endereco-medico" readonly placeholder="Preenchido via API Valida Médico" />
+        </div>
+        <div class="field">
+          <label class="label-strong">Destino</label>
+          <input type="text" id="destino-medico" readonly placeholder="Preenchido via API Valida Médico" />
+        </div>
       </div>
     </div>
 
@@ -223,26 +210,27 @@
     <!-- BLOCO EXAMES E ATENDIMENTO -->
     <div class="section-title-sm">Exames e Atendimento</div>
 
-    <div class="exames-actions">
-      <div class="field" style="flex: 0 0 250px;">
-        <label class="label-strong">Tipo de Atendimento</label>
-        <select id="select-tipo-atendimento">
-          <option value="">Selecione o tipo...</option>
-          {% for tipo in tipos_atendimento %}
-          <option value="{{ tipo.id }}" data-codigo="{{ tipo.codigo }}">{{ tipo.descricao }}</option>
-          {% endfor %}
-        </select>
+    <!-- Box Tipo de Atendimento -->
+    <div class="form-box">
+      <div class="exames-actions-row">
+        <div class="field field-tipo-atendimento">
+          <label class="label-strong">Tipo de Atendimento</label>
+          <select id="select-tipo-atendimento">
+            <option value="">Selecione o tipo...</option>
+            {% for tipo in tipos_atendimento %}
+            <option value="{{ tipo.id }}" data-codigo="{{ tipo.codigo }}">{{ tipo.descricao }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-outline" type="button" id="btn-adicionar-exame" title="Adicionar exame">
+          + Adicionar
+        </button>
       </div>
-
-      <button class="btn btn-outline" type="button" id="btn-adicionar-exame" title="Adicionar exame">
-        + Adicionar
-      </button>
     </div>
 
     <!-- GRID DE EXAMES -->
     <div class="exames-grid" id="exames-grid">
       <div class="exames-grid-header">
-        <span></span>
         <span>EXAMES SELECIONADOS</span>
         <span>TIPO ATENDIMENTO</span>
       </div>

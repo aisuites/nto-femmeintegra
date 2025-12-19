@@ -352,23 +352,108 @@ input[readonly] {
   margin-bottom: 12px;
 }
 
-/* CPF Actions Row */
-.cpf-actions {
+/* ============================================
+   FORM BOX - Container cinza para grupos de campos
+   ============================================ */
+.form-box {
+  background-color: #f1f1f1;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 12px;
+}
+
+/* Campo que ocupa toda a largura */
+.field-full {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+/* ============================================
+   FORM ROW - Layouts de grid para campos
+   ============================================ */
+.form-row {
+  display: grid;
+  gap: 12px;
+}
+
+.form-row.two-cols {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.form-row.three-cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.form-row.four-cols {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Row Sexo - campo sexo + checkbox ao lado */
+.form-row.sexo-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.field-sexo {
+  flex: 0 0 220px;
+}
+
+/* ============================================
+   CPF ACTIONS ROW - Linha de ações do CPF
+   ============================================ */
+.cpf-actions-row {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
-  margin-bottom: 12px;
-  background-color: #f1f1f1;
-  padding: 20px;
-  border-radius: 15px;
 }
 
-.cpf-actions .field {
+.cpf-actions-row .field-cpf {
   flex: 0 0 180px;
 }
 
-/* Label Strong */
+/* ============================================
+   MÉDICO ACTIONS ROW - Linha de ações do médico
+   ============================================ */
+.medico-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.medico-actions-row .field-crm {
+  flex: 1 1 300px;
+  max-width: 350px;
+}
+
+.medico-actions-row .field-uf {
+  flex: 0 0 100px;
+}
+
+.medico-actions-row .btn-valida {
+  min-width: 120px;
+}
+
+/* ============================================
+   EXAMES ACTIONS ROW - Linha de ações de exames
+   ============================================ */
+.exames-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.exames-actions-row .field-tipo-atendimento {
+  flex: 0 0 280px;
+}
+
+/* ============================================
+   LABEL E CHECK
+   ============================================ */
 .label-strong {
   font-size: 12px;
   font-weight: 600;
@@ -377,7 +462,6 @@ input[readonly] {
   margin-bottom: 4px;
 }
 
-/* Check Inline */
 .check-inline {
   display: inline-flex;
   align-items: center;
@@ -388,8 +472,8 @@ input[readonly] {
   padding: 8px 12px;
   border-radius: 999px;
   background: #fff;
-  /*border: 1px solid rgba(122, 61, 138, 0.15);*/
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .check-inline:hover {
@@ -401,12 +485,18 @@ input[readonly] {
   accent-color: var(--femme-purple);
 }
 
-/* Row Layouts */
+.check-a-confirmar {
+  margin-bottom: 0;
+  height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+/* ============================================
+   LEGACY ROW (manter compatibilidade)
+   ============================================ */
 .row {
   margin-bottom: 12px;
-  background-color: #f1f1f1;
-  padding: 20px;
-  border-radius: 15px;
 }
 
 .row.two {
@@ -426,35 +516,6 @@ input[readonly] {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-}
-
-/* Row Sexo - campo sexo com mesma largura do DUM + checkbox ao lado */
-.row.sexo-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.field-sexo {
-  flex: 0 0 calc(25% - 9px); /* Mesma largura do DUM (1/4 da row.four) */
-}
-
-.field-checkbox-confirmar {
-  display: flex;
-  align-items: center;
-}
-
-.check-a-confirmar {
-  margin-bottom: 0;
-  height: 34px;
-  display: flex;
-  align-items: center;
-}
-
-.field-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 
 /* Divider */
@@ -522,7 +583,7 @@ input[readonly] {
 
 .exames-grid-header {
   display: grid;
-  grid-template-columns: 80px 1fr 200px;
+  grid-template-columns: 1fr 200px;
   gap: 12px;
   padding: 12px 16px;
   background: #f8f9fa;
@@ -547,7 +608,7 @@ input[readonly] {
 
 .exame-row {
   display: grid;
-  grid-template-columns: 80px 1fr 200px;
+  grid-template-columns: 1fr 200px;
   gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(122, 61, 138, 0.08);
@@ -592,6 +653,13 @@ input[readonly] {
 
 .exame-actions .btn-delete:hover {
   background: rgba(211, 47, 47, 0.1);
+}
+
+.exame-nome-col {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .exame-nome {
