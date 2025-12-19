@@ -658,9 +658,10 @@ async function registrarPendenciaMedico() {
         : 'MÉDICO NÃO CADASTRADO';
       const codReq = requisicaoAtual.cod_req;
       
-      // Guardar dados da pendência para uso no modal de email
+      // Guardar dados da pendência para uso no modal de email (ANTES de fechar o modal)
+      const tipoProblema = problemaMedicoAtual.tipo;
       pendenciaRegistrada = {
-        tipo: problemaMedicoAtual.tipo,
+        tipo: tipoProblema,
         tipoPendenciaDescricao: tipoPendencia,
         crm: problemaMedicoAtual.crm,
         uf_crm: problemaMedicoAtual.uf_crm,
@@ -669,7 +670,7 @@ async function registrarPendenciaMedico() {
         pendencia_id: data.pendencia_id
       };
       
-      // Fechar modal de problema
+      // Fechar modal de problema (isso seta problemaMedicoAtual = null)
       fecharModalProblemaMedico();
       
       // Verificar se ModalEmail está disponível
@@ -681,9 +682,9 @@ async function registrarPendenciaMedico() {
         return;
       }
       
-      // Abrir modal de email usando componente global
+      // Abrir modal de email usando componente global (usar tipoProblema salvo)
       ModalEmail.abrir(
-        problemaMedicoAtual.tipo, 
+        tipoProblema, 
         `Notificar: ${tipoPendencia}`,
         pendenciaRegistrada,
         {
