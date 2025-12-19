@@ -581,6 +581,7 @@ async function registrarPendenciaMedico() {
   try {
     const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRFToken': csrfToken,
@@ -593,6 +594,13 @@ async function registrarPendenciaMedico() {
         nome_medico: problemaMedicoAtual.medico?.nome_medico || '',
       }),
     });
+    
+    // Verificar se response é OK antes de parsear JSON
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[Cadastro] Erro HTTP:', response.status, errorText.substring(0, 200));
+      throw new Error(`Erro HTTP ${response.status}`);
+    }
     
     const data = await response.json();
     console.log('[Cadastro] Resposta registro pendência:', data);
