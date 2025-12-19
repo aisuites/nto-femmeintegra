@@ -74,7 +74,6 @@ let requisicaoAtual = null;
 let examesSelecionados = [];
 let arquivosParaUpload = [];
 let medicoValidado = false;
-let pendenciaRegistrada = null; // Guarda dados da pendência após registro
 
 // ============================================
 // FUNÇÕES UTILITÁRIAS
@@ -611,110 +610,99 @@ function fecharModalProblemaMedico() {
 }
 
 async function registrarPendenciaMedico() {
+  // NOVO FLUXO: Abrir modal de email PRIMEIRO, criar pendência APÓS envio do email
   if (!problemaMedicoAtual || !requisicaoAtual) {
     mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro: dados insuficientes para registrar pendência.', 'error');
     fecharModalProblemaMedico();
     return;
   }
   
-  const btnRegistrar = document.getElementById('btn-registrar-pendencia-medico');
-  btnRegistrar.disabled = true;
-  btnRegistrar.innerHTML = '<span class="spinner"></span> Registrando...';
+  // Verificar se ModalEmail está disponível
+  console.log('[Cadastro] ModalEmail disponível?', typeof window.ModalEmail);
+  if (typeof window.ModalEmail === 'undefined') {
+    console.error('[Cadastro] ModalEmail não está carregado! Verifique se modal_email.js está incluído.');
+    mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro: componente de email não carregado.', 'error');
+    return;
+  }
   
-  try {
-    const token = getCsrfToken();
-    console.log('[Cadastro] Usando CSRF Token para pendência:', token ? token.substring(0, 10) + '...' : 'VAZIO');
-    
-    const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': token,
-      },
-      body: JSON.stringify({
-        requisicao_id: requisicaoAtual.id,
-        tipo_pendencia: problemaMedicoAtual.tipo,
-        crm: problemaMedicoAtual.crm,
-        uf_crm: problemaMedicoAtual.uf_crm,
-        nome_medico: problemaMedicoAtual.medico?.nome_medico || '',
-      }),
-    });
-    
-    // Verificar se response é OK antes de parsear JSON
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[Cadastro] Erro HTTP:', response.status, errorText.substring(0, 200));
-      throw new Error(`Erro HTTP ${response.status}`);
-    }
-    
-    const data = await response.json();
-    console.log('[Cadastro] Resposta registro pendência:', data);
-    
-    if (data.status === 'success') {
-      // Salvar dados antes de fechar modal (que seta problemaMedicoAtual = null)
-      const tipoPendencia = problemaMedicoAtual.tipo === 'medico_sem_destino' 
-        ? 'MÉDICO SEM DESTINO' 
-        : 'MÉDICO NÃO CADASTRADO';
-      const codReq = requisicaoAtual.cod_req;
-      
-      // Guardar dados da pendência para uso no modal de email (ANTES de fechar o modal)
-      const tipoProblema = problemaMedicoAtual.tipo;
-      pendenciaRegistrada = {
-        tipo: tipoProblema,
-        tipoPendenciaDescricao: tipoPendencia,
-        crm: problemaMedicoAtual.crm,
-        uf_crm: problemaMedicoAtual.uf_crm,
-        nome_medico: problemaMedicoAtual.medico?.nome_medico || '',
-        cod_req: codReq,
-        pendencia_id: data.pendencia_id
-      };
-      
-      // Fechar modal de problema (isso seta problemaMedicoAtual = null)
-      fecharModalProblemaMedico();
-      
-      // Verificar se ModalEmail está disponível
-      console.log('[Cadastro] ModalEmail disponível?', typeof window.ModalEmail);
-      if (typeof window.ModalEmail === 'undefined') {
-        console.error('[Cadastro] ModalEmail não está carregado! Verifique se modal_email.js está incluído.');
-        mostrarToastSucesso(`✅ Pendência registrada! Requisição ${codReq} enviada para PENDÊNCIAS.`);
-        setTimeout(() => window.location.reload(), 2000);
-        return;
-      }
-      
-      // Abrir modal de email usando componente global (usar tipoProblema salvo)
-      ModalEmail.abrir(
-        tipoProblema, 
-        `Notificar: ${tipoPendencia}`,
-        pendenciaRegistrada,
-        {
-          onEnviado: (resposta) => {
-            // Email enviado com sucesso
-            let mensagem = `✅ Pendência registrada e email enviado! Requisição ${codReq} enviada para PENDÊNCIAS.`;
-            if (resposta.tarefa_criada) {
-              mensagem += ` Tarefa ${resposta.tarefa_criada.codigo} criada.`;
+  // Salvar dados antes de fechar modal (que seta problemaMedicoAtual = null)
+  const tipoPendencia = problemaMedicoAtual.tipo === 'medico_sem_destino' 
+    ? 'MÉDICO SEM DESTINO' 
+    : 'MÉDICO NÃO CADASTRADO';
+  const codReq = requisicaoAtual.cod_req;
+  const tipoProblema = problemaMedicoAtual.tipo;
+  
+  // Preparar dados para o modal de email e para criar pendência depois
+  const dadosParaPendencia = {
+    tipo: tipoProblema,
+    tipoPendenciaDescricao: tipoPendencia,
+    crm: problemaMedicoAtual.crm,
+    uf_crm: problemaMedicoAtual.uf_crm,
+    nome_medico: problemaMedicoAtual.medico?.nome_medico || '',
+    cod_req: codReq,
+    requisicao_id: requisicaoAtual.id
+  };
+  
+  // Fechar modal de problema
+  fecharModalProblemaMedico();
+  
+  // Abrir modal de email - pendência será criada APÓS envio do email
+  ModalEmail.abrir(
+    tipoProblema, 
+    `Notificar: ${tipoPendencia}`,
+    dadosParaPendencia,
+    {
+      onEnviado: async (respostaEmail) => {
+        // Email enviado com sucesso - AGORA criar a pendência
+        console.log('[Cadastro] Email enviado, criando pendência...');
+        
+        try {
+          const token = getCsrfToken();
+          const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': token,
+            },
+            body: JSON.stringify({
+              requisicao_id: dadosParaPendencia.requisicao_id,
+              tipo_pendencia: dadosParaPendencia.tipo,
+              crm: dadosParaPendencia.crm,
+              uf_crm: dadosParaPendencia.uf_crm,
+              nome_medico: dadosParaPendencia.nome_medico,
+            }),
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Erro HTTP ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('[Cadastro] Pendência criada:', data);
+          
+          if (data.status === 'success') {
+            let mensagem = `✅ Email enviado e pendência registrada! Requisição ${codReq} enviada para PENDÊNCIAS.`;
+            if (respostaEmail.tarefa_criada) {
+              mensagem += ` Tarefa ${respostaEmail.tarefa_criada.codigo} criada.`;
             }
             mostrarToastSucesso(mensagem);
             setTimeout(() => window.location.reload(), 2000);
-          },
-          onCancelado: () => {
-            // Email não enviado, mas pendência já foi registrada
-            mostrarToastSucesso(`✅ Pendência registrada! Requisição ${codReq} enviada para PENDÊNCIAS. (Email não enviado)`);
-            setTimeout(() => window.location.reload(), 2000);
+          } else {
+            mostrarAlerta(alertMedico, alertMedicoMessage, 'Email enviado, mas erro ao registrar pendência: ' + (data.message || 'Erro desconhecido'), 'error');
           }
+        } catch (error) {
+          console.error('Erro ao criar pendência após envio de email:', error);
+          mostrarAlerta(alertMedico, alertMedicoMessage, 'Email enviado, mas erro ao registrar pendência.', 'error');
         }
-      );
-      
-    } else {
-      mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao registrar pendência.', 'error');
+      },
+      onCancelado: () => {
+        // Email cancelado - NÃO criar pendência
+        console.log('[Cadastro] Email cancelado, pendência NÃO foi criada.');
+        mostrarAlerta(alertMedico, alertMedicoMessage, 'Envio de email cancelado. Pendência não foi registrada.', 'warning');
+      }
     }
-  } catch (error) {
-    console.error('Erro ao registrar pendência:', error);
-    mostrarAlerta(alertMedico, alertMedicoMessage, 'Erro de conexão ao registrar pendência.', 'error');
-  } finally {
-    btnRegistrar.disabled = false;
-    btnRegistrar.innerHTML = '📋 Registrar Pendência';
-  }
+  );
 }
 
 // ============================================
