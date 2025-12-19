@@ -104,7 +104,10 @@
   margin-bottom: 0;
 }
 
-.section-title {
+/* .section-title está em _typography.css */
+
+/* Variação com borda inferior para seções */
+.section-title-bordered {
   font-size: 14px;
   font-weight: 600;
   color: var(--femme-gray-dark);
@@ -209,35 +212,7 @@
   gap: 20px;
 }
 
-/* ============================================
-   ROW (LINHA DE CAMPOS)
-   ============================================ */
-
-.row {
-  display: flex;
-  gap: 16px;
-}
-
-.row.two > .field {
-  flex: 1;
-}
-
-.row.three {
-  display: grid;
-  grid-template-columns: 1fr 30% 30%;
-  gap: 16px;
-  align-items: flex-end;
-}
-
-@media (max-width: 720px) {
-  .row {
-    flex-direction: column;
-  }
-  
-  .row.three {
-    grid-template-columns: 1fr;
-  }
-}
+/* ROW - Definido na seção ROW LAYOUTS (Legado) abaixo */
 
 /* ============================================
    DIVIDER
@@ -364,10 +339,13 @@
 }
 
 /* ============================================
-   ROW LAYOUTS (Legado)
+   ROW LAYOUTS
    ============================================ */
 
 .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
@@ -375,6 +353,10 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+}
+
+.row.two > .field {
+  flex: 1;
 }
 
 .row.three {
@@ -391,6 +373,10 @@
 }
 
 @media (max-width: 720px) {
+  .row {
+    flex-direction: column;
+  }
+  
   .row.two,
   .row.three,
   .row.four {
