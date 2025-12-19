@@ -486,6 +486,12 @@ async function validarMedico() {
   btnValidaMedico.disabled = true;
   btnValidaMedico.innerHTML = '<span class="spinner"></span> Validando...';
   
+  // Zerar campos do médico na tela antes de consultar (evita resquícios de médico anterior)
+  nomeMedico.value = '';
+  enderecoMedico.value = '';
+  destinoMedico.value = '';
+  medicoValidado = false;
+  
   try {
     // Usar API unificada que faz fallback automático
     const response = await fetch(`/operacao/triagem/validar-medico-completo/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
