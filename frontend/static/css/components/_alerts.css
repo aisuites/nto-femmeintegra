@@ -9,7 +9,7 @@
    ============================================ */
 
 .alert {
-  display: flex;
+  display: none; /* Oculto por padrão, mostrar com .alert--visible */
   align-items: flex-start;
   gap: 12px;
   padding: 12px 16px;

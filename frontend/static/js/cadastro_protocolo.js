@@ -626,23 +626,23 @@
     try {
       // 1. Obter signed URL
       const apiUrl = AppConfig.buildApiUrl('/operacao/protocolo/signed-url/') + '?content_type=application/pdf';
-      console.log('[CadastroProtocolo] Chamando API signed URL:', apiUrl);
+      // Log removido por segurança
       
       const signedUrlResponse = await fetch(apiUrl, {
         method: 'GET',
         headers: AppConfig.getDefaultHeaders()
       });
       
-      console.log('[CadastroProtocolo] Resposta signed URL status:', signedUrlResponse.status);
+      // Log removido por segurança
       const signedUrlData = await signedUrlResponse.json();
-      console.log('[CadastroProtocolo] Resposta signed URL data:', signedUrlData);
+      // Log removido por segurança
       
       if (signedUrlData.status !== 'success') {
         throw new Error(signedUrlData.message || 'Erro ao obter URL de upload.');
       }
       
       const { signed_url, file_url } = signedUrlData;
-      console.log('[CadastroProtocolo] Signed URL obtida:', signed_url?.substring(0, 100) + '...');
+      // Log removido por segurança
       
       // 2. Upload direto para S3
       console.log('[CadastroProtocolo] Iniciando PUT para S3...');
