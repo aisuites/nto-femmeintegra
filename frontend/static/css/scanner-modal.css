@@ -157,12 +157,12 @@
   color: #34343a;
 }
 
+/* .scanner-config select herda estilos de select em _forms.css */
 .scanner-config select {
-  width: 100%;
   margin-top: 4px;
   padding: 6px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(207, 199, 222, 0.9);
+  padding-right: 28px; /* Espaço para seta */
+  border-radius: var(--radius-pill);
   font-size: 12px;
 }
 

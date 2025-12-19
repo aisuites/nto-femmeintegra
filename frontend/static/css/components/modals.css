@@ -134,16 +134,15 @@
   color: var(--femme-gray-dark, #333);
 }
 
+/* Inputs em modais herdam estilos de _forms.css, apenas overrides específicos */
 .modal-field input,
 .modal-field textarea,
 .modal-field select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--femme-border, #e0e0e0);
-  border-radius: 8px;
   font-size: 13px;
-  font-family: inherit;
-  transition: border-color 0.15s;
+}
+
+.modal-field select {
+  padding-right: 32px; /* Espaço para seta */
 }
 
 .modal-field input:focus,

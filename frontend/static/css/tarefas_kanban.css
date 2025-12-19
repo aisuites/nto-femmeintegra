@@ -70,19 +70,13 @@
   accent-color: #6366f1;
 }
 
+/* .filtro-select herda estilos de select em _forms.css */
 .filtro-select {
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #475569;
-  background: white;
   min-width: 160px;
-  cursor: pointer;
+  font-size: 14px;
 }
 
 .filtro-select:focus {
-  outline: none;
   border-color: var(--femme-green);
   box-shadow: 0 0 0 3px rgba(0, 188, 164, 0.1);
 }
