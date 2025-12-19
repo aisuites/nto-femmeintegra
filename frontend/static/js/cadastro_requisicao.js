@@ -79,44 +79,12 @@ let medicoValidado = false;
 // FUNÇÕES UTILITÁRIAS
 // ============================================
 
-function getCsrfToken() {
-  // Primeiro tenta pegar do input hidden gerado pelo {% csrf_token %}
-  const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
-  if (csrfInput) {
-    return csrfInput.value;
-  }
-  // Fallback: tenta pegar do cookie
-  const cookieValue = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrftoken='))
-    ?.split('=')[1];
-  return cookieValue || '';
-}
+// Aliases para FemmeUtils (compatibilidade e código mais limpo)
+const getCsrfToken = () => FemmeUtils.getCsrfToken();
+const formatarCPF = (cpf) => FemmeUtils.formatarCPF(cpf);
+const formatarTelefone = (tel) => FemmeUtils.formatarTelefone(tel);
 
-// Obter CSRF token após DOM carregado
-let csrfToken = '';
-document.addEventListener('DOMContentLoaded', () => {
-  csrfToken = getCsrfToken();
-  console.log('[Cadastro] CSRF Token obtido:', csrfToken ? 'OK' : 'FALHOU');
-});
-
-function formatarCPF(cpf) {
-  if (!cpf) return '';
-  cpf = cpf.replace(/\D/g, '');
-  if (cpf.length <= 3) return cpf;
-  if (cpf.length <= 6) return cpf.replace(/(\d{3})(\d+)/, '$1.$2');
-  if (cpf.length <= 9) return cpf.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
-  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1.$2.$3-$4').substring(0, 14);
-}
-
-function formatarTelefone(tel) {
-  tel = tel.replace(/\D/g, '');
-  if (tel.length <= 2) return tel;
-  if (tel.length <= 7) return tel.replace(/(\d{2})(\d+)/, '($1) $2');
-  if (tel.length <= 11) return tel.replace(/(\d{2})(\d{5})(\d+)/, '($1) $2-$3');
-  return tel.substring(0, 15);
-}
-
+// Função formatarData específica para inputs (converte para YYYY-MM-DD)
 function formatarData(dataInput) {
   if (!dataInput) return '';
   
@@ -136,18 +104,15 @@ function formatarData(dataInput) {
     return `${partes[2]}-${partes[1]}-${partes[0]}`;
   }
   
-  // Tentar parsear como ISO
-  try {
-    const data = new Date(dataInput);
-    if (isNaN(data.getTime())) {
-      return '';
-    }
-    return data.toISOString().split('T')[0];
-  } catch (e) {
-    console.warn('Erro ao formatar data:', dataInput, e);
-    return '';
-  }
+  return FemmeUtils.formatarDataInput(dataInput);
 }
+
+// Obter CSRF token após DOM carregado (compatibilidade com código existente)
+let csrfToken = '';
+document.addEventListener('DOMContentLoaded', () => {
+  csrfToken = getCsrfToken();
+  console.log('[Cadastro] CSRF Token obtido:', csrfToken ? 'OK' : 'FALHOU');
+});
 
 // Variável para controlar timeout dos alertas
 let alertaTimeouts = {};
@@ -180,36 +145,8 @@ function mostrarAlerta(elemento, mensagemElemento, mensagem, tipo = 'error') {
   }, 4000);
 }
 
-/**
- * Mostra toast de sucesso verde no canto superior direito
- */
-function mostrarToastSucesso(mensagem) {
-  // Remover toast anterior se existir
-  const toastAnterior = document.getElementById('toast-sucesso');
-  if (toastAnterior) {
-    toastAnterior.remove();
-  }
-  
-  // Criar toast
-  const toast = document.createElement('div');
-  toast.id = 'toast-sucesso';
-  toast.className = 'toast toast-success';
-  toast.innerHTML = `
-    <span class="toast-message">${mensagem}</span>
-    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-  `;
-  
-  document.body.appendChild(toast);
-  
-  // Animar entrada
-  setTimeout(() => toast.classList.add('toast-visible'), 10);
-  
-  // Auto-remover após 5 segundos
-  setTimeout(() => {
-    toast.classList.remove('toast-visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
-}
+// Usa FemmeUtils.mostrarToastSucesso global
+const mostrarToastSucesso = (mensagem) => FemmeUtils.mostrarToastSucesso(mensagem);
 
 function ocultarAlerta(elemento) {
   elemento.classList.remove('alert--visible');

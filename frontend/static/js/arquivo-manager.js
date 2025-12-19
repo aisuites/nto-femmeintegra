@@ -200,24 +200,10 @@ const ArquivoManager = {
     },
 
     /**
-     * Obtém CSRF token
+     * Obtém CSRF token - usa FemmeUtils global
      */
     getCsrfToken() {
-        // Tentar pegar do input hidden
-        let token = document.querySelector('[name=csrfmiddlewaretoken]');
-        if (token) return token.value;
-        
-        // Tentar pegar do cookie
-        const cookieValue = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('csrftoken='));
-        
-        if (cookieValue) {
-            return cookieValue.split('=')[1];
-        }
-        
-        console.error('CSRF token não encontrado');
-        return '';
+        return FemmeUtils.getCsrfToken();
     }
 };
 

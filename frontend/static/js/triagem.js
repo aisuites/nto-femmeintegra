@@ -1370,23 +1370,9 @@ function mostrarMensagemSucesso(mensagem) {
 }
 
 /**
- * Obtém CSRF token
+ * Obtém CSRF token - usa FemmeUtils global
  */
-function getCsrfToken() {
-  const name = 'csrftoken';
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
+const getCsrfToken = () => FemmeUtils.getCsrfToken();
 
 // ============================================
 // ETAPA 3 - CADASTRO
@@ -2883,16 +2869,17 @@ function cancelarAdicionarAmostra() {
 }
 
 /**
- * Formata CPF com máscara
+ * Formata CPF com máscara - usa FemmeUtils global
  */
-function formatarCPF(cpf) {
+const formatarCPF = (cpf) => {
   if (!cpf) return '';
+  // Para digitação progressiva, mantém lógica local
   cpf = cpf.replace(/\D/g, '');
   if (cpf.length <= 3) return cpf;
   if (cpf.length <= 6) return cpf.replace(/(\d{3})(\d+)/, '$1.$2');
   if (cpf.length <= 9) return cpf.replace(/(\d{3})(\d{3})(\d+)/, '$1.$2.$3');
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d+)/, '$1.$2.$3-$4').substring(0, 14);
-}
+};
 
 /**
  * Aplica máscara de CPF ao digitar

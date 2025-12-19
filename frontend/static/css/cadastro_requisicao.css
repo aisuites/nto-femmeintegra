@@ -613,7 +613,7 @@ input[readonly] {
 .divider {
   height: 1px;
   background: rgba(122, 61, 138, 0.1);
-  margin: 16px 0;
+  margin: 5px 0;
 }
 
 /* Custom Dropdown (UF-CRM) */

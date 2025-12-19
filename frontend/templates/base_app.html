@@ -54,6 +54,11 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Utils Globais -->
+<script src="{% static 'js/utils/csrf.js' %}"></script>
+<script src="{% static 'js/utils/formatters.js' %}"></script>
+<script src="{% static 'js/utils/alerts.js' %}"></script>
+
 <script src="{% static 'js/notificacoes.js' %}"></script>
 {% block extra_scripts %}{% endblock %}
 {% endblock %}

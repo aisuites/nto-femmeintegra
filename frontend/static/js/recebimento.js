@@ -16,11 +16,14 @@
 // ============================================
 
 /**
- * Obtém valor de cookie por nome
+ * Obtém cookie por nome - usa FemmeUtils para CSRF
  * @param {string} name - Nome do cookie
  * @returns {string|null} Valor do cookie ou null
  */
 function getCookie(name) {
+  if (name === 'csrftoken') {
+    return FemmeUtils.getCsrfToken();
+  }
   const cookieValue = document.cookie
     .split(';')
     .map(cookie => cookie.trim())
@@ -29,7 +32,7 @@ function getCookie(name) {
 }
 
 /**
- * Mostra alerta na página
+ * Mostra alerta na página (específico do recebimento)
  * @param {string} mensagem - Mensagem a ser exibida
  */
 function mostrarAlerta(mensagem) {
@@ -42,21 +45,16 @@ function mostrarAlerta(mensagem) {
       alertaBox.style.display = 'none';
     }, 5000);
   } else {
-    alert(mensagem);
+    // Fallback para toast de erro global
+    FemmeUtils.mostrarToastErro(mensagem);
   }
 }
 
 /**
- * Mostra toast de sucesso
+ * Mostra toast de sucesso - usa FemmeUtils global
  * @param {string} mensagem - Mensagem a ser exibida
  */
-function mostrarToastSucesso(mensagem) {
-  const toast = document.createElement('div');
-  toast.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #00bca4; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000;';
-  toast.textContent = mensagem;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
+const mostrarToastSucesso = (mensagem) => FemmeUtils.mostrarToastSucesso(mensagem);
 
 // ============================================
 // MÓDULO PRINCIPAL
