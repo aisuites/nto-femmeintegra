@@ -339,6 +339,44 @@
   </div>
 </div>
 
+<!-- MODAL DE EMAIL EDITÁVEL -->
+<div class="modal-overlay" id="modal-email-overlay" style="display: none;">
+  <div class="modal-container modal-email">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-email-titulo">Enviar Email</h3>
+      <button class="modal-close" type="button" id="btn-fechar-modal-email">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="modal-field">
+        <label class="label-strong">Destinatário(s)</label>
+        <input type="text" id="email-destinatarios" placeholder="email1@example.com, email2@example.com" />
+        <small class="field-hint">Separe múltiplos emails por vírgula</small>
+      </div>
+      
+      <div class="modal-field">
+        <label class="label-strong">Assunto</label>
+        <input type="text" id="email-assunto" placeholder="Assunto do email" />
+      </div>
+      
+      <div class="modal-field">
+        <label class="label-strong">Mensagem</label>
+        <textarea id="email-corpo" rows="10" placeholder="Corpo do email..."></textarea>
+      </div>
+      
+      <!-- Alerta de erro no modal -->
+      <div class="alert alert-validacao" id="modal-email-alert" style="display: none;">
+        <span id="modal-email-alert-message"></span>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn btn-outline" type="button" id="btn-cancelar-email">Cancelar</button>
+      <button class="btn btn-primary" type="button" id="btn-enviar-email">Enviar Email</button>
+    </div>
+  </div>
+</div>
+
 <!-- Hidden CSRF token -->
 {% csrf_token %}
 
