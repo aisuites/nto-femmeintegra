@@ -693,22 +693,20 @@ async function registrarPendenciaMedico() {
 }
 
 // ============================================
-// FUNÇÕES DE CPF
+// FUNÇÕES DE CPF - Usa componente CpfValidator global
 // ============================================
 
-async function consultarCpfKorus() {
-  const cpf = cpfPaciente.value.replace(/\D/g, '');
-  
-  if (!cpf || cpf.length !== 11) {
-    mostrarAlerta(alertCpf, alertCpfMessage, 'Informe um CPF válido (11 dígitos).');
-    return;
-  }
-  
-  ocultarAlerta(alertCpf);
-  btnCpfKorus.disabled = true;
-  btnCpfKorus.textContent = 'Consultando...';
-  
-  // Zerar TODOS os campos do paciente na tela antes de consultar
+// Campos do paciente para preenchimento automático
+const camposPaciente = () => ({
+  nome: nomePaciente,
+  dataNascimento: dataNascimento,
+  email: emailPaciente,
+  telefone: telefonePaciente,
+  sexo: sexoPaciente
+});
+
+// Limpa campos do paciente antes de consultar
+function limparCamposPaciente() {
   nomePaciente.value = '';
   dataNascimento.value = '';
   emailPaciente.value = '';
@@ -716,111 +714,50 @@ async function consultarCpfKorus() {
   dataDum.value = '';
   telefonePaciente.value = '';
   checkSexoAConfirmar.checked = false;
+}
+
+async function consultarCpfKorus() {
+  ocultarAlerta(alertCpf);
+  limparCamposPaciente();
   
-  try {
-    // API usa GET com query params - incluir requisicao_id para salvar no banco
-    const reqId = requisicaoAtual ? requisicaoAtual.id : '';
-    const response = await fetch(`/operacao/triagem/consultar-cpf-korus/?cpf=${encodeURIComponent(cpf)}&requisicao_id=${reqId}`, {
-      method: 'GET',
-      headers: {
-        'X-CSRFToken': csrfToken,
-      },
-    });
-    
-    const data = await response.json();
-    console.log('[Cadastro] Resposta CPF Korus:', data);
-    
-    if (data.status === 'success' && data.paciente) {
-      const pac = data.paciente;
-      console.log('[Cadastro] Dados do paciente:', pac);
-      
-      // Preencher campos imediatamente
-      nomePaciente.value = pac.nome || '';
-      dataNascimento.value = pac.data_nascimento ? formatarData(pac.data_nascimento) : '';
-      emailPaciente.value = pac.email || '';
-      
-      // Converter sexo de 'Feminino'/'Masculino' para 'F'/'M'
-      let sexoValor = pac.sexo || '';
-      if (sexoValor.toLowerCase() === 'feminino') {
-        sexoValor = 'F';
-      } else if (sexoValor.toLowerCase() === 'masculino') {
-        sexoValor = 'M';
-      }
-      sexoPaciente.value = sexoValor;
-      
-      // Preencher telefone
-      if (pac.telefone) {
-        telefonePaciente.value = pac.telefone;
-      }
-      
-      console.log('[Cadastro] Campos preenchidos - nome:', nomePaciente.value, 'dataNasc:', dataNascimento.value, 'sexo:', sexoPaciente.value, 'telefone:', telefonePaciente.value);
-      
+  const reqId = requisicaoAtual ? requisicaoAtual.id : '';
+  
+  CpfValidator.consultarKorus(cpfPaciente.value, reqId, {
+    btnElement: btnCpfKorus,
+    btnTexto: 'CPF Korus',
+    onSucesso: (paciente, fonte) => {
+      CpfValidator.preencherCampos(paciente, camposPaciente());
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na base Korus!', 'success');
-    } else {
-      mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na base Korus.', 'error');
+    },
+    onNaoEncontrado: (msg, fonte) => {
+      mostrarAlerta(alertCpf, alertCpfMessage, msg, 'error');
+    },
+    onErro: (msg) => {
+      mostrarAlerta(alertCpf, alertCpfMessage, msg, 'error');
     }
-  } catch (error) {
-    console.error('Erro ao consultar CPF Korus:', error);
-    mostrarAlerta(alertCpf, alertCpfMessage, 'Erro de conexão ao consultar CPF.', 'error');
-  } finally {
-    btnCpfKorus.disabled = false;
-    btnCpfKorus.textContent = 'CPF Korus';
-  }
+  });
 }
 
 async function consultarCpfReceita() {
-  const cpf = cpfPaciente.value.replace(/\D/g, '');
-  
-  if (!cpf || cpf.length !== 11) {
-    mostrarAlerta(alertCpf, alertCpfMessage, 'Informe um CPF válido (11 dígitos).');
-    return;
-  }
-  
   ocultarAlerta(alertCpf);
-  btnCpfReceita.disabled = true;
-  btnCpfReceita.textContent = 'Consultando...';
+  limparCamposPaciente();
   
-  // Zerar TODOS os campos do paciente na tela antes de consultar
-  nomePaciente.value = '';
-  dataNascimento.value = '';
-  emailPaciente.value = '';
-  sexoPaciente.value = '';
-  dataDum.value = '';
-  telefonePaciente.value = '';
-  checkSexoAConfirmar.checked = false;
+  const reqId = requisicaoAtual ? requisicaoAtual.id : '';
   
-  try {
-    // API usa GET com query params - incluir requisicao_id para salvar no banco
-    const reqId = requisicaoAtual ? requisicaoAtual.id : '';
-    const response = await fetch(`/operacao/triagem/consultar-cpf-receita/?cpf=${encodeURIComponent(cpf)}&requisicao_id=${reqId}`, {
-      method: 'GET',
-      headers: {
-        'X-CSRFToken': csrfToken,
-      },
-    });
-    
-    const data = await response.json();
-    console.log('[Cadastro] Resposta CPF Receita:', data);
-    
-    if (data.status === 'success' && data.paciente) {
-      const pac = data.paciente;
-      console.log('[Cadastro] Dados do paciente Receita:', pac);
-      
-      // Preencher campos imediatamente
-      nomePaciente.value = pac.nome || '';
-      dataNascimento.value = pac.data_nascimento ? formatarData(pac.data_nascimento) : '';
-      
+  CpfValidator.consultarReceita(cpfPaciente.value, reqId, {
+    btnElement: btnCpfReceita,
+    btnTexto: 'CPF Receita',
+    onSucesso: (paciente, fonte) => {
+      CpfValidator.preencherCampos(paciente, camposPaciente());
       mostrarAlerta(alertCpf, alertCpfMessage, '✅ CPF encontrado na Receita Federal!', 'success');
-    } else {
-      mostrarAlerta(alertCpf, alertCpfMessage, data.message || 'CPF não encontrado na Receita Federal.', 'error');
+    },
+    onNaoEncontrado: (msg, fonte) => {
+      mostrarAlerta(alertCpf, alertCpfMessage, msg, 'error');
+    },
+    onErro: (msg) => {
+      mostrarAlerta(alertCpf, alertCpfMessage, msg, 'error');
     }
-  } catch (error) {
-    console.error('Erro ao consultar CPF Receita:', error);
-    mostrarAlerta(alertCpf, alertCpfMessage, 'Erro de conexão ao consultar CPF.', 'error');
-  } finally {
-    btnCpfReceita.disabled = false;
-    btnCpfReceita.textContent = 'CPF Receita';
-  }
+  });
 }
 
 // ============================================
