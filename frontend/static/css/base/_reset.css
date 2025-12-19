@@ -1,0 +1,121 @@
+/**
+ * _RESET.CSS - Reset e Normalize Básico
+ * 
+ * Normaliza estilos padrão dos navegadores para garantir
+ * consistência visual em todo o sistema.
+ */
+
+/* ============================================
+   RESET UNIVERSAL
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ============================================
+   HTML E BODY
+   ============================================ */
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ============================================
+   ELEMENTOS DE TEXTO
+   ============================================ */
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p {
+  margin-bottom: 1em;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ============================================
+   LISTAS
+   ============================================ */
+
+ul, ol {
+  list-style: none;
+}
+
+/* ============================================
+   IMAGENS E MÍDIA
+   ============================================ */
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* ============================================
+   FORMULÁRIOS
+   ============================================ */
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+/* ============================================
+   TABELAS
+   ============================================ */
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* ============================================
+   UTILITÁRIOS DE ACESSIBILIDADE
+   ============================================ */
+
+/* Remove outline padrão, mas mantém para navegação por teclado */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--femme-purple);
+  outline-offset: 2px;
+}
+
+/* Esconde visualmente mas mantém acessível para leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

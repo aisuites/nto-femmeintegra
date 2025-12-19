@@ -1,0 +1,297 @@
+/**
+ * _GRID.CSS - Sistema de Layout e Grid
+ * 
+ * Define containers, cards e estruturas de layout reutilizáveis.
+ */
+
+/* ============================================
+   CONTAINER PRINCIPAL (.main)
+   ============================================ */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+}
+
+/* ============================================
+   CARD
+   ============================================ */
+
+.card {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--femme-border);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--femme-gray-dark);
+}
+
+.card-body {
+  padding: 0;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--femme-border);
+}
+
+/* ============================================
+   WRAPPER DE PÁGINA
+   ============================================ */
+
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+/* ============================================
+   HEADER DE PÁGINA
+   ============================================ */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--femme-gray-dark);
+  margin: 0;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ============================================
+   SEÇÕES
+   ============================================ */
+
+.section {
+  margin-bottom: 24px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--femme-gray-dark);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--femme-border);
+}
+
+/* ============================================
+   GRID GENÉRICO
+   ============================================ */
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   FLEX UTILITIES
+   ============================================ */
+
+.flex {
+  display: flex;
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+.gap-1 {
+  gap: 4px;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+.gap-4 {
+  gap: 16px;
+}
+
+.gap-5 {
+  gap: 20px;
+}
+
+/* ============================================
+   ROW (LINHA DE CAMPOS)
+   ============================================ */
+
+.row {
+  display: flex;
+  gap: 16px;
+}
+
+.row.two > .field {
+  flex: 1;
+}
+
+.row.three {
+  display: grid;
+  grid-template-columns: 1fr 30% 30%;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+@media (max-width: 720px) {
+  .row {
+    flex-direction: column;
+  }
+  
+  .row.three {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   DIVIDER
+   ============================================ */
+
+.divider {
+  height: 1px;
+  background: var(--femme-border);
+  margin: 16px 0;
+}
+
+.divider-vertical {
+  width: 1px;
+  height: 100%;
+  background: var(--femme-border);
+  margin: 0 16px;
+}
+
+/* ============================================
+   SPACER
+   ============================================ */
+
+.spacer {
+  flex: 1;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--femme-gray);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--femme-gray-dark);
+  margin-bottom: 8px;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  max-width: 300px;
+}

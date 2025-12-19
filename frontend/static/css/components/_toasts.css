@@ -1,0 +1,197 @@
+/**
+ * _TOASTS.CSS - Sistema de Toast Unificado
+ * 
+ * Define estilos para notificações toast em todo o sistema FEMME.
+ * Substitui todas as implementações anteriores de toast.
+ */
+
+/* ============================================
+   CONTAINER DE TOASTS
+   ============================================ */
+
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-container .toast {
+  pointer-events: auto;
+}
+
+/* ============================================
+   TOAST BASE
+   ============================================ */
+
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  z-index: var(--z-toast);
+  max-width: 400px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--femme-white);
+  
+  /* Animação de entrada */
+  transform: translateX(120%);
+  transition: transform var(--transition-slow);
+}
+
+/* Quando dentro de container, não precisa de position fixed */
+.toast-container .toast {
+  position: relative;
+  top: auto;
+  right: auto;
+}
+
+/* ============================================
+   TOAST VISÍVEL
+   ============================================ */
+
+.toast.toast-visible,
+.toast-visible {
+  transform: translateX(0);
+}
+
+/* ============================================
+   TOAST SUCCESS (Verde)
+   ============================================ */
+
+.toast-success,
+.toast.success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* ============================================
+   TOAST ERROR (Vermelho)
+   ============================================ */
+
+.toast-error,
+.toast.error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* ============================================
+   TOAST WARNING (Laranja)
+   ============================================ */
+
+.toast-warning,
+.toast.warning {
+  background: linear-gradient(135deg, var(--femme-warning) 0%, #e09a3e 100%);
+  color: #333;
+}
+
+/* ============================================
+   TOAST INFO (Azul)
+   ============================================ */
+
+.toast-info,
+.toast.info {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+/* ============================================
+   ELEMENTOS DO TOAST
+   ============================================ */
+
+.toast-icon {
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.toast-message {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.toast-close:hover {
+  color: #fff;
+}
+
+.toast-warning .toast-close {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.toast-warning .toast-close:hover {
+  color: rgba(0, 0, 0, 0.8);
+}
+
+/* ============================================
+   ANIMAÇÕES
+   ============================================ */
+
+/* Animação de entrada pela direita */
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Animação de saída pela direita */
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+}
+
+/* Classes de animação */
+.toast-animate-in {
+  animation: toastSlideIn var(--transition-slow) ease forwards;
+}
+
+.toast-animate-out,
+.toast.toast-hide,
+.toast.hide {
+  animation: toastSlideOut var(--transition-slow) ease forwards;
+}
+
+/* ============================================
+   RESPONSIVO
+   ============================================ */
+
+@media (max-width: 480px) {
+  .toast-container {
+    left: 20px;
+    right: 20px;
+  }
+  
+  .toast {
+    left: 20px;
+    right: 20px;
+    max-width: none;
+  }
+}

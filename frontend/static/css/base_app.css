@@ -2,58 +2,33 @@
    BASE_APP.CSS - Estilos Globais Reutilizáveis
    ============================================
    
-   Extraído do recebimento.css original.
-   Contém: variáveis, reset, header, sidebar e layout.
+   Arquivo principal que importa todos os módulos CSS.
+   Contém também: header, sidebar e layout específico da aplicação.
    
    ============================================ */
 
-:root {
-  --femme-purple: #7a3d8a;
-  --femme-purple-soft: #f4e9f8;
-  --femme-green: #00bca4;
-  --femme-rose-soft: #ffb7c9;
+/* ============================================
+   IMPORTS - Módulos CSS Globais
+   ============================================ */
 
-  --femme-white: #ffffff;
-  --femme-gray-light: #f5f5f7;
-  --femme-gray: #77767c;
-  --femme-gray-dark: #34343a;
+@import url('./base/_variables.css');
+@import url('./base/_reset.css');
+@import url('./base/_typography.css');
+@import url('./components/_buttons.css');
+@import url('./components/_forms.css');
+@import url('./components/_alerts.css');
+@import url('./components/_toasts.css');
+@import url('./components/modals.css');
+@import url('./layout/_grid.css');
 
-  --radius-lg: 18px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-  --shadow-soft: 0 18px 40px rgba(20, 5, 36, 0.08);
-  --shadow-subtle: 0 10px 24px rgba(20, 5, 36, 0.05);
-
-  --max-width: 1280px;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* ============================================
+   BODY - Background específico da aplicação
+   ============================================ */
 
 body {
-  font-family: "Quicksand", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at top left, rgba(122, 61, 138, 0.08), transparent 55%),
     radial-gradient(circle at bottom right, rgba(0, 188, 164, 0.06), transparent 55%);
-  color: var(--femme-gray-dark);
-  line-height: 1.5;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: inherit;
 }
 
 .page {
@@ -486,18 +461,14 @@ header {
   color: var(--femme-gray);
 }
 
-.spinner {
+/* Spinner para notificações - tamanho maior */
+.notificacoes-loading .spinner {
   width: 40px;
   height: 40px;
   border: 3px solid var(--femme-purple-soft);
   border-top-color: var(--femme-purple);
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
   margin-bottom: 12px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* Lista de Notificações */

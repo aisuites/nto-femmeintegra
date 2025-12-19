@@ -366,19 +366,10 @@
   font-size: 14px;
 }
 
-/* Modal */
+/* Estilos de modal estão em modals.css */
+
+/* Override específico para tarefas kanban */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.6);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
   backdrop-filter: blur(4px);
 }
 
@@ -387,33 +378,7 @@
 }
 
 .modal-content {
-  background: white;
-  border-radius: 16px;
-  width: 100%;
   max-width: 560px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-  animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
 }
 
 .modal-header h2 {
@@ -423,92 +388,43 @@
   margin: 0;
 }
 
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: #f1f5f9;
-  border-radius: 8px;
-  font-size: 20px;
-  color: #64748b;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-  background: #e2e8f0;
-  color: #1e293b;
-}
-
-.modal-body {
-  padding: 24px;
-}
-
 .modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #e2e8f0;
   background: #f8fafc;
-  border-radius: 0 0 16px 16px;
 }
 
-/* Form */
-.form-group {
-  margin-bottom: 16px;
-}
+/* Estilos de form estão em _forms.css */
 
+/* Override específico para tarefas kanban */
 .form-group label {
-  display: block;
   font-size: 13px;
   font-weight: 600;
   color: #475569;
-  margin-bottom: 6px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 480px) {
-  .form-row {
-    grid-template-columns: 1fr;
-  }
 }
 
 .form-input,
 .form-select,
 .form-textarea {
-  width: 100%;
   padding: 10px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 14px;
   color: #1e293b;
-  transition: all 0.2s ease;
-  box-sizing: border-box;
 }
 
 .form-input:focus,
 .form-select:focus,
 .form-textarea:focus {
-  outline: none;
   border-color: var(--femme-green);
   box-shadow: 0 0 0 3px rgba(0, 188, 164, 0.1);
 }
 
 .form-textarea {
-  resize: vertical;
   min-height: 80px;
 }
 
-/* Botões */
+/* Estilos base de botões estão em _buttons.css */
+
+/* Botões específicos para tarefas kanban */
 .btn-cancelar {
   padding: 10px 20px;
   background: #f1f5f9;
@@ -535,7 +451,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 8px 20px rgba(0, 188, 164, 0.35);
+  box-shadow: var(--shadow-btn-primary);
 }
 
 .btn-salvar:hover {
@@ -558,7 +474,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 8px 20px rgba(122, 61, 138, 0.35);
+  box-shadow: var(--shadow-btn-purple);
 }
 
 .btn-editar:hover {
@@ -600,67 +516,20 @@
   font-weight: 500;
 }
 
-/* Toast */
+/* Estilos de toast estão em _toasts.css */
+
+/* Container específico para tarefas kanban */
 #toastContainer {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 9999;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.toast {
-  padding: 14px 20px;
-  border-radius: 10px;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  animation: toastSlideIn 0.3s ease;
-  max-width: 350px;
-}
-
-.toast.success {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-.toast.error {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-}
-
-.toast.warning {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.toast.hide {
-  animation: toastSlideOut 0.3s ease forwards;
-}
-
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(100px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes toastSlideOut {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(100px);
-  }
-}
-
-/* Loading */
+/* Loading spinner específico para tarefas */
 .loading-spinner {
   display: inline-block;
   width: 20px;
@@ -671,8 +540,4 @@
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* @keyframes spin está definido globalmente em _buttons.css */

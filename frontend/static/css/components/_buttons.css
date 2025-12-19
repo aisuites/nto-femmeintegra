@@ -1,0 +1,206 @@
+/**
+ * _BUTTONS.CSS - Estilos de Botões Globais
+ * 
+ * Define todos os estilos de botões utilizados no sistema FEMME.
+ * Inclui variantes: primary, outline, ghost, warning, danger.
+ */
+
+/* ============================================
+   BOTÃO BASE
+   ============================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   BOTÃO PRIMARY (Verde)
+   ============================================ */
+
+.btn-primary {
+  background: var(--femme-green);
+  color: var(--femme-white);
+  box-shadow: var(--shadow-btn-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #00a08c;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 188, 164, 0.4);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ============================================
+   BOTÃO OUTLINE (Roxo com borda)
+   ============================================ */
+
+.btn-outline {
+  background: transparent;
+  color: var(--femme-purple);
+  border: 1px solid rgba(122, 61, 138, 0.4);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: rgba(122, 61, 138, 0.08);
+  border-color: var(--femme-purple);
+}
+
+.btn-outline:active:not(:disabled) {
+  background: rgba(122, 61, 138, 0.12);
+}
+
+/* ============================================
+   BOTÃO GHOST (Transparente)
+   ============================================ */
+
+.btn-ghost {
+  background: transparent;
+  color: var(--femme-gray-dark);
+  border: none;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.btn-ghost:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================
+   BOTÃO WARNING (Laranja)
+   ============================================ */
+
+.btn-warning {
+  background: var(--femme-warning);
+  color: var(--femme-white);
+  box-shadow: var(--shadow-btn-warning);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: #e09a3e;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(240, 173, 78, 0.4);
+}
+
+.btn-warning:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ============================================
+   BOTÃO DANGER (Vermelho)
+   ============================================ */
+
+.btn-danger {
+  background: var(--femme-danger);
+  color: var(--femme-white);
+  box-shadow: var(--shadow-btn-danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b71c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(211, 47, 47, 0.4);
+}
+
+.btn-danger:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ============================================
+   BOTÃO PURPLE (Roxo sólido)
+   ============================================ */
+
+.btn-purple {
+  background: var(--femme-purple);
+  color: var(--femme-white);
+  box-shadow: var(--shadow-btn-purple);
+}
+
+.btn-purple:hover:not(:disabled) {
+  background: #6a3578;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(122, 61, 138, 0.4);
+}
+
+.btn-purple:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ============================================
+   TAMANHOS DE BOTÃO
+   ============================================ */
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+/* ============================================
+   BOTÃO COM ÍCONE
+   ============================================ */
+
+.btn-icon {
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.btn-icon.btn-sm {
+  padding: 6px;
+}
+
+.btn-icon.btn-lg {
+  padding: 12px;
+}
+
+/* ============================================
+   SPINNER EM BOTÕES
+   ============================================ */
+
+.btn .spinner {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.btn-outline .spinner {
+  border-color: rgba(122, 61, 138, 0.3);
+  border-top-color: var(--femme-purple);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

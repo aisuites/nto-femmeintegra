@@ -1,0 +1,80 @@
+/**
+ * _VARIABLES.CSS - Variáveis CSS Globais
+ * 
+ * Define todas as variáveis de cores, espaçamentos, bordas e sombras
+ * utilizadas em todo o sistema FEMME.
+ */
+
+:root {
+  /* ============================================
+     CORES PRINCIPAIS DA MARCA
+     ============================================ */
+  --femme-purple: #7a3d8a;
+  --femme-purple-soft: #f4e9f8;
+  --femme-green: #00bca4;
+  --femme-rose-soft: #ffb7c9;
+  --femme-white: #ffffff;
+  
+  /* ============================================
+     CORES DE CINZA
+     ============================================ */
+  --femme-gray-light: #f5f5f7;
+  --femme-gray: #77767c;
+  --femme-gray-dark: #34343a;
+  
+  /* ============================================
+     CORES SEMÂNTICAS
+     ============================================ */
+  --femme-danger: #d32f2f;
+  --femme-danger-soft: #fef2f2;
+  --femme-warning: #f0ad4e;
+  --femme-warning-soft: #fff3cd;
+  --femme-success: #10b981;
+  --femme-success-soft: #d4edda;
+  --femme-info: #1565c0;
+  --femme-info-soft: #e3f2fd;
+  
+  /* ============================================
+     BORDAS
+     ============================================ */
+  --femme-border: rgba(122, 61, 138, 0.18);
+  --femme-border-light: rgba(122, 61, 138, 0.1);
+  
+  /* ============================================
+     BORDER RADIUS
+     ============================================ */
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  
+  /* ============================================
+     SOMBRAS
+     ============================================ */
+  --shadow-soft: 0 18px 40px rgba(20, 5, 36, 0.08);
+  --shadow-subtle: 0 10px 24px rgba(20, 5, 36, 0.05);
+  --shadow-btn-primary: 0 8px 20px rgba(0, 188, 164, 0.35);
+  --shadow-btn-purple: 0 8px 20px rgba(122, 61, 138, 0.35);
+  --shadow-btn-warning: 0 8px 20px rgba(240, 173, 78, 0.35);
+  --shadow-btn-danger: 0 8px 20px rgba(211, 47, 47, 0.35);
+  
+  /* ============================================
+     LAYOUT
+     ============================================ */
+  --max-width: 1280px;
+  
+  /* ============================================
+     Z-INDEX
+     ============================================ */
+  --z-dropdown: 100;
+  --z-sticky: 500;
+  --z-modal: 9999;
+  --z-toast: 10000;
+  
+  /* ============================================
+     TRANSIÇÕES
+     ============================================ */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+}

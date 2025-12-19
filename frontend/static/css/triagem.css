@@ -19,95 +19,11 @@
   color: #b91c1c;
 }
 
-/* INPUTS E SELECTS */
-input[type="text"],
-input[type="date"],
-select {
-  border-radius: 999px;
-  border: 1px solid rgba(122, 61, 138, 0.18);
-  padding: 7px 10px;
-  font-size: 12px;
-  font-family: inherit;
-  background: #fff;
-  color: var(--femme-gray-dark);
-  outline: none;
-  transition: border 0.15s, box-shadow 0.15s;
-  width: 100%;
-}
+/* ESTILOS ESPECÍFICOS DE TRIAGEM PARA INPUTS */
+/* (Estilos base de input/select/btn estão em _forms.css e _buttons.css) */
 
-input:focus,
-select:focus {
-  border-color: var(--femme-purple);
-  box-shadow: 0 0 0 1px rgba(122, 61, 138, 0.2);
-}
-
-/* BOTÕES */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: 999px;
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
-  font-family: inherit;
-}
-
-.btn-primary {
-  background: var(--femme-green);
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(0, 188, 164, 0.35);
-}
-
-.btn-primary:hover {
-  background: #00a08c;
-  transform: translateY(-1px);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.btn-outline {
-  background: #fff;
-  color: var(--femme-purple);
-  border: 1px solid rgba(122, 61, 138, 0.4);
-}
-
-.btn-outline:hover {
-  background: var(--femme-purple-soft);
-}
-
-.btn-outline:disabled {
-  background: #e9ecef;
-  color: #6c757d;
-  border-color: #ced4da;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.btn-outline:disabled:hover {
-  background: #e9ecef;
-}
-
-/* MAIN CONTAINER */
-.main {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-/* CARD BASE */
+/* CARD BASE - Override para triagem */
 .card {
-  background: rgba(255, 255, 255, 0.96);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-subtle);
   padding: 18px;
 }
 
@@ -177,30 +93,20 @@ select:focus {
 }
 
 /* GRID DE CAMPOS */
+/* GRID DE CAMPOS - Override para triagem */
 .fields-grid-2col {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   font-size: 12px;
 }
 
 .field {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
   font-size: 12px;
 }
 
-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--femme-gray-dark);
-}
-
+/* INPUT READONLY - Override para triagem */
 input[readonly] {
   background: #f4f2f7;
   border-style: dashed;
-  color: var(--femme-gray);
 }
 
 /* SCANNER / UPLOAD */
@@ -672,11 +578,9 @@ input[readonly] {
   background: rgba(211, 47, 47, 0.1);
 }
 
-/* Divider */
+/* Divider - Override para triagem */
 .divider {
-  height: 1px;
   background: rgba(122, 61, 138, 0.1);
-  margin: 16px 0;
 }
 
 /* Amostras Section */
@@ -698,10 +602,7 @@ input[readonly] {
   margin: 0;
 }
 
-.btn-sm {
-  padding: 6px 12px;
-  font-size: 11px;
-}
+/* .btn-sm está definido globalmente em _buttons.css */
 
 /* Amostras Grid */
 .amostras-grid {
@@ -786,50 +687,11 @@ input[readonly] {
   cursor: not-allowed;
 }
 
-/* Button Danger */
-.btn-danger {
-  background: #d32f2f;
-  color: #fff;
-  border: none;
-}
+/* .btn-danger está definido globalmente em _buttons.css */
 
-.btn-danger:hover {
-  background: #c62828;
-}
+/* Estilos de modal estão definidos globalmente em modals.css */
 
-/* Modal Styles */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-.modal-content {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  max-width: 500px;
-  width: 90%;
-  overflow: hidden;
-}
-
-.modal-content.modal-sm {
-  max-width: 400px;
-}
-
-.modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eee;
-  position: relative;
-}
-
+/* Override específico para triagem */
 .modal-header h3 {
   margin: 0;
   font-size: 16px;
@@ -854,32 +716,10 @@ input[readonly] {
   color: #333;
 }
 
-.modal-body {
-  padding: 20px;
-}
-
 .modal-body p {
   margin: 0 0 8px 0;
   font-size: 14px;
   color: var(--femme-gray-dark);
-}
-
-.modal-body .text-muted {
-  color: var(--femme-gray);
-  font-size: 12px;
-}
-
-.modal-body .text-danger {
-  color: #d32f2f;
-  font-size: 12px;
-}
-
-.modal-footer {
-  padding: 16px 20px;
-  border-top: 1px solid #eee;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
 }
 
 /* DROPDOWN CUSTOMIZADO COM ALTURA LIMITADA */
@@ -988,11 +828,7 @@ input[readonly] {
   animation: spin 0.8s linear infinite;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
+/* @keyframes spin está definido globalmente em _buttons.css */
 
 .scanner-file-item .file-name a {
   color: #8e44ad;
@@ -1098,21 +934,9 @@ input[readonly] {
   color: var(--femme-purple-dark, #5a2d6a);
 }
 
-.btn-warning {
-  background: #f0ad4e;
-  color: #fff;
-  border: none;
-}
+/* .btn-warning está definido globalmente em _buttons.css */
 
-.btn-warning:hover {
-  background: #ec971f;
-}
-
-/* MODAL GRANDE */
-.modal-lg {
-  max-width: 800px;
-  width: 90%;
-}
+/* .modal-lg está definido globalmente em modals.css */
 
 /* VISUALIZAÇÃO DE ETAPA (SOMENTE LEITURA) */
 .etapa-visualizacao {
