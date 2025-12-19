@@ -308,7 +308,7 @@ textarea.is-valid:focus {
   cursor: pointer;
   padding: 8px 12px;
   border-radius: var(--radius-pill);
-  background: var(--femme-white);
+  /* background: var(--femme-white); */
   transition: all 0.15s ease;
   white-space: nowrap;
 }
