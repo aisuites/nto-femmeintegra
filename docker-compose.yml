@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: femme_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-femme_integra}
+      POSTGRES_USER: ${POSTGRES_USER:-femme_integra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-femme_integra_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-femme_integra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - femme_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: femme_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - femme_network
+
+  # Django Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: femme_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-femme_integra}:${POSTGRES_PASSWORD:-femme_integra_password}@db:5432/${POSTGRES_DB:-femme_integra}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-redis_password}@redis:6379/1
+    volumes:
+      - ./staticfiles:/app/staticfiles
+      - ./mediafiles:/app/mediafiles
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - femme_network
+
+  # Nginx Reverse Proxy (opcional, para produção)
+  nginx:
+    image: nginx:alpine
+    container_name: femme_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./staticfiles:/app/staticfiles:ro
+      - ./mediafiles:/app/mediafiles:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    networks:
+      - femme_network
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  femme_network:
+    driver: bridge

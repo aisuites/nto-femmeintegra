@@ -1,0 +1,67 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+/staticfiles/
+/mediafiles/
+local_settings.py
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+*.md
+docs/
+ANALISE_*.md
+BACKLOG.md
+CONFIGURACAO_AMBIENTE.md
+DEBUG_*.md
+DIAGNOSTICO_*.js
+GUIA_*.md
+PLANO_*.md
+README.md
+REGRAS_NEGOCIO.md
+SCANNER_CONFIG.md
+SECURITY*.md
+SIDEBAR_*.txt
+
+# Development
+dev/
+.env.bak*
+FEMME.postman_collection.json
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Deployment
+deploy/
