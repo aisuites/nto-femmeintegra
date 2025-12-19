@@ -492,6 +492,30 @@ async function validarMedico() {
   destinoMedico.value = '';
   medicoValidado = false;
   
+  // Zerar dados do médico no banco de dados também
+  if (requisicaoAtual) {
+    try {
+      await fetch('/operacao/triagem/salvar-medico/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken()
+        },
+        body: JSON.stringify({
+          requisicao_id: requisicaoAtual.id,
+          nome_medico: '',
+          endereco_medico: '',
+          destino_medico: '',
+          crm: '',
+          uf_crm: ''
+        })
+      });
+      console.log('[Cadastro] Dados do médico zerados no banco');
+    } catch (e) {
+      console.warn('[Cadastro] Erro ao zerar dados do médico no banco:', e);
+    }
+  }
+  
   try {
     // Usar API unificada que faz fallback automático
     const response = await fetch(`/operacao/triagem/validar-medico-completo/?crm=${encodeURIComponent(crm)}&uf_crm=${encodeURIComponent(uf)}`, {
