@@ -488,7 +488,7 @@ input[readonly] {
   padding: 8px 12px;
   border-radius: 999px;
   background: #fff;
-  border: 1px solid rgba(122, 61, 138, 0.15);
+  /*border: 1px solid rgba(122, 61, 138, 0.15);*/
   transition: all 0.15s ease;
 }
 
