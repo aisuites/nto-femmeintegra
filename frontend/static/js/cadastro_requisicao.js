@@ -672,6 +672,15 @@ async function registrarPendenciaMedico() {
       // Fechar modal de problema
       fecharModalProblemaMedico();
       
+      // Verificar se ModalEmail está disponível
+      console.log('[Cadastro] ModalEmail disponível?', typeof window.ModalEmail);
+      if (typeof window.ModalEmail === 'undefined') {
+        console.error('[Cadastro] ModalEmail não está carregado! Verifique se modal_email.js está incluído.');
+        mostrarToastSucesso(`✅ Pendência registrada! Requisição ${codReq} enviada para PENDÊNCIAS.`);
+        setTimeout(() => window.location.reload(), 2000);
+        return;
+      }
+      
       // Abrir modal de email usando componente global
       ModalEmail.abrir(
         problemaMedicoAtual.tipo, 
@@ -968,38 +977,6 @@ async function autorizarRequisicao() {
     btnAutorizar.disabled = false;
     btnAutorizar.textContent = 'AUTORIZAR';
   }
-}
-
-function mostrarToastSucesso(mensagem) {
-  const toast = document.createElement('div');
-  toast.className = 'toast-sucesso';
-  toast.innerHTML = `
-    <span class="toast-icon">✅</span>
-    <span class="toast-message">${mensagem}</span>
-  `;
-  toast.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: linear-gradient(135deg, #00bca4 0%, #00a08c 100%);
-    color: white;
-    padding: 16px 24px;
-    border-radius: 10px;
-    box-shadow: 0 8px 30px rgba(0, 188, 164, 0.4);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-weight: 600;
-    font-size: 14px;
-    z-index: 9999;
-    animation: slideIn 0.3s ease;
-  `;
-  document.body.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.animation = 'slideOut 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
 }
 
 // ============================================
