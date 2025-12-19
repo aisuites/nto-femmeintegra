@@ -2,69 +2,20 @@
    TRIAGEM.CSS - Estilos específicos da página de Triagem
    ============================================ */
 
-/* MENSAGEM DE ERRO DE LOCALIZAÇÃO */
-.erro-localizacao {
-  display: none;
-  margin-top: 10px;
-  padding: 12px 16px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  color: #dc2626;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.erro-localizacao strong {
-  color: #b91c1c;
-}
-
-/* ESTILOS ESPECÍFICOS DE TRIAGEM PARA INPUTS */
-/* (Estilos base de input/select/btn estão em _forms.css e _buttons.css) */
+/* ============================================
+   TRIAGEM.CSS - Estilos ESPECÍFICOS da página de Triagem
+   
+   Estilos globais estão em:
+   - _forms.css (inputs, checkboxes, upload)
+   - _buttons.css (botões)
+   - _alerts.css (alertas, erro-localizacao)
+   - _typography.css (section-kicker/title/subtitle, label-strong)
+   - _grid.css (barcode-section, step-header, step-badge, row)
+   ============================================ */
 
 /* CARD BASE - Override para triagem */
 .card {
   padding: 18px;
-}
-
-/* SEÇÃO DE BIPAGEM (CONTEÚDO FIXO, NÃO STICKY) */
-/* Removido o sticky - a seção permanece no fluxo normal da página */
-
-.barcode-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.section-kicker {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--femme-gray);
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--femme-purple);
-}
-
-.section-subtitle {
-  font-size: 12px;
-  color: var(--femme-gray);
-}
-
-.barcode-row {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.info-inline {
-  font-size: 11px;
-  color: var(--femme-gray);
 }
 
 /* ETAPA 1 */
@@ -75,24 +26,8 @@
   gap: 14px;
 }
 
-.step-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
+/* .step-header e .step-badge estão em _grid.css */
 
-.step-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--femme-purple-soft);
-  color: var(--femme-purple);
-  font-weight: 600;
-}
-
-/* GRID DE CAMPOS */
 /* GRID DE CAMPOS - Override para triagem */
 .fields-grid-2col {
   gap: 10px;
@@ -109,99 +44,9 @@ input[readonly] {
   border-style: dashed;
 }
 
-/* SCANNER / UPLOAD */
-.scanner-box {
-  border-radius: var(--radius-md);
-  background: var(--femme-gray-light);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+/* Scanner/Upload estão em _forms.css */
 
-.scanner-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.file-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid rgba(122, 61, 138, 0.18);
-}
-
-.file-remove {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  color: #d9534f;
-}
-
-.file-remove:hover {
-  color: #c9302c;
-}
-
-/* CHECKBOXES */
-.checkbox-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 12px;
-  margin-top: 6px;
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: #fff;
-}
-
-.checkbox-item input[type="checkbox"] {
-  accent-color: var(--femme-purple);
-  cursor: pointer;
-}
-
-/* NOVOS ESTILOS PARA CHECKBOXES INLINE */
-.checkbox-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: #fff;
-  border-radius: 999px;
-}
-
-.checkbox-item-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  width: fit-content;
-}
-
-.checkbox-item-inline input[type="checkbox"] {
-  accent-color: var(--femme-purple);
-  cursor: pointer;
-  margin: 0;
-  flex-shrink: 0;
-}
-
-.checkbox-item-inline span {
-  user-select: none;
-  line-height: 1.3;
-}
+/* Checkboxes estão em _forms.css */
 
 .inline-dropdown {
   margin-left: 8px;
@@ -212,14 +57,7 @@ input[readonly] {
   /*flex-shrink: 0;*/
 }
 
-/* AÇÕES */
-.step-actions {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  font-size: 12px;
-}
+/* .step-actions está em _grid.css */
 
 /* CONTADOR DE AMOSTRAS */
 .contador-amostras {
@@ -234,33 +72,7 @@ input[readonly] {
   align-items: flex-end;
 }
 
-/* ALERTA VISUAL */
-.alert {
-  display: none;
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
-  border-left: 4px solid #ffc107;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #856404;
-  align-items: center;
-  gap: 8px;
-}
-
-.alert--visible {
-  display: flex;
-}
-
-.alert strong {
-  font-size: 13px;
-}
-
-/* ÁREA DE ERRO FIXA ACIMA DOS BOTÕES */
-.alert-validacao {
-  margin-top: 16px;
-  margin-bottom: 12px;
-}
+/* Alertas estão em _alerts.css */
 
 /* CUSTOM MULTISELECT DROPDOWN COM CHECKBOXES */
 .multiselect-dropdown {
@@ -379,10 +191,7 @@ input[readonly] {
    ETAPA 2 - CONFERÊNCIA DE PENDÊNCIAS
    ============================================ */
 
-.step-badge-etapa2 {
-  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-  color: #2e7d32;
-}
+/* .step-badge-etapa2 está em _grid.css */
 
 .pendencias-header {
   margin-top: 8px;
@@ -450,10 +259,7 @@ input[readonly] {
    ETAPA 3 - CADASTRO
    ============================================ */
 
-.step-badge-etapa3 {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #1565c0;
-}
+/* .step-badge-etapa3 está em _grid.css */
 
 /* CPF Actions Row */
 .cpf-actions {
@@ -468,56 +274,9 @@ input[readonly] {
   flex: 0 0 180px;
 }
 
-/* Label Strong */
-.label-strong {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--femme-gray-dark);
-  display: block;
-  margin-bottom: 4px;
-}
-
-/* Check Inline */
-.check-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--femme-gray-dark);
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: #fff;
-  /*border: 1px solid rgba(122, 61, 138, 0.15);*/
-  transition: all 0.15s ease;
-}
-
-.check-inline:hover {
-  border-color: var(--femme-purple);
-  background: var(--femme-purple-soft);
-}
-
-.check-inline input[type="checkbox"] {
-  accent-color: var(--femme-purple);
-}
-
-/* Row Layouts */
-.row {
-  margin-bottom: 12px;
-}
-
-.row.two {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.row.three {
-  display: grid;
-  grid-template-columns: 1fr 120px 1fr;
-  gap: 12px;
-  align-items: flex-end;
-}
+/* .label-strong está em _typography.css */
+/* .check-inline está em _forms.css */
+/* .row layouts estão em _grid.css */
 
 .field-actions {
   display: flex;
@@ -525,63 +284,8 @@ input[readonly] {
   gap: 8px;
 }
 
-/* Upload Row */
-.upload-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.upload-row input[type="text"] {
-  flex: 1;
-}
-
-/* Uploaded Files List */
-.uploaded-files-list {
-  margin-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.uploaded-file-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: var(--femme-purple-soft);
-  border-radius: 6px;
-  font-size: 12px;
-}
-
-.uploaded-file-item a {
-  color: var(--femme-purple);
-  text-decoration: none;
-  flex: 1;
-}
-
-.uploaded-file-item a:hover {
-  text-decoration: underline;
-}
-
-.uploaded-file-item .btn-remove-file {
-  background: none;
-  border: none;
-  color: #d32f2f;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.uploaded-file-item .btn-remove-file:hover {
-  background: rgba(211, 47, 47, 0.1);
-}
-
-/* Divider - Override para triagem */
-.divider {
-  background: rgba(122, 61, 138, 0.1);
-}
+/* Upload row e uploaded-files-list estão em _forms.css */
+/* .divider está em _grid.css */
 
 /* Amostras Section */
 .amostras-section {

@@ -244,3 +244,36 @@
 .status-dot-gray {
   background: var(--femme-gray);
 }
+
+/* ============================================
+   ERRO DE LOCALIZAÇÃO
+   ============================================ */
+
+.erro-localizacao {
+  display: none;
+  margin-top: 10px;
+  padding: 12px 16px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.erro-localizacao strong {
+  color: #b91c1c;
+}
+
+/* ============================================
+   ALERTA INLINE (Estilo legado)
+   ============================================ */
+
+.alert--visible {
+  display: flex;
+}
+
+.alert-validacao {
+  margin-top: 16px;
+  margin-bottom: 12px;
+}

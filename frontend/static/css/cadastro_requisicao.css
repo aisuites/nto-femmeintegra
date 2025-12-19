@@ -1,26 +1,13 @@
 /* ============================================
-   CADASTRO_REQUISICAO.CSS - Estilos específicos da página de Cadastro
-   Segue o padrão visual da página de Triagem
+   CADASTRO_REQUISICAO.CSS - Estilos ESPECÍFICOS da página de Cadastro
+   
+   Estilos globais estão em:
+   - _forms.css (inputs, checkboxes, upload)
+   - _buttons.css (botões)
+   - _alerts.css (alertas, erro-localizacao)
+   - _typography.css (section-kicker/title/subtitle, label-strong)
+   - _grid.css (barcode-section, step-header, step-badge, row)
    ============================================ */
-
-/* MENSAGEM DE ERRO DE LOCALIZAÇÃO */
-.erro-localizacao {
-  display: none;
-  margin-top: 10px;
-  padding: 12px 16px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 8px;
-  color: #dc2626;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.erro-localizacao strong {
-  color: #b91c1c;
-}
-
-/* Estilos base de input/select/btn estão em _forms.css e _buttons.css */
 
 /* BOTÕES ESPECÍFICOS */
 .btn-muted {
@@ -64,43 +51,7 @@
   padding: 18px;
 }
 
-/* SEÇÃO DE BIPAGEM */
-.barcode-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.section-kicker {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--femme-gray);
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--femme-purple);
-}
-
-.section-subtitle {
-  font-size: 12px;
-  color: var(--femme-gray);
-}
-
-.barcode-row {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.info-inline {
-  font-size: 11px;
-  color: var(--femme-gray);
-}
+/* barcode-section, section-kicker/title/subtitle, barcode-row, info-inline estão em _grid.css e _typography.css */
 
 /* CADASTRO STEP */
 .cadastro-step {
@@ -110,27 +61,7 @@
   gap: 14px;
 }
 
-.step-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.step-badge {
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--femme-purple-soft);
-  color: var(--femme-purple);
-  font-weight: 600;
-}
-
-.step-badge-cadastro {
-  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-  color: #1565c0;
-}
+/* .step-header, .step-badge, .step-badge-cadastro estão em _grid.css */
 
 /* UNIDADE EM DESTAQUE */
 .unidade-destaque {
@@ -155,13 +86,7 @@
   color: var(--femme-purple);
 }
 
-/* SECTION TITLE SMALL */
-.section-title-sm {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--femme-purple);
-  margin-bottom: 8px;
-}
+/* .section-title-sm está em _typography.css */
 
 /* GRID DE CAMPOS - Override para cadastro */
 .fields-grid-2col {
@@ -179,112 +104,7 @@ input[readonly] {
   border-style: dashed;
 }
 
-/* SCANNER / UPLOAD */
-.scanner-box {
-  border-radius: var(--radius-md);
-  background: var(--femme-gray-light);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.scanner-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.file-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid rgba(122, 61, 138, 0.18);
-}
-
-.file-remove {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 13px;
-  color: #d9534f;
-}
-
-.file-remove:hover {
-  color: #c9302c;
-}
-
-/* CHECKBOXES */
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: #fff;
-}
-
-.checkbox-item input[type="checkbox"] {
-  accent-color: var(--femme-purple);
-  cursor: pointer;
-}
-
-/* AÇÕES */
-.step-actions {
-  margin-top: 10px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  font-size: 12px;
-}
-
-/* ALERTA VISUAL */
-.alert {
-  display: none;
-  margin-top: 8px;
-  padding: 10px 12px;
-  background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
-  border-left: 4px solid #ffc107;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #856404;
-  align-items: center;
-  gap: 8px;
-}
-
-.alert--visible {
-  display: flex;
-}
-
-.alert strong {
-  font-size: 13px;
-}
-
-.alert-validacao {
-  margin-top: 16px;
-  margin-bottom: 12px;
-}
-
-/* ============================================
-   FORM BOX - Container cinza para grupos de campos
-   ============================================ */
-.form-box {
-  background-color: #f1f1f1;
-  padding: 20px;
-  border-radius: 15px;
-  margin-bottom: 12px;
-}
-
-/* Campo que ocupa toda a largura */
-.field-full {
-  width: 100%;
-  margin-bottom: 12px;
-}
+/* Scanner/Upload, checkboxes, step-actions, alertas, form-box, field-full estão nos módulos globais */
 
 /* ============================================
    FORM ROW - Layouts de grid para campos
@@ -369,39 +189,8 @@ input[readonly] {
   flex: 0 0 280px;
 }
 
-/* ============================================
-   LABEL E CHECK
-   ============================================ */
-.label-strong {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--femme-gray-dark);
-  display: block;
-  margin-bottom: 4px;
-}
-
-.check-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--femme-gray-dark);
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 999px;
-  /*background: #fff;*/
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-
-.check-inline:hover {
-  border-color: var(--femme-purple);
-  background: var(--femme-purple-soft);
-}
-
-.check-inline input[type="checkbox"] {
-  accent-color: var(--femme-purple);
-}
+/* .label-strong está em _typography.css */
+/* .check-inline está em _forms.css */
 
 .check-a-confirmar {
   margin-bottom: 0;
@@ -410,35 +199,10 @@ input[readonly] {
   align-items: center;
 }
 
-/* ============================================
-   LEGACY ROW (manter compatibilidade)
-   ============================================ */
-.row {
-  margin-bottom: 12px;
-}
-
-.row.two {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.row.three {
-  display: grid;
-  grid-template-columns: 1fr 120px 1fr;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.row.four {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
+/* .row layouts estão em _grid.css */
 
 /* Divider - Override para cadastro */
 .divider {
-  background: rgba(122, 61, 138, 0.1);
   margin: 5px 0;
 }
 

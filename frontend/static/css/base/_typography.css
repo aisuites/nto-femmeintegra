@@ -125,3 +125,44 @@ small,
 .font-bold {
   font-weight: 700;
 }
+
+/* ============================================
+   LABEL STRONG (Label com destaque)
+   ============================================ */
+
+.label-strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--femme-gray-dark);
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ============================================
+   SECTION HEADERS
+   ============================================ */
+
+.section-kicker {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--femme-gray);
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--femme-purple);
+}
+
+.section-title-sm {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--femme-purple);
+  margin-bottom: 8px;
+}
+
+.section-subtitle {
+  font-size: 12px;
+  color: var(--femme-gray);
+}
