@@ -210,7 +210,7 @@
   display: inline-block;
   vertical-align: middle;
   position: relative;
-  top: -1px;
+  margin-bottom: 0px;
   
   /* Espaçamento quando dentro de botão com texto */
   margin-right: 6px;
