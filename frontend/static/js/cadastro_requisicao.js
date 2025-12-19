@@ -69,25 +69,11 @@ const alertMedicoMessage = document.getElementById('cadastro_alert_medico_messag
 const alertGeral = document.getElementById('cadastro_alert_geral');
 const alertGeralMessage = document.getElementById('cadastro_alert_geral_message');
 
-// Modal de Email
-const modalEmailOverlay = document.getElementById('modal-email-overlay');
-const modalEmailTitulo = document.getElementById('modal-email-titulo');
-const emailDestinatarios = document.getElementById('email-destinatarios');
-const emailAssunto = document.getElementById('email-assunto');
-const emailCorpo = document.getElementById('email-corpo');
-const modalEmailAlert = document.getElementById('modal-email-alert');
-const modalEmailAlertMessage = document.getElementById('modal-email-alert-message');
-const btnFecharModalEmail = document.getElementById('btn-fechar-modal-email');
-const btnCancelarEmail = document.getElementById('btn-cancelar-email');
-const btnEnviarEmail = document.getElementById('btn-enviar-email');
-
 // Estado
 let requisicaoAtual = null;
 let examesSelecionados = [];
 let arquivosParaUpload = [];
 let medicoValidado = false;
-let emailTipo = '';
-let emailResposta = '';
 let pendenciaRegistrada = null; // Guarda dados da pendência após registro
 
 // ============================================
@@ -686,10 +672,27 @@ async function registrarPendenciaMedico() {
       // Fechar modal de problema
       fecharModalProblemaMedico();
       
-      // Abrir modal de email para preview/edição antes de enviar
-      abrirModalEmail(
+      // Abrir modal de email usando componente global
+      ModalEmail.abrir(
         problemaMedicoAtual.tipo, 
-        `Notificar: ${tipoPendencia}`
+        `Notificar: ${tipoPendencia}`,
+        pendenciaRegistrada,
+        {
+          onEnviado: (resposta) => {
+            // Email enviado com sucesso
+            let mensagem = `✅ Pendência registrada e email enviado! Requisição ${codReq} enviada para PENDÊNCIAS.`;
+            if (resposta.tarefa_criada) {
+              mensagem += ` Tarefa ${resposta.tarefa_criada.codigo} criada.`;
+            }
+            mostrarToastSucesso(mensagem);
+            setTimeout(() => window.location.reload(), 2000);
+          },
+          onCancelado: () => {
+            // Email não enviado, mas pendência já foi registrada
+            mostrarToastSucesso(`✅ Pendência registrada! Requisição ${codReq} enviada para PENDÊNCIAS. (Email não enviado)`);
+            setTimeout(() => window.location.reload(), 2000);
+          }
+        }
       );
       
     } else {
@@ -701,211 +704,6 @@ async function registrarPendenciaMedico() {
   } finally {
     btnRegistrar.disabled = false;
     btnRegistrar.innerHTML = '📋 Registrar Pendência';
-  }
-}
-
-// ============================================
-// FUNÇÕES DO MODAL DE EMAIL
-// ============================================
-
-async function abrirModalEmail(tipo, titulo) {
-  console.log('[Cadastro] Abrindo modal de email:', tipo);
-  
-  emailTipo = tipo;
-  
-  // Atualizar título do modal
-  if (modalEmailTitulo) {
-    modalEmailTitulo.textContent = titulo || 'Enviar Email';
-  }
-  
-  // Buscar template do backend (usando mesma API do cadastro_protocolo)
-  try {
-    const params = new URLSearchParams({
-      tipo: tipo,
-      crm: pendenciaRegistrada?.crm || '',
-      uf: pendenciaRegistrada?.uf_crm || '',
-      medicos: '[]'
-    });
-    
-    const response = await fetch(`/operacao/protocolo/email-template/?${params.toString()}`, {
-      method: 'GET',
-      credentials: 'same-origin',
-      headers: {
-        'X-CSRFToken': getCsrfToken(),
-      },
-    });
-    
-    const data = await response.json();
-    
-    if (data.status === 'success' && data.template) {
-      // Preencher campos do modal com template
-      emailDestinatarios.value = data.template.destinatarios?.join(', ') || '';
-      emailAssunto.value = data.template.assunto || '';
-      emailCorpo.value = data.template.corpo || '';
-      emailResposta = data.template.email_resposta || '';
-    } else {
-      // Template não configurado - usar valores padrão
-      console.warn('[Cadastro] Template não encontrado:', data.message);
-      preencherEmailPadrao(tipo);
-    }
-    
-  } catch (error) {
-    console.error('[Cadastro] Erro ao buscar template:', error);
-    preencherEmailPadrao(tipo);
-  }
-  
-  // Esconder alerta do modal
-  hideModalEmailAlert();
-  
-  // Mostrar modal
-  modalEmailOverlay.style.display = 'flex';
-}
-
-function preencherEmailPadrao(tipo) {
-  emailResposta = '';
-  emailDestinatarios.value = '';
-  
-  const crm = pendenciaRegistrada?.crm || '';
-  const uf = pendenciaRegistrada?.uf_crm || '';
-  const nomeMed = pendenciaRegistrada?.nome_medico || 'Não informado';
-  const codReq = pendenciaRegistrada?.cod_req || '';
-  
-  if (tipo === 'medico_sem_destino') {
-    emailAssunto.value = `[FEMME Integra] Médico Sem Destino - CRM ${crm}/${uf}`;
-    emailCorpo.value = `Prezados,
-
-Foi identificado um problema no cadastro de médico:
-
-CRM: ${crm}
-UF: ${uf}
-Nome: ${nomeMed}
-Requisição: ${codReq}
-
-O médico existe na base, porém não possui destino de entrega configurado.
-
-Por favor, verifiquem e configurem o destino do médico.
-
-Atenciosamente.`;
-  } else {
-    emailAssunto.value = `[FEMME Integra] Médico Não Encontrado - CRM ${crm}/${uf}`;
-    emailCorpo.value = `Prezados,
-
-Foi identificado um problema no cadastro de médico:
-
-CRM: ${crm}
-UF: ${uf}
-Requisição: ${codReq}
-
-O médico não foi encontrado na base de dados.
-
-Por favor, verifiquem se o médico precisa ser cadastrado ou se os dados estão corretos.
-
-Atenciosamente.`;
-  }
-}
-
-function fecharModalEmail() {
-  modalEmailOverlay.style.display = 'none';
-  hideModalEmailAlert();
-}
-
-function fecharModalEmailERecarregar() {
-  fecharModalEmail();
-  // Mostrar toast informando que pendência foi registrada mas email não foi enviado
-  mostrarToastSucesso(`✅ Pendência registrada! Requisição enviada para PENDÊNCIAS. (Email não enviado)`);
-  // Recarregar página após 2 segundos
-  setTimeout(() => {
-    window.location.reload();
-  }, 2000);
-}
-
-async function enviarEmail() {
-  const destinatarios = emailDestinatarios.value.trim();
-  const assunto = emailAssunto.value.trim();
-  const corpo = emailCorpo.value.trim();
-  
-  // Validações
-  if (!destinatarios) {
-    showModalEmailAlert('Informe pelo menos um destinatário.');
-    return;
-  }
-  
-  if (!assunto) {
-    showModalEmailAlert('Informe o assunto do email.');
-    return;
-  }
-  
-  if (!corpo) {
-    showModalEmailAlert('Informe o corpo do email.');
-    return;
-  }
-  
-  // Desabilitar botão
-  btnEnviarEmail.disabled = true;
-  btnEnviarEmail.innerHTML = '<span class="spinner"></span> Enviando...';
-  
-  try {
-    const response = await fetch('/operacao/protocolo/enviar-email/', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': getCsrfToken(),
-      },
-      body: JSON.stringify({
-        tipo: emailTipo,
-        destinatarios: destinatarios.split(',').map(e => e.trim()),
-        assunto: assunto,
-        corpo: corpo,
-        crm: pendenciaRegistrada?.crm || '',
-        uf: pendenciaRegistrada?.uf_crm || '',
-        reply_to: emailResposta || ''
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.status === 'success') {
-      console.log('[Cadastro] Email enviado com sucesso');
-      
-      // Fechar modal
-      fecharModalEmail();
-      
-      // Mostrar toast de sucesso
-      let mensagem = `✅ Pendência registrada e email enviado com sucesso! Requisição ${pendenciaRegistrada?.cod_req} enviada para PENDÊNCIAS.`;
-      if (data.tarefa_criada) {
-        mensagem += ` Tarefa ${data.tarefa_criada.codigo} criada.`;
-      }
-      mostrarToastSucesso(mensagem);
-      
-      // Recarregar página após 2 segundos
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-      
-    } else {
-      showModalEmailAlert(data.message || 'Erro ao enviar email.');
-    }
-    
-  } catch (error) {
-    console.error('[Cadastro] Erro ao enviar email:', error);
-    showModalEmailAlert('Erro de conexão ao enviar email.');
-  } finally {
-    btnEnviarEmail.disabled = false;
-    btnEnviarEmail.innerHTML = 'Enviar Email';
-  }
-}
-
-function showModalEmailAlert(message) {
-  if (modalEmailAlert && modalEmailAlertMessage) {
-    modalEmailAlertMessage.textContent = message;
-    modalEmailAlert.style.display = 'block';
-  }
-}
-
-function hideModalEmailAlert() {
-  if (modalEmailAlert) {
-    modalEmailAlert.style.display = 'none';
   }
 }
 
@@ -1354,11 +1152,6 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-fechar-modal-medico')?.addEventListener('click', fecharModalProblemaMedico);
   document.getElementById('btn-cancelar-modal-medico')?.addEventListener('click', fecharModalProblemaMedico);
   document.getElementById('btn-registrar-pendencia-medico')?.addEventListener('click', registrarPendenciaMedico);
-  
-  // Modal de email
-  btnFecharModalEmail?.addEventListener('click', fecharModalEmail);
-  btnCancelarEmail?.addEventListener('click', fecharModalEmailERecarregar);
-  btnEnviarEmail?.addEventListener('click', enviarEmail);
   
   // Cancelar
   btnCancelar.addEventListener('click', () => {
