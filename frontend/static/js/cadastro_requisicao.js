@@ -180,6 +180,37 @@ function mostrarAlerta(elemento, mensagemElemento, mensagem, tipo = 'error') {
   }, 4000);
 }
 
+/**
+ * Mostra toast de sucesso verde no canto superior direito
+ */
+function mostrarToastSucesso(mensagem) {
+  // Remover toast anterior se existir
+  const toastAnterior = document.getElementById('toast-sucesso');
+  if (toastAnterior) {
+    toastAnterior.remove();
+  }
+  
+  // Criar toast
+  const toast = document.createElement('div');
+  toast.id = 'toast-sucesso';
+  toast.className = 'toast toast-success';
+  toast.innerHTML = `
+    <span class="toast-message">${mensagem}</span>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+  `;
+  
+  document.body.appendChild(toast);
+  
+  // Animar entrada
+  setTimeout(() => toast.classList.add('toast-visible'), 10);
+  
+  // Auto-remover após 5 segundos
+  setTimeout(() => {
+    toast.classList.remove('toast-visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 5000);
+}
+
 function ocultarAlerta(elemento) {
   elemento.classList.remove('alert--visible');
   // Limpar timeout se existir
@@ -620,32 +651,22 @@ async function registrarPendenciaMedico() {
     console.log('[Cadastro] Resposta registro pendência:', data);
     
     if (data.status === 'success') {
-      fecharModalProblemaMedico();
-      
-      // Determinar tipo de problema para mensagem
+      // Salvar dados antes de fechar modal (que seta problemaMedicoAtual = null)
       const tipoPendencia = problemaMedicoAtual.tipo === 'medico_sem_destino' 
         ? 'MÉDICO SEM DESTINO' 
         : 'MÉDICO NÃO CADASTRADO';
+      const codReq = requisicaoAtual.cod_req;
       
-      // Mostrar mensagem informando que virou PENDÊNCIA
-      let msgExtra = '';
-      if (data.email_enviado) msgExtra += ' Email enviado ao setor de cadastro.';
-      if (data.tarefa_criada) msgExtra += ' Tarefa criada.';
+      // Fechar modal
+      fecharModalProblemaMedico();
       
-      // Mostrar alerta de sucesso com informação clara
-      mostrarAlerta(alertMedico, alertMedicoMessage, 
-        `⚠️ Pendência "${tipoPendencia}" registrada. Requisição enviada para PENDÊNCIAS.${msgExtra}`, 
-        'warning'
-      );
+      // Mostrar toast de sucesso verde
+      mostrarToastSucesso(`✅ Pendência "${tipoPendencia}" registrada com sucesso! Requisição ${codReq} enviada para PENDÊNCIAS.`);
       
-      // Limpar formulário e ocultar container - requisição virou PENDÊNCIA
+      // Recarregar página após 2 segundos para bloquear edição
       setTimeout(() => {
-        alert(`Requisição ${requisicaoAtual.cod_req} foi enviada para PENDÊNCIAS.\n\nMotivo: ${tipoPendencia}\n\nA requisição não pode continuar o fluxo normal até que a pendência seja resolvida.`);
-        limparFormulario();
-        cadastroContainer.style.display = 'none';
-        inputCodBarras.value = '';
-        inputCodBarras.focus();
-      }, 500);
+        window.location.reload();
+      }, 2000);
       
     } else {
       mostrarAlerta(alertMedico, alertMedicoMessage, data.message || 'Erro ao registrar pendência.', 'error');
