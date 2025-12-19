@@ -136,9 +136,11 @@ select:focus {
 
 /* SPINNER */
 .spinner {
-  display: inline-block;
+  display: block;
   width: 14px;
   height: 14px;
+  min-width: 14px;
+  min-height: 14px;
   border: 2px solid rgba(122, 61, 138, 0.3);
   border-radius: 50%;
   border-top-color: var(--femme-purple);
@@ -151,6 +153,11 @@ select:focus {
 .btn-danger .spinner {
   border-color: rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
+}
+
+.btn-outline .spinner {
+  border-color: rgba(122, 61, 138, 0.3);
+  border-top-color: var(--femme-purple);
 }
 
 @keyframes spin {

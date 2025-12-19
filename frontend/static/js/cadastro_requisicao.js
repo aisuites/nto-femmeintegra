@@ -79,15 +79,26 @@ let medicoValidado = false;
 // FUNÇÕES UTILITÁRIAS
 // ============================================
 
-function getCookie(name) {
+function getCsrfToken() {
+  // Primeiro tenta pegar do input hidden gerado pelo {% csrf_token %}
+  const csrfInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+  if (csrfInput) {
+    return csrfInput.value;
+  }
+  // Fallback: tenta pegar do cookie
   const cookieValue = document.cookie
     .split('; ')
-    .find(row => row.startsWith(name + '='))
+    .find(row => row.startsWith('csrftoken='))
     ?.split('=')[1];
-  return cookieValue;
+  return cookieValue || '';
 }
 
-const csrfToken = getCookie('csrftoken');
+// Obter CSRF token após DOM carregado
+let csrfToken = '';
+document.addEventListener('DOMContentLoaded', () => {
+  csrfToken = getCsrfToken();
+  console.log('[Cadastro] CSRF Token obtido:', csrfToken ? 'OK' : 'FALHOU');
+});
 
 function formatarCPF(cpf) {
   if (!cpf) return '';
@@ -579,12 +590,15 @@ async function registrarPendenciaMedico() {
   btnRegistrar.innerHTML = '<span class="spinner"></span> Registrando...';
   
   try {
+    const token = getCsrfToken();
+    console.log('[Cadastro] Usando CSRF Token para pendência:', token ? token.substring(0, 10) + '...' : 'VAZIO');
+    
     const response = await fetch('/operacao/triagem/registrar-pendencia-medico/', {
       method: 'POST',
       credentials: 'same-origin',
       headers: {
         'Content-Type': 'application/json',
-        'X-CSRFToken': csrfToken,
+        'X-CSRFToken': token,
       },
       body: JSON.stringify({
         requisicao_id: requisicaoAtual.id,
