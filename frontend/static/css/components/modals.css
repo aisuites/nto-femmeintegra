@@ -16,11 +16,18 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  display: flex;
+  display: none; /* Oculto por padrão */
   align-items: center;
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+}
+
+/* Mostrar modal quando ativo */
+.modal-overlay.active,
+.modal-overlay[style*="display: flex"],
+.modal-overlay[style*="display:flex"] {
+  display: flex;
 }
 
 /* ============================================
