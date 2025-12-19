@@ -206,10 +206,11 @@
   /* Animação */
   animation: spin 0.8s linear infinite;
   
-  /* Flexbox compatibility - importante para botões */
-  display: inline-flex;
-  flex-shrink: 0;
-  align-self: center;
+  /* Display e alinhamento */
+  display: inline-block;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
   
   /* Espaçamento quando dentro de botão com texto */
   margin-right: 6px;
