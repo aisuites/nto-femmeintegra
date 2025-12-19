@@ -46,64 +46,7 @@
   padding-bottom: 2px;
 }
 
-/* Custom dropdown para UF */
-.custom-dropdown-wrapper {
-  position: relative;
-}
-
-.custom-dropdown-wrapper input {
-  padding-right: 30px;
-}
-
-.custom-dropdown-wrapper::after {
-  content: '';
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 6px solid #666;
-  pointer-events: none;
-}
-
-.custom-dropdown-list {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  max-height: 200px;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid var(--femme-border);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  z-index: 100;
-  display: none;
-}
-
-.custom-dropdown-wrapper.open .custom-dropdown-list {
-  display: block;
-}
-
-.custom-dropdown-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 13px;
-  transition: background 0.15s;
-}
-
-.custom-dropdown-item:hover {
-  background: rgba(122, 61, 138, 0.08);
-}
-
-.custom-dropdown-item.selected {
-  background: rgba(122, 61, 138, 0.12);
-  font-weight: 600;
-  color: var(--femme-purple);
-}
+/* Custom dropdown - estilos globais em _forms.css */
 
 /* Scanner box / Upload box */
 .scanner-box {

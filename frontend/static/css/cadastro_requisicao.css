@@ -206,46 +206,7 @@ input[readonly] {
   margin: 5px 0;
 }
 
-/* Custom Dropdown (UF-CRM) */
-.custom-dropdown-wrapper {
-  position: relative;
-}
-
-.custom-dropdown-list {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  max-height: 200px;
-  overflow-y: auto;
-  background: #fff;
-  border: 1px solid rgba(122, 61, 138, 0.3);
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.custom-dropdown-wrapper.open .custom-dropdown-list {
-  display: block;
-}
-
-.custom-dropdown-wrapper.open input {
-  border-radius: 999px 999px 0 0;
-}
-
-.custom-dropdown-item {
-  padding: 8px 12px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: background 0.15s;
-}
-
-.custom-dropdown-item:hover {
-  background: var(--femme-purple-soft);
-  color: var(--femme-purple);
-}
+/* Custom Dropdown - estilos globais em _forms.css */
 
 /* EXAMES ACTIONS */
 .exames-actions {
