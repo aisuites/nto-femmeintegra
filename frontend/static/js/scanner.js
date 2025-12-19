@@ -806,26 +806,16 @@ const DynamosoftScanner = (function() {
      * Inicializa o módulo do scanner
      * @param {string} license - Chave de licença do Dynamsoft
      * @param {boolean} debug - Habilitar logs de debug
-     * @param {boolean} preload - Pré-carregar scripts (default: true)
      */
-    init: function(license, debug = false, preload = true) {
+    init: function(license, debug = false) {
       CONFIG.license = license;
       CONFIG.debug = debug;
       
       log('Scanner inicializado', {
         license: license ? license.substring(0, 30) + '...' : 'VAZIA',
-        debug: debug,
-        preload: preload
+        debug: debug
       });
-      
-      // Pré-carregar scripts em background após um pequeno delay
-      // para não bloquear o carregamento inicial da página
-      if (preload) {
-        setTimeout(() => {
-          log('Pré-carregando scripts do scanner...');
-          inicializarScanner();
-        }, 2000); // Aguarda 2s após init para não competir com carregamento da página
-      }
+      // Scripts serão carregados apenas quando o modal for aberto
     },
     
     /**
