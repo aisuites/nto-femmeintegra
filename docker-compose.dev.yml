@@ -1,0 +1,18 @@
+# Docker Compose override para DESENVOLVIMENTO
+# Uso: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+#
+# Este arquivo adiciona bind mounts do código fonte para facilitar desenvolvimento
+# NUNCA use em produção!
+
+services:
+  web:
+    volumes:
+      # Bind mounts do código fonte (read-only para evitar acidentes)
+      - ./frontend:/app/frontend:ro
+      - ./backend:/app/backend:ro
+      # Volumes nomeados continuam (staticfiles e media)
+      - staticfiles_data:/app/frontend/staticfiles
+      - mediafiles_data:/app/frontend/media
+    environment:
+      # Força DEBUG=True em desenvolvimento
+      - DJANGO_DEBUG=true
