@@ -17,25 +17,40 @@ while ! nc -z redis 6379; do
 done
 echo "✅ Redis is ready!"
 
+# Garantir permissões nos volumes (static/media) para o usuário da aplicação
+echo "🔐 Fixing permissions..."
+mkdir -p /app/frontend/staticfiles /app/frontend/media
+chown -R appuser:appuser /app/frontend/staticfiles /app/frontend/media
+
 # Executar migrações
 echo "🔄 Running database migrations..."
-python manage.py migrate --noinput
+gosu appuser python backend/manage.py migrate --noinput
 
 # Coletar arquivos estáticos
 echo "📦 Collecting static files..."
-python manage.py collectstatic --noinput --clear
+gosu appuser python backend/manage.py collectstatic --noinput --clear
 
 # Criar superusuário se não existir (apenas em dev)
 if [ "$DJANGO_DEBUG" = "true" ]; then
   echo "👤 Creating superuser if needed..."
-  python manage.py shell << END
+  
+  # Usar variáveis de ambiente ou valores padrão
+  ADMIN_USER=${DJANGO_ADMIN_USER:-nto}
+  ADMIN_EMAIL=${DJANGO_ADMIN_EMAIL:-admin@femme.com.br}
+  ADMIN_PASSWORD=${DJANGO_ADMIN_PASSWORD:-nto#2025}
+  
+  gosu appuser python backend/manage.py shell << END
 from django.contrib.auth import get_user_model
+import os
 User = get_user_model()
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@femme.com.br', 'admin123')
-    print('✅ Superuser created: admin/admin123')
+admin_user = os.environ.get('DJANGO_ADMIN_USER', 'nto')
+admin_email = os.environ.get('DJANGO_ADMIN_EMAIL', 'admin@femme.com.br')
+admin_password = os.environ.get('DJANGO_ADMIN_PASSWORD', 'nto#2025')
+if not User.objects.filter(username=admin_user).exists():
+    User.objects.create_superuser(admin_user, admin_email, admin_password)
+    print(f'✅ Superuser created: {admin_user}')
 else:
-    print('ℹ️  Superuser already exists')
+    print(f'ℹ️  Superuser {admin_user} already exists')
 END
 fi
 
@@ -43,4 +58,4 @@ echo "✅ FEMME Integra is ready!"
 echo "🌐 Starting application..."
 
 # Executar comando passado como argumento
-exec "$@"
+exec gosu appuser "$@"

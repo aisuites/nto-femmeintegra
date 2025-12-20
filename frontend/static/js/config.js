@@ -54,8 +54,8 @@ const AppConfig = (function() {
     },
     prod: {
       name: 'Produção',
-      apiBaseUrl: 'https://api.femme.com.br',  // TODO: Ajustar quando tiver domínio prod
-      awsSignedUrlApi: 'https://a5xel8q8ld.execute-api.us-east-1.amazonaws.com/prod/signed-url',  // TODO: Ajustar para prod
+      apiBaseUrl: 'https://nto-femmeintegra.aisuites.com.br',
+      awsSignedUrlApi: 'https://a5xel8q8ld.execute-api.us-east-1.amazonaws.com/prod/signed-url',
       cloudfrontUrl: 'https://d62ucrzqdbxhj.cloudfront.net',
       debug: false,
     }

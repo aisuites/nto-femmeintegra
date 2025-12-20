@@ -46,7 +46,8 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Security settings
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # SECURE_SSL_REDIRECT disabled - Traefik handles TLS termination
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
@@ -83,6 +84,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'femme_integra.middleware.DevelopmentCacheMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -198,6 +201,21 @@ STATICFILES_DIRS = [
     PROJECT_ROOT / 'frontend' / 'static',
 ]
 STATIC_ROOT = PROJECT_ROOT / 'frontend' / 'staticfiles'
+
+# WhiteNoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# WhiteNoise: Cache otimizado por ambiente
+if DEBUG:
+    # Cache de 60s em desenvolvimento (navegação rápida, mudanças visíveis com Ctrl+F5)
+    WHITENOISE_MAX_AGE = 60
+    WHITENOISE_IMMUTABLE_FILE_TEST = lambda path, url: False
+    WHITENOISE_AUTOREFRESH = True  # Auto-refresh em desenvolvimento
+else:
+    # Cache de 1 ano em produção (máxima performance)
+    WHITENOISE_MAX_AGE = 31536000
+    WHITENOISE_IMMUTABLE_FILE_TEST = None  # Usa padrão do WhiteNoise
+    WHITENOISE_AUTOREFRESH = False
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = PROJECT_ROOT / 'frontend' / 'media'

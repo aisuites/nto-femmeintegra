@@ -1,8 +1,13 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Count
+from django.http import HttpResponse
 from django.views.generic import TemplateView
 
 from operacao.models import DadosRequisicao, StatusRequisicao, Unidade
+
+
+def health(request):
+    return HttpResponse('ok')
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
