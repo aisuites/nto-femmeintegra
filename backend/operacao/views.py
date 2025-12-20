@@ -180,23 +180,38 @@ class RecebimentoView(LoginRequiredMixin, TemplateView):
     login_url = 'admin:login'
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings
         context = super().get_context_data(**kwargs)
         
+        # Em desenvolvimento, desabilita cache completamente
+        # Em produção, usa cache de 1 hora
+        use_cache = not settings.DEBUG
+        
         # Cache de unidades (raramente muda)
-        unidades = cache.get('recebimento:unidades')
-        if unidades is None:
+        if use_cache:
+            unidades = cache.get('recebimento:unidades')
+            if unidades is None:
+                unidades = list(Unidade.objects.order_by('codigo', 'nome'))
+                cache.set('recebimento:unidades', unidades, 3600)
+        else:
             unidades = list(Unidade.objects.order_by('codigo', 'nome'))
-            cache.set('recebimento:unidades', unidades, 3600)  # 1 hora
         
         # Cache de portadores (raramente muda)
-        portadores = cache.get('recebimento:portadores')
-        if portadores is None:
+        if use_cache:
+            portadores = cache.get('recebimento:portadores')
+            if portadores is None:
+                portadores = list(
+                    PortadorRepresentante.objects.filter(ativo=True)
+                    .select_related('origem', 'unidade')
+                    .order_by('nome')
+                )
+                cache.set('recebimento:portadores', portadores, 3600)
+        else:
             portadores = list(
                 PortadorRepresentante.objects.filter(ativo=True)
                 .select_related('origem', 'unidade')
                 .order_by('nome')
             )
-            cache.set('recebimento:portadores', portadores, 3600)  # 1 hora
         
         # Requisições recebidas pelo usuário logado com status 1 (ABERTO_NTO)
         requisicoes = (
